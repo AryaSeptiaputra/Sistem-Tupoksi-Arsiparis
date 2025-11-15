@@ -25,6 +25,7 @@ class user(Base):
 
     def to_dict(self):
         return {
+            "id": self.id,
             "nuptk": self.nuptk,
             "username": self.username,
             "role": str(self.role),
