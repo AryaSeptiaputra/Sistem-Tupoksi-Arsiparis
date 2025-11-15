@@ -4,7 +4,7 @@ from app.core.database import Base
 class user(Base):
     __tablename__ = "user"
 
-    id= Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     nuptk = Column(String(16), index=True, nullable=False, unique=True)
     username = Column(String(50), index=True, nullable=False, unique=True)
     password = Column(String(200), nullable=False)
