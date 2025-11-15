@@ -17,7 +17,10 @@ def create_app():
         print(f"Error creating database tables: {e}")
 
     from .routes.auth import auth_bp
+    from .routes.user import user_bp
+
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(user_bp, url_prefix='/user')
 
     @app.route('/hello')
     def hello():

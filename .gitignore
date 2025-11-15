@@ -1,2 +1,4 @@
 .env
 .venv
+
+app\services\__pycache__

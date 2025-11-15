@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import Session
-from app import user
+from app.models.user import user
 from app.services.auth import login_user
 from app import db
 
@@ -16,15 +16,13 @@ def login():
         return jsonify({"error": "NUPTK and password are required"}), 400
 
     db_session: Session = db.SessionLocal()
-    user = login_user(db_session, nuptk, kata_sandi)
+    existing_user = login_user(db_session, nuptk, kata_sandi)
     db_session.close()
 
     if not user:
         return jsonify({"error": "Invalid NUPTK or password"}), 401
 
     return jsonify({
-        "nuptk": user.nuptk,
-        "username": user.username,
-        "role": user.role,
-        "status": user.status
+        "nuptk": existing_user.nuptk,
+        "username": existing_user.username,
     }), 200

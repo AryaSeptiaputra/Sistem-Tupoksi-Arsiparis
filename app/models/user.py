@@ -1,13 +1,31 @@
-from sqlalchemy import Column, String, Text, Enum
+from sqlalchemy import Column, String, Text, Enum, DateTime, func
 from app.core.database import Base
 
 class user(Base):
     __tablename__ = "user"
 
-    nuptk = Column(String, primary_key=True, index=True)
-    username = Column(String, index=True, nullable=False)
-    password = Column(String, nullable=False)
+    nuptk = Column(String(16), primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    password = Column(String(200), nullable=False)
     role = Column(Enum('kepala_sekolah', 'admin', 'guru/staff', name='peran_pengguna'), nullable=False)
     status = Column(Enum('aktif', 'non_aktif', name='user_status'), nullable=False)
-    created_at = Column(Text("CURRENT_TIMESTAMP"), nullable=False)
-    updated_at = Column(Text("CURRENT_TIMESTAMP"), nullable=False)
+    created_at = Column(
+        DateTime, 
+        nullable=False,
+        server_default=func.now()
+    )
+    
+    updated_at = Column(
+        DateTime, 
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    def to_dict(self):
+        return {
+            "nuptk": self.nuptk,
+            "username": self.username,
+            "role": str(self.role),
+            "status": str(self.status),
+        }
