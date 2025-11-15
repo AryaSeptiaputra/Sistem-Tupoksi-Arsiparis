@@ -1,11 +1,12 @@
-from sqlalchemy import Column, String, Text, Enum, DateTime, func
+from sqlalchemy import Column, String, Text, Enum, DateTime, func, Integer
 from app.core.database import Base
 
 class user(Base):
     __tablename__ = "user"
 
-    nuptk = Column(String(16), primary_key=True, index=True)
-    username = Column(String(50), index=True, nullable=False)
+    id= Column(Integer, primary_key=True, index=True)
+    nuptk = Column(String(16), index=True, nullable=False, unique=True)
+    username = Column(String(50), index=True, nullable=False, unique=True)
     password = Column(String(200), nullable=False)
     role = Column(Enum('kepala_sekolah', 'admin', 'guru/staff', name='peran_pengguna'), nullable=False)
     status = Column(Enum('aktif', 'non_aktif', name='user_status'), nullable=False)
