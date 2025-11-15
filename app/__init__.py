@@ -1,6 +1,7 @@
 from flask import Flask
 
 from .models.user import user
+from .models.classification import classification
 
 from .core.database import engine, Base
 from .core import database as db
@@ -18,9 +19,11 @@ def create_app():
 
     from .routes.auth import auth_bp
     from .routes.user import user_bp
+    from .routes.classification import classification_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(user_bp, url_prefix='/user')
+    app.register_blueprint(classification_bp, url_prefix='/classification')
 
     @app.route('/hello')
     def hello():

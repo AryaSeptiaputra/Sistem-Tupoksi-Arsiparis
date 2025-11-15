@@ -97,8 +97,6 @@ def get_all_users_route():
 def get_all_users_by_key_route():
     
     data = request.json
-    if not data:
-        return jsonify({"error": "JSON body is required"}), 400
 
     key = data.get('key')
     value = data.get('value')

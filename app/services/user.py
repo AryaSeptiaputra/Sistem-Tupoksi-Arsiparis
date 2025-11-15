@@ -59,5 +59,4 @@ def get_user_by_key(db: Session, key: str, value: str) -> user | None:
         raise ValueError(f"Kolom pencarian '{key}' tidak valid.")
 
     column_to_filter = getattr(user, key)
-    
     return db.query(user).filter(column_to_filter == value).all()
