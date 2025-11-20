@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_jwt_extended import JWTManager
 
 from .models.user import user
 from .models.classification import classification
@@ -6,10 +7,17 @@ from .models.classification import classification
 from .core.database import engine, Base
 from .core import database as db
 
+from .core.config import Settings
+
 def create_app():
     """Membuat dan mengkonfigurasi instance aplikasi Flask."""
     
     app = Flask(__name__)
+
+
+    app.config["JWT_SECRET_KEY"] = Settings().JWT_SECRET_KEY
+
+    jwt = JWTManager(app)
     
     try:
         Base.metadata.create_all(bind=engine)
@@ -20,13 +28,11 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.user import user_bp
     from .routes.classification import classification_bp
+    from .routes.unit import unit_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(classification_bp, url_prefix='/classification')
-
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
+    app.register_blueprint(unit_bp, url_prefix='/unit')
 
     return app
