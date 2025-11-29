@@ -11,6 +11,19 @@ user_bp = Blueprint('user', __name__)
 @user_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_user_route():
+    """
+    Creates a new user in the system.
+
+    Request Body:
+        nuptk (str): Unique ID.
+        username (str): Unique username.
+        password (str): Raw password (will be hashed).
+        role (str): 'headmaster', 'admin', or 'teacher'.
+        status (str): 'active' or 'inactive'.
+
+    Returns:
+        JSON: Success message with created NUPTK or error details.
+    """
     data = request.json
     required_fields = ['nuptk', 'username', 'password', 'role', 'status']
 
@@ -25,16 +38,13 @@ def create_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_user = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
             
-            if admin_user:
-                action = f"Pengguna  membuat user baru dengan nomor 'NUPTK': '{new_user.nuptk}'."
-                create_log(db_session, admin_user[0].id, action)
-            else:
-                print(f"Warning Log: User dengan NUPTK {current_user_nuptk} tidak ditemukan di DB.")
-
+            if admin_users:
+                admin_user = admin_users[0]
+                action = f"Pengguna membuat user baru dengan NUPTK: '{new_user.nuptk}'."
+                create_log(db_session, admin_user.id, action)
         except Exception as e:
-
             print(f"Warning Log Error: {e}")
 
         return jsonify({
@@ -44,12 +54,10 @@ def create_user_route():
     except IntegrityError:
         db_session.rollback()
         return jsonify({"message": "Gagal: NUPTK atau Username sudah terdaftar."}), 409
-
     except Exception as e:
         db_session.rollback()
         print(f"Error Create User: {e}")
         return jsonify({"message": "Terjadi kesalahan internal server"}), 500
-    
     finally:
         db_session.close()
     
@@ -57,36 +65,43 @@ def create_user_route():
 @user_bp.route('/update', methods=['POST'])
 @jwt_required()
 def updated_user_route():
+    """
+    Updates an existing user's details.
+
+    Request Body:
+        id (int): The ID of the user to update.
+        ...other fields to update (optional).
+
+    Returns:
+        JSON: Success message or error if user not found.
+    """
     data = request.json
-    id = data.get('id')
+    user_id = data.get('id')
     
+    if not user_id:
+        return jsonify({"error": "ID is required"}), 400
+
     db_session: Session = db.SessionLocal()
     try:
-        updated_user = update_user(db_session, id, data)
+        updated_user = update_user(db_session, user_id, data)
         if not updated_user:
             return jsonify({"error": "User not found"}), 404
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_user = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
 
-            if not data.key():
-                text = "tidak ada data"
-            elif len(data.key()) == 1:
-                text = f"'{data.key()[0]}'"
-            else:
-                text = ", ".join(f"'{k}'" for k in data.key()[:-1])
-                text += f" dan '{data.key()[-1]}'"
+            updated_fields = list(data.keys())
+            if 'id' in updated_fields: updated_fields.remove('id')
+            
+            fields_str = ", ".join(updated_fields)
 
-            if admin_user:
-                action = f"Pengguna  memperbarui data {text} pengguna dengan nomor 'NUPTK': '{updated_user.nuptk}'."
-                create_log(db_session, admin_user[0].id, action)
-            else:
-                print(f"Warning Log: User dengan NUPTK {current_user_nuptk} tidak ditemukan di DB.")
+            if admin_users:
+                action = f"Pengguna memperbarui data ({fields_str}) pengguna NUPTK: '{updated_user.nuptk}'."
+                create_log(db_session, admin_users[0].id, action)
 
         except Exception as e:
             print(f"Warning Log Error: {e}")
-
 
         return jsonify({
             "message": f"Berhasil memperbarui data pengguna dengan NUPTK: {updated_user.nuptk}"
@@ -95,17 +110,24 @@ def updated_user_route():
     except ValueError as e:
         db_session.rollback()
         return jsonify({"error": str(e)}), 400
-    
     except IntegrityError:
         db_session.rollback()
-        return jsonify({"error": "NUPTK already exists"}), 409
-
+        return jsonify({"error": "Username/NUPTK conflict"}), 409
     finally:
         db_session.close()
 
 @user_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_user_route():
+    """
+    Deletes a user from the system.
+
+    Request Body:
+        id (int): The ID of the user to delete.
+
+    Returns:
+        JSON: Success message containing the deleted user's data.
+    """
     data = request.json
     user_id = data.get('id')
     
@@ -117,6 +139,14 @@ def delete_user_route():
         deleted_user = delete_user(db_session, user_id)
         if not deleted_user:
             return jsonify({"error": "User not found"}), 404
+        
+        try:
+            current_user_nuptk = get_jwt_identity()
+            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            if admin_users:
+                create_log(db_session, admin_users[0].id, f"Menghapus user NUPTK: {deleted_user.nuptk}")
+        except Exception:
+            pass
 
         return jsonify({
             "message": f"Berhasil menghapus pengguna dengan NUPTK: {deleted_user.nuptk}",
@@ -128,43 +158,48 @@ def delete_user_route():
 
 @user_bp.route('/get_all', methods=['GET'])
 def get_all_users_route():
+    """
+    Retrieves a list of all users.
+
+    Returns:
+        JSON: A list of user objects.
+    """
     db_session: Session = db.SessionLocal()
     try:
         users = get_all_users(db_session)
-        users_list = [
-            user.to_dict()
-        for user in users]
-        return jsonify(users_list), 200
-
+        return jsonify([user.to_dict() for user in users]), 200
     finally:
         db_session.close()
 
 @user_bp.route('/get_by_key', methods=['POST'])
 def get_all_users_by_key_route():
-    
-    data = request.json
+    """
+    Retrieves users filtered by a specific attribute.
 
+    Request Body:
+        key (str): The column name to filter by (e.g., 'role').
+        value (str): The value to search for.
+
+    Returns:
+        JSON: A list of matching user objects.
+    """
+    data = request.json
     key = data.get('key')
     value = data.get('value')
     
     if not key or not value:
-        return jsonify({"error": "key and value fields are required in JSON body"}), 400
+        return jsonify({"error": "key and value fields are required"}), 400
 
     db_session: Session = db.SessionLocal()
     try:
         users = get_user_by_key(db_session, key, value)
         
         if not users:
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"message": "User not found"}), 404
         
-        users_list = [
-            user.to_dict()
-        for user in users]
-        return jsonify(users_list), 200
+        return jsonify([user.to_dict() for user in users]), 200
 
     except ValueError as e:
-        db_session.rollback()
         return jsonify({"error": str(e)}), 400
-        
     finally:
         db_session.close()

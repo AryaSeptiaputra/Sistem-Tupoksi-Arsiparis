@@ -9,6 +9,16 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """
+    Authenticates a user and provides a JWT access token.
+
+    Request Body:
+        nuptk (str): The user's unique identification number.
+        password (str): The user's password.
+
+    Returns:
+        JSON: Access token and welcome message if successful, error message otherwise.
+    """
     data = request.json
     nuptk = data.get('nuptk')
     password = data.get('password')
@@ -30,9 +40,8 @@ def login():
         try:
             action = f"Pengguna melakukan login."
             create_log(db_session, existing_user.id, action)
-            
         except Exception as e:
-            pass 
+            print(f"Login Log Error: {e}") 
 
         return jsonify({
             "message": f"Selamat Datang! {username}!",
@@ -40,6 +49,7 @@ def login():
         }), 200
 
     except Exception as e:
+        print(f"Login Error: {e}")
         return jsonify({"message": "Terjadi kesalahan pada server"}), 500
         
     finally:

@@ -1,12 +1,15 @@
 from sqlalchemy.orm import Session
-from app.models.log import log
+from app.models.log import Log
 import datetime
 
-def create_log(db: Session, user_id: int, action: str) -> log:
-    new_log = log(
+def create_log(db: Session, user_id: int, action: str) -> Log:
+    """
+    Creates a new activity log entry.
+    """
+    new_log = Log(
         user_id=user_id,
         action=action,
-        timestamp=datetime.datetime.now().isoformat()
+        timestamp=datetime.datetime.now()
     )
 
     db.add(new_log)

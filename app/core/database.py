@@ -1,9 +1,16 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
+"""
+Database Configuration Module.
+
+This module sets up the SQLAlchemy database engine and session factory.
+It serves as the central point for database connectivity logic.
+"""
+
 engine = create_engine(settings.DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()   
+Base = declarative_base()
