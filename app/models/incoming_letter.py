@@ -25,12 +25,12 @@ class IncomingLetter(Base):
     __tablename__ = "incoming_letter"
 
     id = Column(Integer, primary_key=True, index=True)
-    number = Column(String, index=True, nullable=False, unique=True)
+    number = Column(String(50), index=True, nullable=False, unique=True)
     letter_date = Column(DateTime, index=True, nullable=False)
     received_date = Column(DateTime, index=True, nullable=False)
-    sender = Column(String, index=True, nullable=False)
-    subject = Column(Text, index=False, nullable=False)
-    attachment_path = Column(Text, index=False, nullable=True)
+    sender = Column(String(100), index=True, nullable=False)
+    subject = Column(String(255), nullable=False)
+    attachment_path = Column(String(255), nullable=True)
     
     classification_id = Column(Integer, ForeignKey('classification.id'), nullable=False, index=True)
     classification = relationship("Classification", backref="incoming_letters")

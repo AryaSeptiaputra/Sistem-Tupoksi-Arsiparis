@@ -3,6 +3,7 @@ from flask_jwt_extended import JWTManager
 
 from .core.config import settings
 from .core.database import engine, Base
+from .core import database as db
 
 from .models.user import User
 from .models.classification import Classification

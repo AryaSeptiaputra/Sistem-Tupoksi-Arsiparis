@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Enum, DateTime, func, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, Enum, DateTime, func, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -27,13 +27,14 @@ class OutgoingLetter(Base):
     __tablename__ = "outgoing_letter"
 
     id = Column(Integer, primary_key=True, index=True)
-    number = Column(String, index=True, nullable=False)
+    number = Column(String(50), index=True, nullable=False)
     letter_date = Column(DateTime, index=True, nullable=False)
     sent_date = Column(DateTime, index=True, nullable=False)
-    destination = Column(String, index=True, nullable=False)
-    subject = Column(Text, index=False, nullable=True)
-    is_decree = Column(Enum('yes', 'no', name="decree_status"), index=True, nullable=False)
-    attachment_path = Column(Text, index=False, nullable=True)
+    destination = Column(String(100), index=True, nullable=False)
+    subject = Column(String(255), nullable=True)
+    is_decree = Column(Boolean, default=False, index=True, nullable=False)
+    attachment_path = Column(String(255), nullable=True)
+
     
     classification_id = Column(Integer, ForeignKey("classification.id"), index=True, nullable=False)
     classification = relationship("Classification", backref="outgoing_letters")
