@@ -8,8 +8,14 @@ def check_password(password: str) -> bool:
     """
     if len(password) < 8:
         raise ValueError("Password minimal 8 karakter")
+    if not re.search(r'[A-Z]', password):
+        raise ValueError("Password harus mengandung setidaknya satu huruf besar (A-Z)")
+    if not re.search(r'[a-z]', password):
+        raise ValueError("Password harus mengandung setidaknya satu huruf kecil (a-z)")
     if not re.search(r'[0-9]', password):
-        raise ValueError("Password harus mengandung setidaknya satu angka")
+        raise ValueError("Password harus mengandung setidaknya satu angka (0-9)")
+    if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|`~]', password):
+        raise ValueError("Password harus mengandung setidaknya satu karakter spesial (!@#$%^&*)")
     return True
 
 def validate_password_change(old_password: str, new_password: str) -> bool:

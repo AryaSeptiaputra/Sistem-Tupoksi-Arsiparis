@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.user import user
-from app.services.hash import get_password_hash
-from app.services.password import check_password, validate_password_change
+from app.utils.hash import get_password_hash
+from app.utils.password import check_password, validate_password_change
 import datetime
 
 def create_user(db: Session, user_data: dict) -> user:
@@ -24,12 +24,15 @@ def create_user(db: Session, user_data: dict) -> user:
     db.refresh(new_user)
     return new_user
 
-def update_user(db: Session, nuptk: str, update_data: dict):
-    existing_user = db.query(user).filter(user.nuptk == nuptk).first()
+def update_user(db: Session, user_id: int, update_data: dict):
+    existing_user = db.query(user).filter(user.id == user_id).first()
+    
     if not existing_user:
-        ValueError("User not found")
+        return None
 
     for key, value in update_data.items():
+        if key == 'id':  # Skip id field
+            continue
         if key == 'password':
             validate_password_change(existing_user.password, value)
             value = get_password_hash(value)
@@ -42,8 +45,9 @@ def update_user(db: Session, nuptk: str, update_data: dict):
     db.refresh(existing_user)
     return existing_user
 
-def delete_user(db: Session, nuptk: str):
-    existing_user = db.query(user).filter(user.nuptk == nuptk).first()
+def delete_user(db: Session, user_id: int):
+    existing_user = db.query(user).filter(user.id == user_id).first()
+    
     if not existing_user:
         return None
 
@@ -55,8 +59,6 @@ def get_all_users(db: Session):
     return db.query(user).all()
 
 def get_user_by_key(db: Session, key: str, value: str) -> user | None:
-    if not hasattr(user, key):
-        raise ValueError(f"Kolom pencarian '{key}' tidak valid.")
 
     column_to_filter = getattr(user, key)
     return db.query(user).filter(column_to_filter == value).all()

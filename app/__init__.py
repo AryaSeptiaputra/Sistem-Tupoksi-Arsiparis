@@ -3,6 +3,7 @@ from flask_jwt_extended import JWTManager
 
 from .models.user import user
 from .models.classification import classification
+from .models.log import log
 
 from .core.database import engine, Base
 from .core import database as db
@@ -28,11 +29,9 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.user import user_bp
     from .routes.classification import classification_bp
-    from .routes.unit import unit_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(classification_bp, url_prefix='/classification')
-    app.register_blueprint(unit_bp, url_prefix='/unit')
 
     return app

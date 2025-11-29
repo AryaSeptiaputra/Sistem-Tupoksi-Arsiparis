@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from sqlalchemy.orm import Session
-from app.models.user import user # Ini Model Class
 from app.services.auth import login_user
+from app.services.log import create_log
 from app import db
 
 auth_bp = Blueprint('auth', __name__)
@@ -23,18 +23,24 @@ def login():
 
         if not existing_user:
             return jsonify({"message": "NUPTK atau kata sandi tidak valid"}), 401
-        
+
         access_token = create_access_token(identity=str(existing_user.nuptk))
         username = existing_user.username 
+        
+        try:
+            action = f"Pengguna melakukan login."
+            create_log(db_session, existing_user.id, action)
+            
+        except Exception as e:
+            pass 
 
         return jsonify({
-            "message": f"Selamat Datang! {username}",
+            "message": f"Selamat Datang! {username}!",
             "access_token": access_token
         }), 200
 
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"message": "Terjadi kesalahan pada server"}), 500
-
+        
     finally:
         db_session.close()

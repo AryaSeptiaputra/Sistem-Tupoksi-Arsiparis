@@ -10,18 +10,8 @@ class user(Base):
     password = Column(String(200), nullable=False)
     role = Column(Enum('kepala_sekolah', 'admin', 'guru/staff', name='peran_pengguna'), nullable=False)
     status = Column(Enum('aktif', 'non_aktif', name='user_status'), nullable=False)
-    created_at = Column(
-        DateTime, 
-        nullable=False,
-        server_default=func.now()
-    )
-    
-    updated_at = Column(
-        DateTime, 
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False,server_default=func.now(),onupdate=func.now())
 
     def to_dict(self):
         return {

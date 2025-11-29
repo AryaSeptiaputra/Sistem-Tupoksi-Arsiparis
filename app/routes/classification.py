@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.models.classification import classification
@@ -8,6 +9,7 @@ from app import db
 classification_bp = Blueprint('classification', __name__)
 
 @classification_bp.route('/create', methods=['POST'])
+@jwt_required()
 def create_classification_route():
     data = request.json
 
@@ -36,6 +38,7 @@ def create_classification_route():
         db_session.close()
 
 @classification_bp.route('/update', methods=['POST'])
+@jwt_required()
 def update_classification_route():
     data = request.json
     classification_id = data.get('id')
@@ -62,6 +65,7 @@ def update_classification_route():
         db_session.close()
 
 @classification_bp.route('/delete', methods=['POST'])
+@jwt_required()
 def delete_classification_route():
     data = request.json
     classification_id = data.get('id')
