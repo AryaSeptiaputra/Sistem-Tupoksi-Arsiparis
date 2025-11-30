@@ -17,8 +17,8 @@ Berikut adalah pembagian folder agar file coding (statis) tidak tercampur dengan
 
 ```text
 .
-├── app/                 # [Backend] Logic utama API (Python)
-├── database/            # [Data] File .sql
+├── app/                 # [Backend] Logic API & Konfigurasi Database
+├── database/            # [Data] Kumpulan file .sql (Schema/Backup)
 ├── storage/             # [DATA] Tempat menyimpan file Surat & Rapot (Ganti nama dari 'assets' root)
 │   ├── surat/
 │   └── rapot/
@@ -28,6 +28,7 @@ Berikut adalah pembagian folder agar file coding (statis) tidak tercampur dengan
 │   │   ├── css/
 │   │   ├── js/
 │   │   └── images/
+├── .env                 # [Config] File rahasia (Jangan dipush ke GitHub!)
 ├── main.py              # [Backend] Entry point server
 ├── seed_admin.py        # [Backend] Script data awal
 ├── test_api.py          # [Backend] Testing script
@@ -56,9 +57,28 @@ python -m venv venv
 
 # 3. Install Dependencies
 pip install -r requirements.txt
+```
 
-# 4. Setup Database & Admin
-# Jalankan ini sekali saja untuk membuat user admin awal
+#### 4\. Konfigurasi Environment (.env)
+
+Buat file baru bernama `.env` di folder paling luar (root), lalu isi dengan konfigurasi berikut. Sesuaikan password database dengan settingan laptop masing-masing.
+
+**Isi file `.env`:**
+
+```ini
+# Ganti 'password' dengan password database MySQL lokal kalian
+DATABASE_URL=[URL yang dishare digrup]
+
+# Key untuk keamanan login (Jangan disebar sembarangan)
+JWT_SECRET_KEY=[Kode yang dishare digrup]
+```
+
+> ⚠️ **PENTING:** Jangan pernah push file `.env` ini ke GitHub\! Pastikan file ini sudah ada di dalam `.gitignore`.
+
+```bash
+# 5. Setup Database & Admin
+# Import file .sql dari folder database/ jika diperlukan,
+# lalu jalankan script ini untuk membuat user admin awal:
 python seed_admin.py
 ```
 
@@ -167,3 +187,6 @@ Aturan main untuk semua developer (Backend & Frontend):
 
 **Happy Coding, Team\! 🚀**
 Jika ada kendala koneksi antara Frontend dan Backend, segera diskusikan di grup.
+
+```
+```
