@@ -30,7 +30,7 @@ def get_current_user_obj(db_session: Session):
 @jwt_required()
 def trigger_manual_backup():
     """Triggers a manual database backup immediately.
-
+    
     Requires a valid JWT access token. The ID of the user requesting the
     backup will be recorded in the backup logs.
 
@@ -42,24 +42,29 @@ def trigger_manual_backup():
             * 201: JSON dictionary containing the backup filename and path.
             * 500: Error message if the backup process fails.
     """
+    
     db_session: Session = SessionLocal()
-    user_id = None
+    current_user = None
     
     try:
-        user_id = get_current_user_obj(db_session)
+        current_user = get_current_user_obj(db_session)
     except Exception as e:
         print(f"Warning: Could not resolve user ID for backup log. Error: {e}")
     finally:
         db_session.close()
 
     try:
-        result = perform_database_backup(user_id=user_id)
+        result = perform_database_backup(
+            user_id=current_user.id if current_user else None
+        )
         return jsonify({
             "message": "Backup created successfully",
             "data": result
         }), 201
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @backup_bp.route('/logs', methods=['GET'])
 @jwt_required()

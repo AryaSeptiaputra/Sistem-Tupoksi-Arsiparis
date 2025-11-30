@@ -46,7 +46,7 @@ def create_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_users_by_keys(db_session, {'nuptk': current_user_nuptk})
             
             if admin_users:
                 admin_user = admin_users[0]
@@ -105,7 +105,7 @@ def updated_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_users_by_keys(db_session, {'nuptk': current_user_nuptk})
 
             updated_fields = list(data.keys())
             if 'id' in updated_fields: updated_fields.remove('id')
