@@ -167,6 +167,3 @@ Aturan main untuk semua developer (Backend & Frontend):
 
 **Happy Coding, Team\! 🚀**
 Jika ada kendala koneksi antara Frontend dan Backend, segera diskusikan di grup.
-
-```
-```
