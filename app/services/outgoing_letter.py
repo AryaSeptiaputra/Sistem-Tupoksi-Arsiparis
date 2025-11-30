@@ -119,6 +119,6 @@ def get_outgoing_letters_by_keys(db: Session, filters: dict) -> list[OutgoingLet
             raise ValueError(f"Invalid column '{key}' for OutgoingLetter.")
         
         column_to_filter = getattr(OutgoingLetter, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

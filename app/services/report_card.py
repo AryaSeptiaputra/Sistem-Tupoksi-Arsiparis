@@ -113,7 +113,7 @@ def get_report_cards_by_keys(db: Session, filters: dict) -> list[ReportCard]:
             raise ValueError(f"Invalid column '{key}' for ReportCard.")
         
         column_to_filter = getattr(ReportCard, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()
 

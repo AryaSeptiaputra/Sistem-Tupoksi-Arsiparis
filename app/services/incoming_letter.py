@@ -118,6 +118,6 @@ def get_incoming_letters_by_keys(db: Session, filters: dict) -> list[IncomingLet
             raise ValueError(f"Invalid column '{key}' for IncomingLetter.")
         
         column_to_filter = getattr(IncomingLetter, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

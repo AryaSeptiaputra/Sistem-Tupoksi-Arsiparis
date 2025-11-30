@@ -34,7 +34,7 @@ class ReportCard(Base):
     attachment_path = Column(String(255), nullable=True)
 
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    user = relationship("User", backref="report_cards")
+    user = relationship("User", backref="report_cards", lazy="joined")
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

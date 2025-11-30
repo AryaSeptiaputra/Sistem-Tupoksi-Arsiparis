@@ -108,6 +108,6 @@ def get_classifications_by_keys(db: Session, filters: dict) -> list[Classificati
             raise ValueError(f"Invalid column '{key}' for Classification.")
         
         column_to_filter = getattr(Classification, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

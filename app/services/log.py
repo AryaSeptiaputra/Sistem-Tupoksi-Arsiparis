@@ -60,6 +60,6 @@ def get_logs_by_keys(db: Session, filters: dict) -> list[Log]:
             raise ValueError(f"Invalid column '{key}' for Log.")
         
         column_to_filter = getattr(Log, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

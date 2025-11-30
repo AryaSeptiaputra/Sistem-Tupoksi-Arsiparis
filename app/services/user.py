@@ -133,6 +133,6 @@ def get_users_by_keys(db: Session, filters: dict) -> list[User]:
             raise ValueError(f"Invalid column '{key}' for User.")
         
         column_to_filter = getattr(User, key)
-        query = query.filter(column_to_filter == value)
+        query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

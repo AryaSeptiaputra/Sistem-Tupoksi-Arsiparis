@@ -119,7 +119,21 @@ def update_report_card_route():
 @report_card_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_report_card_route():
-    """Deletes a report card record."""
+    """
+    Deletes a report card record by its ID.
+
+    Requires a valid JWT access token. The action is logged to the database
+    linking the deletion to the current user.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        id (int): The unique identifier (primary key) of the report card.
+
+    Returns:
+        tuple[Response, int]:
+            * 200: JSON dictionary of the deleted report card data.
+            * 404: Error message if the report card ID is not found.
+    """
     data = request.json
     report_id = data.get('id')
 
@@ -141,7 +155,22 @@ def delete_report_card_route():
 
 @report_card_bp.route('/get_all', methods=['GET'])
 def get_all_report_cards_route():
-    """Retrieves all report cards."""
+    """
+    Retrieves report card records filtered by specific criteria.
+
+    Allows filtering based on multiple columns provided in the filters dictionary.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        filters (dict): A dictionary where keys represent column names and 
+                        values represent the data to filter by.
+
+    Returns:
+        tuple[Response, int]:
+            * 200: A JSON list of report cards matching the filters.
+            * 400: Error message if the 'filters' dictionary is missing, 
+                   invalid, or contains invalid keys.
+    """
     db_session: Session = db.SessionLocal()
     try:
         reports = get_all_report_cards(db_session)
@@ -151,7 +180,22 @@ def get_all_report_cards_route():
 
 @report_card_bp.route('/get_by_keys', methods=['POST'])
 def get_report_by_keys_route():
-    """Retrieves report cards filtered by multiple keys."""
+    """
+    Retrieves report card records filtered by specific criteria.
+
+    Allows filtering based on multiple columns provided in the filters dictionary.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        filters (dict): A dictionary where keys represent column names and 
+                        values represent the data to filter by.
+
+    Returns:
+        tuple[Response, int]:
+            * 200: A JSON list of report cards matching the filters.
+            * 400: Error message if the 'filters' dictionary is missing, 
+                   invalid, or contains invalid keys.
+    """
     data = request.json
     filters = data.get('filters')
 
