@@ -35,12 +35,18 @@ class Classification(Base):
     )
 
     def to_dict(self):
-        """
-        Serializes the Classification object into a dictionary format.
-
+        """Convert classification object to dictionary format for API responses.
+        
+        Serializes the Classification instance into a JSON-compatible dictionary
+        containing essential classification information. This method is commonly
+        used when returning data through REST API endpoints.
+        
         Returns:
-            dict: A dictionary containing the classification details including
-                  its code and description.
+            dict: A dictionary containing the following keys:
+                - id (int): The unique identifier of the classification
+                - code (str): The classification code (e.g., '001', 'DNS')
+                - name (str): The full name of the classification
+                - description (str or None): Additional details about the classification
         """
         return {
             "id": self.id,

@@ -4,7 +4,17 @@ import datetime
 
 def create_outgoing_letter(db: Session, letter_data: dict, user_id: int) -> OutgoingLetter:
     """
-    Creates a new outgoing letter record.
+    Creates a new outgoing letter record in the database.
+
+    Args:
+        db (Session): The database session.
+        letter_data (dict): A dictionary containing letter details. Expected keys:
+            'number', 'letter_date', 'sent_date', 'destination', 'subject',
+            'is_decree', 'classification_id', and optionally 'attachment_path'.
+        user_id (int): The ID of the user creating the record.
+
+    Returns:
+        OutgoingLetter: The newly created outgoing letter record.
     """
     new_letter = OutgoingLetter(
         number=letter_data['number'],
@@ -27,7 +37,16 @@ def create_outgoing_letter(db: Session, letter_data: dict, user_id: int) -> Outg
 
 def update_outgoing_letter(db: Session, letter_id: int, update_data: dict) -> OutgoingLetter | None:
     """
-    Updates an existing outgoing letter.
+    Updates an existing outgoing letter record.
+
+    Args:
+        db (Session): The database session.
+        letter_id (int): The ID of the letter to update.
+        update_data (dict): A dictionary of fields to update. Keys 'id' and 
+            'user_id' will be ignored to preserve integrity.
+
+    Returns:
+        OutgoingLetter | None: The updated record, or None if not found.
     """
     existing_letter = db.query(OutgoingLetter).filter(OutgoingLetter.id == letter_id).first()
     if not existing_letter:
@@ -47,7 +66,14 @@ def update_outgoing_letter(db: Session, letter_id: int, update_data: dict) -> Ou
 
 def delete_outgoing_letter(db: Session, letter_id: int) -> OutgoingLetter | None:
     """
-    Deletes an outgoing letter by ID.
+    Deletes an outgoing letter record by its ID.
+
+    Args:
+        db (Session): The database session.
+        letter_id (int): The ID of the letter to delete.
+
+    Returns:
+        OutgoingLetter | None: The deleted record, or None if the ID was not found.
     """
     existing_letter = db.query(OutgoingLetter).filter(OutgoingLetter.id == letter_id).first()
     if not existing_letter:
@@ -59,16 +85,40 @@ def delete_outgoing_letter(db: Session, letter_id: int) -> OutgoingLetter | None
 
 def get_all_outgoing_letters(db: Session) -> list[OutgoingLetter]:
     """
-    Retrieves all outgoing letters.
+    Retrieves all outgoing letter records from the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        list[OutgoingLetter]: A list of all outgoing letters.
     """
     return db.query(OutgoingLetter).all()
 
-def get_outgoing_letter_by_key(db: Session, key: str, value: str) -> list[OutgoingLetter]:
+def get_outgoing_letters_by_keys(db: Session, filters: dict) -> list[OutgoingLetter]:
     """
-    Retrieves outgoing letters filtered by a specific column key.
+    Retrieves outgoing letter records filtered by specific attributes.
+
+    Args:
+        db (Session): The database session.
+        filters (dict): A dictionary of key-value pairs to filter the query.
+            Keys must match valid column names in the OutgoingLetter model
+            (e.g., {"is_decree": True, "destination": "Sekolah"}).
+
+    Returns:
+        list[OutgoingLetter]: A list of outgoing letters matching the filter criteria.
+
+    Raises:
+        ValueError: If a provided filter key is not a valid column attribute
+            of the OutgoingLetter model.
     """
-    if not hasattr(OutgoingLetter, key):
-        raise ValueError(f"Invalid column '{key}' for OutgoingLetter.")
+    query = db.query(OutgoingLetter)
     
-    column_to_filter = getattr(OutgoingLetter, key)
-    return db.query(OutgoingLetter).filter(column_to_filter == value).all()
+    for key, value in filters.items():
+        if not hasattr(OutgoingLetter, key):
+            raise ValueError(f"Invalid column '{key}' for OutgoingLetter.")
+        
+        column_to_filter = getattr(OutgoingLetter, key)
+        query = query.filter(column_to_filter == value)
+        
+    return query.all()

@@ -4,7 +4,17 @@ import datetime
 
 def create_incoming_letter(db: Session, letter_data: dict, user_id: int) -> IncomingLetter:
     """
-    Creates a new incoming letter record.
+    Creates a new incoming letter record in the database.
+
+    Args:
+        db (Session): The database session.
+        letter_data (dict): A dictionary containing letter details. Expected keys:
+            'number', 'letter_date', 'received_date', 'sender', 'subject',
+            'classification_id', and optionally 'attachment_path'.
+        user_id (int): The ID of the user creating the record.
+
+    Returns:
+        IncomingLetter: The newly created incoming letter record.
     """
     new_letter = IncomingLetter(
         number=letter_data['number'],
@@ -26,7 +36,17 @@ def create_incoming_letter(db: Session, letter_data: dict, user_id: int) -> Inco
 
 def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> IncomingLetter | None:
     """
-    Updates an existing incoming letter.
+    Updates an existing incoming letter record.
+
+    Args:
+        db (Session): The database session.
+        letter_id (int): The ID of the letter to update.
+        update_data (dict): A dictionary of fields to update. Keys 'id' and 
+            'user_id' will be ignored if present.
+
+    Returns:
+        IncomingLetter | None: The updated record, or None if the letter ID 
+            was not found.
     """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
@@ -46,7 +66,14 @@ def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> In
 
 def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None:
     """
-    Deletes an incoming letter by ID.
+    Deletes an incoming letter record by its ID.
+
+    Args:
+        db (Session): The database session.
+        letter_id (int): The ID of the letter to delete.
+
+    Returns:
+        IncomingLetter | None: The deleted record, or None if the ID was not found.
     """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
@@ -58,16 +85,39 @@ def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None
 
 def get_all_incoming_letters(db: Session) -> list[IncomingLetter]:
     """
-    Retrieves all incoming letters.
+    Retrieves all incoming letter records from the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        list[IncomingLetter]: A list of all incoming letters.
     """
     return db.query(IncomingLetter).all()
 
-def get_incoming_letter_by_key(db: Session, key: str, value: str) -> list[IncomingLetter]:
+def get_incoming_letters_by_keys(db: Session, filters: dict) -> list[IncomingLetter]:
     """
-    Retrieves incoming letters filtered by a specific column key.
+    Retrieves incoming letters filtered by specific column values.
+
+    Args:
+        db (Session): The database session.
+        filters (dict): Key-value pairs to filter the query. Keys must match 
+            valid column names in the IncomingLetter model.
+
+    Returns:
+        list[IncomingLetter]: A list of incoming letters matching the filters.
+
+    Raises:
+        ValueError: If a key in the filters dictionary does not exist as a 
+            column in the model.
     """
-    if not hasattr(IncomingLetter, key):
-        raise ValueError(f"Invalid column '{key}' for IncomingLetter.")
+    query = db.query(IncomingLetter)
     
-    column_to_filter = getattr(IncomingLetter, key)
-    return db.query(IncomingLetter).filter(column_to_filter == value).all()
+    for key, value in filters.items():
+        if not hasattr(IncomingLetter, key):
+            raise ValueError(f"Invalid column '{key}' for IncomingLetter.")
+        
+        column_to_filter = getattr(IncomingLetter, key)
+        query = query.filter(column_to_filter == value)
+        
+    return query.all()

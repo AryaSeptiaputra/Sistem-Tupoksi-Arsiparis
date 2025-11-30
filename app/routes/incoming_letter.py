@@ -2,40 +2,54 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
 
-from app.services.incoming_letter import (
-    create_incoming_letter, 
-    update_incoming_letter, 
-    delete_incoming_letter, 
-    get_all_incoming_letters, 
-    get_incoming_letter_by_key
-)
-from app.services.user import get_user_by_key
+from app.services.incoming_letter import create_incoming_letter, update_incoming_letter, delete_incoming_letter, get_all_incoming_letters, get_incoming_letters_by_keys
+from app.services.user import get_users_by_keys
 from app.services.log import create_log
 from app import db
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
 
-def get_current_user_obj(db_session):
-    """
-    Helper function to retrieve the currently logged-in user object based on the JWT identity.
+def get_current_user_obj(db_session: Session):
+    """Helper function to retrieve the currently logged-in user object.
+
+    Uses the JWT identity (NUPTK) from the request context to fetch
+    the full User object from the database using the plural service with a filter.
+
+    Args:
+        db_session (Session): The active database session.
+
+    Returns:
+        User | None: The User object if found, otherwise None.
     """
     current_nuptk = get_jwt_identity()
-    users = get_user_by_key(db_session, 'nuptk', current_nuptk)
+    users = get_users_by_keys(db_session, {'nuptk': current_nuptk})
     return users[0] if users else None
 
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_incoming_letter_route():
-    """
-    Creates a new incoming letter record.
+    """Creates a new incoming letter record.
 
-    Request Body:
-        number, letter_date, received_date, sender, subject, classification_id.
+    Requires a valid JWT access token. Validates input fields and logs the
+    creation activity. Date strings are passed directly to the service layer.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        number (str): The official letter number (must be unique).
+        letter_date (str): Date on the letter (YYYY-MM-DD).
+        received_date (str): Date received (YYYY-MM-DD).
+        sender (str): The sender of the letter.
+        subject (str): The subject or title of the letter.
+        classification_id (int): Foreign key linking to a classification.
 
     Returns:
-        JSON: The created letter object or error.
+        tuple[Response, int]:
+            * 201: JSON of the created letter.
+            * 400: Missing required fields.
+            * 401: User authentication failed.
+            * 409: Letter number already exists.
+            * 500: Internal Server Error.
     """
     data = request.json
     required_fields = ['number', 'letter_date', 'received_date', 'sender', 'subject', 'classification_id']
@@ -49,13 +63,7 @@ def create_incoming_letter_route():
         current_user = get_current_user_obj(db_session)
         if not current_user:
             return jsonify({"error": "User authentication failed"}), 401
-
-        try:
-            data['letter_date'] = datetime.fromisoformat(data['letter_date'])
-            data['received_date'] = datetime.fromisoformat(data['received_date'])
-        except ValueError:
-            return jsonify({"error": "Invalid date format. Use ISO format (YYYY-MM-DD)"}), 400
-
+        
         new_letter = create_incoming_letter(db_session, data, user_id=current_user.id)
         
         try:
@@ -71,7 +79,7 @@ def create_incoming_letter_route():
         return jsonify({"error": "Nomor surat sudah terdaftar (harus unik)."}), 409
     except Exception as e:
         db_session.rollback()
-        print(f"Error: {e}")
+        print(f"Error Incoming Letter: {e}") 
         return jsonify({"error": "Internal Server Error"}), 500
     finally:
         db_session.close()
@@ -79,15 +87,21 @@ def create_incoming_letter_route():
 @incoming_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_incoming_letter_route():
-    """
-    Updates an existing incoming letter.
+    """Updates an existing incoming letter.
 
-    Request Body:
-        id (int): Letter ID.
-        ...other fields to update.
+    Requires a valid JWT access token. Updates specified fields and logs
+    the activity.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        id (int): The ID of the letter to update (Required).
+        ... (Any other field from create_incoming_letter_route to update).
 
     Returns:
-        JSON: Updated letter object.
+        tuple[Response, int]:
+            * 200: JSON of the updated letter.
+            * 400: Missing 'id'.
+            * 404: Letter not found.
     """
     data = request.json
     letter_id = data.get('id')
@@ -97,11 +111,6 @@ def update_incoming_letter_route():
 
     db_session: Session = db.SessionLocal()
     try:
-        if 'letter_date' in data:
-            data['letter_date'] = datetime.fromisoformat(data['letter_date'])
-        if 'received_date' in data:
-            data['received_date'] = datetime.fromisoformat(data['received_date'])
-
         updated_letter = update_incoming_letter(db_session, letter_id, data)
         
         if not updated_letter:
@@ -127,14 +136,19 @@ def update_incoming_letter_route():
 @incoming_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_incoming_letter_route():
-    """
-    Deletes an incoming letter record.
+    """Deletes an incoming letter record.
 
-    Request Body:
-        id (int): Letter ID.
+    Requires a valid JWT access token. Removes the record and logs the
+    deletion activity.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        id (int): The ID of the letter to delete.
 
     Returns:
-        JSON: Deleted letter data.
+        tuple[Response, int]:
+            * 200: JSON data of the deleted letter.
+            * 404: Letter not found.
     """
     data = request.json
     letter_id = data.get('id')
@@ -157,11 +171,13 @@ def delete_incoming_letter_route():
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
 def get_all_incoming_letters_route():
-    """
-    Retrieves all incoming letters.
+    """Retrieves all incoming letters.
+
+    Fetches a list of all incoming letters currently stored in the database.
 
     Returns:
-        JSON: A list of incoming letter objects.
+        tuple[Response, int]:
+            * 200: A JSON list of incoming letter objects.
     """
     db_session: Session = db.SessionLocal()
     try:
@@ -170,31 +186,31 @@ def get_all_incoming_letters_route():
     finally:
         db_session.close()
 
-@incoming_letter_bp.route('/get_by_key', methods=['POST'])
-def get_incoming_by_key_route():
-    """
-    Retrieves incoming letters filtered by a specific key.
+@incoming_letter_bp.route('/get_by_keys', methods=['POST'])
+def get_incoming_by_keys_route():
+    """Retrieves incoming letters filtered by multiple keys.
 
-    Request Body:
-        key (str): Column name.
-        value (str): Search value.
+    Allows advanced filtering using a dictionary of parameters.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        filters (dict): Dictionary of filter criteria.
+            Example: {"sender": "Dinas", "classification_id": 1}
 
     Returns:
-        JSON: A list of matching letter objects.
+        tuple[Response, int]:
+            * 200: A list of letters matching the filters.
+            * 400: Missing 'filters' dictionary or invalid format.
     """
     data = request.json
-    key = data.get('key')
-    value = data.get('value')
+    filters = data.get('filters')
 
-    if not key or not value:
-        return jsonify({"error": "Key and value are required"}), 400
+    if not filters or not isinstance(filters, dict):
+        return jsonify({"error": "'filters' dictionary is required"}), 400
     
     db_session: Session = db.SessionLocal()
     try:
-        letters = get_incoming_letter_by_key(db_session, key, value)
-        if not letters:
-            return jsonify({"message": "No letters found"}), 404
-            
+        letters = get_incoming_letters_by_keys(db_session, filters)
         return jsonify([l.to_dict() for l in letters]), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

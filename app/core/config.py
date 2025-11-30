@@ -2,15 +2,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
-    Application configuration settings loaded from environment variables.
+    Application configuration settings.
 
-    This class defines the schema for environment variables required by the application,
-    such as database connection strings and security keys. It automatically loads
-    values from a '.env' file.
+    This class defines the schema for environment variables required by the 
+    application. It automatically validates types and loads values from 
+    the environment or a local '.env' file.
 
     Attributes:
-        DATABASE_URL (str): The connection string for the database.
-        JWT_SECRET_KEY (str): The secret key used for signing JWT tokens.
+        DATABASE_URL (str): The full database connection string (DSN).
+        JWT_SECRET_KEY (str): The secret key used for signing and verifying 
+            JWT tokens for authentication.
     """
     DATABASE_URL: str
     JWT_SECRET_KEY: str

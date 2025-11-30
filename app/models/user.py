@@ -37,12 +37,20 @@ class User(Base):
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self):
-        """
-        Serializes the User object into a dictionary format.
-
+        """Convert user object to safe dictionary format excluding sensitive data.
+        
+        Serializes the User instance into a JSON-compatible dictionary suitable
+        for API responses. The password field is intentionally excluded for security
+        purposes, ensuring sensitive authentication data is never exposed through
+        API endpoints or logs.
+        
         Returns:
-            dict: A dictionary containing user details excluding sensitive data 
-                  like the password. Suitable for API responses.
+            dict: A dictionary containing the following keys:
+                - id (int): The unique identifier of the user
+                - nuptk (str): The 16-digit unique teacher/staff identification number
+                - username (str): The username for system login
+                - role (str): The user's authorization level ('headmaster', 'admin', or 'teacher')
+                - status (str): The account status ('active' or 'inactive')
         """
         return {
             "id": self.id,

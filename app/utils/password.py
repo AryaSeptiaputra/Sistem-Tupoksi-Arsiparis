@@ -51,8 +51,17 @@ def validate_password_change(old_password_hash: str, new_password_plain: str) ->
 
 def mask_password(password: str) -> str:
     """
-    Masks the password for safe display (e.g., in logs or UI).
-    Example: 'Secret123' -> 'S*****3'
+    Masks the password for safe display in logs or UIs.
+
+    It keeps the first and last characters visible while masking the middle
+    characters with asterisks. If the password is very short (<= 2 chars),
+    it masks the entire string.
+
+    Args:
+        password (str): The sensitive password string.
+
+    Returns:
+        str: The masked version of the password.
     """
     if not password:
         return ""

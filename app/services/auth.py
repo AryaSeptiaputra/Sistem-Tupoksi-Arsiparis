@@ -4,7 +4,19 @@ from app.utils.hash import verify_password
 
 def login_user(db: Session, nuptk: str, password: str) -> User | None:
     """
-    Authenticates a user by NUPTK and password.
+    Authenticates a user using their NUPTK and password.
+
+    This function verifies the provided NUPTK against the database and checks
+    if the password matches the stored hashed password.
+
+    Args:
+        db (Session): The database session.
+        nuptk (str): The user's unique NUPTK identifier.
+        password (str): The raw password string to verify.
+
+    Returns:
+        User | None: The authenticated user object if credentials are valid, 
+            or None if the user is not found or the password is incorrect.
     """
     existing_user = db.query(User).filter(User.nuptk == nuptk).first()
     

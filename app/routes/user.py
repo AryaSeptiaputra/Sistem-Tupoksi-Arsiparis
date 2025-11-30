@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.services.user import create_user, update_user, delete_user, get_all_users, get_user_by_key
+from app.services.user import create_user, update_user, delete_user, get_all_users, get_users_by_keys
 from app.services.log import create_log
 from app import db
 
@@ -14,15 +14,23 @@ def create_user_route():
     """
     Creates a new user in the system.
 
-    Request Body:
-        nuptk (str): Unique ID.
-        username (str): Unique username.
-        password (str): Raw password (will be hashed).
-        role (str): 'headmaster', 'admin', or 'teacher'.
-        status (str): 'active' or 'inactive'.
+    Requires a valid JWT access token. Creates a user record and logs the
+    action performed by the admin.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        nuptk (str): Unique ID (Nomor Unik Pendidik dan Tenaga Kependidikan).
+        username (str): Unique username for login.
+        password (str): Raw password (will be hashed by the service).
+        role (str): Role of the user (e.g., 'headmaster', 'admin', 'teacher').
+        status (str): Account status (e.g., 'active', 'inactive').
 
     Returns:
-        JSON: Success message with created NUPTK or error details.
+        tuple[Response, int]:
+            * 201: JSON success message.
+            * 400: Missing required fields.
+            * 409: NUPTK or Username already exists.
+            * 500: Internal Server Error.
     """
     data = request.json
     required_fields = ['nuptk', 'username', 'password', 'role', 'status']
@@ -38,7 +46,7 @@ def create_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
             
             if admin_users:
                 admin_user = admin_users[0]
@@ -68,12 +76,20 @@ def updated_user_route():
     """
     Updates an existing user's details.
 
-    Request Body:
-        id (int): The ID of the user to update.
-        ...other fields to update (optional).
+    Requires a valid JWT access token. Updates the fields provided in the
+    JSON payload and logs the changes.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        id (int): The ID of the user to update (Required).
+        ... (Any other field from create_user_route to update).
 
     Returns:
-        JSON: Success message or error if user not found.
+        tuple[Response, int]:
+            * 200: JSON success message.
+            * 400: Missing 'id' or validation error.
+            * 404: User not found.
+            * 409: Update causes duplicate NUPTK/Username.
     """
     data = request.json
     user_id = data.get('id')
@@ -89,7 +105,7 @@ def updated_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
 
             updated_fields = list(data.keys())
             if 'id' in updated_fields: updated_fields.remove('id')
@@ -122,11 +138,18 @@ def delete_user_route():
     """
     Deletes a user from the system.
 
-    Request Body:
+    Requires a valid JWT access token. Removes the user record and logs
+    the deletion.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
         id (int): The ID of the user to delete.
 
     Returns:
-        JSON: Success message containing the deleted user's data.
+        tuple[Response, int]:
+            * 200: JSON success message and deleted user data.
+            * 400: Missing 'id'.
+            * 404: User not found.
     """
     data = request.json
     user_id = data.get('id')
@@ -142,7 +165,7 @@ def delete_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_user_by_key(db_session, 'nuptk', current_user_nuptk)
+            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
             if admin_users:
                 create_log(db_session, admin_users[0].id, f"Menghapus user NUPTK: {deleted_user.nuptk}")
         except Exception:
@@ -161,8 +184,11 @@ def get_all_users_route():
     """
     Retrieves a list of all users.
 
+    Fetches all user records currently stored in the database.
+
     Returns:
-        JSON: A list of user objects.
+        tuple[Response, int]:
+            * 200: A JSON list of user objects.
     """
     db_session: Session = db.SessionLocal()
     try:
@@ -171,34 +197,34 @@ def get_all_users_route():
     finally:
         db_session.close()
 
-@user_bp.route('/get_by_key', methods=['POST'])
-def get_all_users_by_key_route():
+@user_bp.route('/get_by_keys', methods=['POST'])
+def get_users_by_keys_route():
     """
-    Retrieves users filtered by a specific attribute.
+    Retrieves users filtered by multiple keys.
 
-    Request Body:
-        key (str): The column name to filter by (e.g., 'role').
-        value (str): The value to search for.
+    Allows filtering user lists based on specific criteria provided in the
+    'filters' dictionary.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        filters (dict): Dictionary of filter criteria.
+            Example: {"role": "admin", "status": "active"}
 
     Returns:
-        JSON: A list of matching user objects.
+        tuple[Response, int]:
+            * 200: A list of users matching the filters.
+            * 400: Missing 'filters' dictionary or invalid format.
     """
     data = request.json
-    key = data.get('key')
-    value = data.get('value')
+    filters = data.get('filters')
     
-    if not key or not value:
-        return jsonify({"error": "key and value fields are required"}), 400
+    if not filters or not isinstance(filters, dict):
+        return jsonify({"error": "'filters' dictionary is required"}), 400
 
     db_session: Session = db.SessionLocal()
     try:
-        users = get_user_by_key(db_session, key, value)
-        
-        if not users:
-            return jsonify({"message": "User not found"}), 404
-        
+        users = get_users_by_keys(db_session, filters)
         return jsonify([user.to_dict() for user in users]), 200
-
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     finally:

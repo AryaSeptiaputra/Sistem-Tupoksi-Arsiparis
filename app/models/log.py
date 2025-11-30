@@ -22,12 +22,18 @@ class Log(Base):
     timestamp = Column(DateTime, nullable=False, server_default=func.now(), index=True)
 
     def to_dict(self):
-        """
-        Serializes the Log object into a dictionary format.
-
+        """Convert log entry object to dictionary format with ISO-formatted timestamp.
+        
+        Serializes the Log instance into a JSON-compatible dictionary suitable
+        for audit trail reports and API responses. The timestamp is converted
+        to ISO 8601 format for standardized date-time representation.
+        
         Returns:
-            dict: A dictionary containing log details with the timestamp 
-                  formatted as an ISO 8601 string.
+            dict: A dictionary containing the following keys:
+                - id (int): The unique identifier of the log entry
+                - user_id (int): The ID of the user who performed the action
+                - action (str): Description of the action performed (e.g., 'Deleted letter IN/001/2024')
+                - timestamp (str): ISO 8601 formatted datetime string (e.g., '2024-11-30T10:30:45.123456')
         """
         return {
             "id": self.id,

@@ -6,7 +6,18 @@ import datetime
 
 def create_user(db: Session, user_data: dict) -> User:
     """
-    Creates a new user with hashed password.
+    Creates a new user and securely hashes their password.
+
+    This function validates the password strength before hashing it and 
+    storing the new user record.
+
+    Args:
+        db (Session): The database session.
+        user_data (dict): A dictionary containing user details. Must include:
+            'nuptk', 'username', 'password', 'role', and 'status'.
+
+    Returns:
+        User: The newly created user with the hashed password.
     """
     check_password(user_data['password'])
 
@@ -29,7 +40,18 @@ def create_user(db: Session, user_data: dict) -> User:
 
 def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
     """
-    Updates user details, including secure password change validation.
+    Updates user details and handles secure password changes.
+
+    If the 'password' key is present in `update_data`, this function validates
+    the password change logic and re-hashes the new password before saving.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user to update.
+        update_data (dict): Fields to update. 
+
+    Returns:
+        User | None: The updated user record, or None if the user ID is not found.
     """
     existing_user = db.query(User).filter(User.id == user_id).first()
     
@@ -57,7 +79,14 @@ def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
 
 def delete_user(db: Session, user_id: int) -> User | None:
     """
-    Deletes a user by ID.
+    Deletes a user account by ID.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user to delete.
+
+    Returns:
+        User | None: The deleted user record, or None if the ID was not found.
     """
     existing_user = db.query(User).filter(User.id == user_id).first()
     
@@ -70,16 +99,40 @@ def delete_user(db: Session, user_id: int) -> User | None:
 
 def get_all_users(db: Session) -> list[User]:
     """
-    Retrieves all users.
+    Retrieves all registered users from the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        list[User]: A list of all users.
     """
     return db.query(User).all()
 
-def get_user_by_key(db: Session, key: str, value: str) -> list[User]:
+def get_users_by_keys(db: Session, filters: dict) -> list[User]:
     """
-    Retrieves users filtered by a specific column key.
-    """
-    if not hasattr(User, key):
-        raise ValueError(f"Invalid column '{key}' for User.")
+    Retrieves user records filtered by specific attributes.
 
-    column_to_filter = getattr(User, key)
-    return db.query(User).filter(column_to_filter == value).all()
+    Args:
+        db (Session): The database session.
+        filters (dict): A dictionary of key-value pairs to filter the query.
+            Keys must match valid column names in the User model (e.g., 
+            {"role": "admin", "status": "active"}).
+
+    Returns:
+        list[User]: A list of users that match the filter criteria.
+
+    Raises:
+        ValueError: If a provided filter key is not a valid column attribute
+            of the User model.
+    """
+    query = db.query(User)
+    
+    for key, value in filters.items():
+        if not hasattr(User, key):
+            raise ValueError(f"Invalid column '{key}' for User.")
+        
+        column_to_filter = getattr(User, key)
+        query = query.filter(column_to_filter == value)
+        
+    return query.all()

@@ -33,22 +33,29 @@ class IncomingLetter(Base):
     attachment_path = Column(String(255), nullable=True)
     
     classification_id = Column(Integer, ForeignKey('classification.id'), nullable=False, index=True)
-    classification = relationship("Classification", backref="incoming_letters")
+    classification = relationship("Classification", backref="incoming_letters", lazy="joined")
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    user = relationship("User", backref="incoming_letters")
+    user = relationship("User", backref="incoming_letters", lazy="joined")
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self):
-        """
-        Serializes the IncomingLetter object into a dictionary format.
-
+        """Convert incoming letter object to dictionary format with resolved relationships.
+        
+        Serializes the IncomingLetter instance into a JSON-compatible dictionary
+        for API responses. This method automatically resolves foreign key relationships
+        to provide human-readable classification codes and usernames instead of raw IDs.
+        
         Returns:
-            dict: A dictionary containing letter details. It resolves the
-                  relationship to return the classification code and the username
-                  of the inputter instead of just IDs.
+            dict: A dictionary containing the following keys:
+                - id (int): The unique identifier of the incoming letter
+                - number (str): The official letter reference number
+                - sender (str): The name of the sender organization/person
+                - subject (str): The letter's subject or title
+                - classification (str or None): The classification code (e.g., '001') if relationship exists
+                - input_by (str or None): The username of the user who created this record
         """
         return {
             "id": self.id,

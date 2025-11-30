@@ -16,8 +16,7 @@ class OutgoingLetter(Base):
         sent_date (datetime): The actual date when the letter was dispatched/sent.
         destination (str): The recipient's name or organization.
         subject (str, optional): The summary or title of the letter's content.
-        is_decree (Enum): Indicates if the letter is a 'Surat Keputusan' (Decree).
-                          Options: 'yes', 'no'.
+        is_decree (bool): Indicates if the letter is a 'Surat Keputusan' (Decree).
         attachment_path (str, optional): Relative file path to the digital copy of the letter.
         classification_id (int): Foreign key referencing the classification category.
         user_id (int): Foreign key referencing the user who created this record.
@@ -37,21 +36,30 @@ class OutgoingLetter(Base):
 
     
     classification_id = Column(Integer, ForeignKey("classification.id"), index=True, nullable=False)
-    classification = relationship("Classification", backref="outgoing_letters")
+    classification = relationship("Classification", backref="outgoing_letters", lazy="joined")
 
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    user = relationship("User", backref="outgoing_letters")
+    user = relationship("User", backref="outgoing_letters", lazy="joined")
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self):
-        """
-        Serializes the OutgoingLetter object into a dictionary format.
-
+        """Convert outgoing letter object to dictionary format with decree status.
+        
+        Serializes the OutgoingLetter instance into a JSON-compatible dictionary
+        for API responses. This method resolves foreign key relationships to provide
+        readable classification codes and usernames, and includes the decree status flag.
+        
         Returns:
-            dict: A dictionary containing letter details including the decree status,
-                  classification code, and the creator's username.
+            dict: A dictionary containing the following keys:
+                - id (int): The unique identifier of the outgoing letter
+                - number (str): The official letter reference number
+                - destination (str): The recipient organization/person name
+                - subject (str or None): The letter's subject or title
+                - is_decree (bool): Flag indicating if this is a decree (Surat Keputusan)
+                - classification (str or None): The classification code (e.g., '002') if relationship exists
+                - input_by (str or None): The username of the user who created this record
         """
         return {
             "id": self.id,

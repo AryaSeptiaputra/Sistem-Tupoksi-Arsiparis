@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.models.classification import Classification 
-from app.services.classification import create_classification, update_classification, delete_classification, get_all_classifications, get_classification_by_key
+from app.services.classification import create_classification, update_classification, delete_classification, get_all_classifications, get_classifications_by_keys
 from app import db
 
 classification_bp = Blueprint('classification', __name__)
@@ -14,12 +14,19 @@ def create_classification_route():
     """
     Creates a new letter classification.
 
-    Request Body:
+    Requires a valid JWT access token. This endpoint accepts a JSON payload
+    containing the name and unique code for the new classification.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
         name (str): The name of the classification.
-        code (str): The unique code.
+        code (str): The unique code for the classification.
 
     Returns:
-        JSON: The created classification object.
+        tuple[Response, int]:
+            * 201: JSON of the created classification object.
+            * 400: Missing required fields or validation error.
+            * 409: Classification name or code already exists.
     """
     data = request.json
     required_fields = ['name', 'code']
@@ -48,11 +55,21 @@ def update_classification_route():
     """
     Updates an existing classification.
 
-    Request Body:
-        id (int): The ID of the classification to update.
+    Requires a valid JWT access token. Updates the fields provided in the
+    JSON payload for the specified classification ID.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        id (int): The ID of the classification to update (Required).
+        name (str, optional): The new name.
+        code (str, optional): The new code.
 
     Returns:
-        JSON: The updated classification object.
+        tuple[Response, int]:
+            * 200: JSON of the updated classification object.
+            * 400: Missing 'id' or validation error.
+            * 404: Classification not found.
+            * 409: Update causes duplicate name or code.
     """
     data = request.json
     classification_id = data.get('id')
@@ -83,11 +100,16 @@ def delete_classification_route():
     """
     Deletes a classification record.
 
-    Request Body:
+    Requires a valid JWT access token.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
         id (int): The ID of the classification to delete.
 
     Returns:
-        JSON: The deleted classification data.
+        tuple[Response, int]:
+            * 200: JSON data of the deleted classification.
+            * 404: Classification not found.
     """
     data = request.json
     classification_id = data.get('id')
@@ -107,8 +129,11 @@ def get_all_classifications_route():
     """
     Retrieves all classification records.
 
+    Fetches a complete list of letter classifications available in the database.
+
     Returns:
-        JSON: A list of classification objects.
+        tuple[Response, int]:
+            * 200: A JSON list containing all classification objects.
     """
     db_session: Session = db.SessionLocal()
     try:
@@ -117,32 +142,33 @@ def get_all_classifications_route():
     finally:
         db_session.close()
 
-@classification_bp.route('/get_by_key', methods=['POST'])
-def get_classification_by_key_route():
+@classification_bp.route('/get_by_keys', methods=['POST'])
+def get_classifications_by_keys_route():
     """
-    Retrieves classifications filtered by a specific key.
+    Retrieves classifications filtered by multiple keys.
 
-    Request Body:
-        key (str): The column to filter by.
-        value (str): The value to search.
+    Allows filtering the classification list based on specific criteria
+    provided in the 'filters' dictionary.
+
+    Args:
+        No explicit arguments. Expects JSON payload:
+        filters (dict): A dictionary of key-value pairs to filter by.
+            Example: {"code": "A1", "name": "Umum"}
 
     Returns:
-        JSON: A list of matching classification objects.
+        tuple[Response, int]:
+            * 200: A list of classifications matching the filters.
+            * 400: Missing 'filters' dictionary or invalid format.
     """
     data = request.json
-    key = data.get('key')
-    value = data.get('value')
+    filters = data.get('filters')
 
-    if not key or not value:
-        return jsonify({"error": "Both 'key' and 'value' are required"}), 400
+    if not filters or not isinstance(filters, dict):
+        return jsonify({"error": "'filters' dictionary is required"}), 400
     
     db_session: Session = db.SessionLocal()
     try:
-        results = get_classification_by_key(db_session, key, value)
-        
-        if not results:
-            return jsonify({"message": "Classification not found"}), 404
-
+        results = get_classifications_by_keys(db_session, filters)
         return jsonify([item.to_dict() for item in results]), 200
 
     except ValueError as e:

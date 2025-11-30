@@ -3,10 +3,11 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
 """
-Database Configuration Module.
+Database configuration and session management.
 
-This module sets up the SQLAlchemy database engine and session factory.
-It serves as the central point for database connectivity logic.
+This module initializes the SQLAlchemy engine and session factory used
+for all database interactions within the application. It serves as the
+central point for database connectivity.
 """
 
 engine = create_engine(settings.DATABASE_URL)
