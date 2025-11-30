@@ -1,3 +1,6 @@
+import os
+
+from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
@@ -29,17 +32,18 @@ def get_current_user_obj(db_session: Session):
 @report_card_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_report_card_route():
-    """Creates a new report card record.
+    """Creates a new report card record with file attachment.
 
-    Requires a valid JWT access token. Date fields here are treated as strings.
+    Requires a valid JWT access token. Handles multipart/form-data for
+    student details and an optional file upload for the physical report card scan.
 
     Args:
-        No explicit arguments. Expects JSON payload:
+        No explicit arguments. Expects Multipart/Form-Data payload:
         number (str): Unique report card number.
         student_name (str): Name of the student.
         class_name (str): The class name.
         academic_year (str): The academic year.
-        attachment_path (str, optional): File path.
+        file (FileStorage, optional): The report card document to upload.
 
     Returns:
         tuple[Response, int]:
@@ -49,17 +53,36 @@ def create_report_card_route():
             * 409: Number already exists.
             * 500: Internal Server Error.
     """
-    data = request.json
+    data = request.form.to_dict()
     required_fields = ['number', 'student_name', 'class_name', 'academic_year']
 
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"{field} is required"}), 400
     
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'report_cards')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    file = request.files.get('file')
+    full_path = None
+    
+    if file:
+        try:
+            filename = secure_filename(file.filename)
+            full_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(full_path)
+            
+            data['attachment_path'] = os.path.join('storage', 'documents', 'report_cards', filename)
+        except Exception as e:
+            return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+
     db_session: Session = db.SessionLocal()
     try:
         current_user = get_current_user_obj(db_session)
         if not current_user:
+            if full_path and os.path.exists(full_path):
+                os.remove(full_path)
             return jsonify({"error": "User authentication failed"}), 401
 
         new_report = create_report_card(db_session, data, user_id=current_user.id)
@@ -74,9 +97,13 @@ def create_report_card_route():
 
     except IntegrityError:
         db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
         return jsonify({"error": "Nomor dokumen sudah terdaftar (harus unik)."}), 409
     except Exception as e:
         db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
         print(f"Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
     finally:

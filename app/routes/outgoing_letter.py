@@ -1,8 +1,10 @@
+import os
+
+from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-# datetime import dihapus
 
 from app.services.outgoing_letter import create_outgoing_letter, update_outgoing_letter, delete_outgoing_letter, get_all_outgoing_letters, get_outgoing_letters_by_keys
 from app.services.user import get_users_by_keys
@@ -30,38 +32,64 @@ def get_current_user_obj(db_session: Session):
 @outgoing_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_outgoing_letter_route():
-    """Creates a new outgoing letter record.
+    """Creates a new outgoing letter record with file attachment.
 
-    Requires a valid JWT access token. Validates the input, creates the
-    record, and logs the activity. Date strings are passed directly to service.
+    Requires a valid JWT access token. Accepts multipart/form-data to handle
+    text fields and an optional file upload. The file is saved to the local
+    storage system.
 
     Args:
-        No explicit arguments. Expects JSON payload:
+        No explicit arguments. Expects Multipart/Form-Data payload:
         number (str): The official letter number (must be unique).
         letter_date (str): Date on the letter (YYYY-MM-DD).
         sent_date (str): Date the letter was sent (YYYY-MM-DD).
         destination (str): The recipient or destination of the letter.
-        is_decree (bool): True if the letter is a decree (SK), False otherwise.
+        is_decree (str|bool): 'true' if the letter is a decree, else 'false'.
         classification_id (int): Foreign key linking to a classification.
+        file (FileStorage, optional): The document file to upload.
 
     Returns:
         tuple[Response, int]:
-            * 201: JSON of the created letter.
+            * 201: JSON of the created letter including attachment path.
             * 400: Missing required fields.
             * 401: User authentication failed.
-            * 500: Internal Server Error.
+            * 500: Internal Server Error or File Save Error.
     """
-    data = request.json
+    data = request.form.to_dict()
+    
+    if 'is_decree' in data:
+        if isinstance(data['is_decree'], str):
+            data['is_decree'] = data['is_decree'].lower() == 'true'
+
     required_fields = ['number', 'letter_date', 'sent_date', 'destination', 'is_decree', 'classification_id']
 
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"{field} is required"}), 400
     
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'outgoing_letters')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    file = request.files.get('file')
+    full_path = None 
+    
+    if file:
+        try:
+            filename = secure_filename(file.filename)
+            full_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(full_path)
+            
+            data['attachment_path'] = os.path.join('storage', 'documents', 'outgoing_letters', filename)
+        except Exception as e:
+            return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+
     db_session: Session = db.SessionLocal()
     try:
         current_user = get_current_user_obj(db_session)
         if not current_user:
+            if full_path and os.path.exists(full_path):
+                os.remove(full_path)
             return jsonify({"error": "User authentication failed"}), 401
 
         new_letter = create_outgoing_letter(db_session, data, user_id=current_user.id)
@@ -76,6 +104,9 @@ def create_outgoing_letter_route():
 
     except Exception as e:
         db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
+            
         print(f"Error Outgoing Letter: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
     finally:

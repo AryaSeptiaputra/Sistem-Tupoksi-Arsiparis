@@ -2,7 +2,7 @@ import hashlib
 from passlib.context import CryptContext
 
 # Konfigurasi hashing password menggunakan algoritma bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def _prepare_password(password: str) -> str:
     """

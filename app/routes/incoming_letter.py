@@ -1,3 +1,6 @@
+import os
+
+from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
@@ -29,39 +32,61 @@ def get_current_user_obj(db_session: Session):
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_incoming_letter_route():
-    """Creates a new incoming letter record.
+    """Creates a new incoming letter record with file attachment.
 
-    Requires a valid JWT access token. Validates input fields and logs the
-    creation activity. Date strings are passed directly to the service layer.
+    Requires a valid JWT access token. Accepts multipart/form-data to handle
+    text fields and an optional file upload. The file is saved to the local
+    storage system.
 
     Args:
-        No explicit arguments. Expects JSON payload:
+        No explicit arguments. Expects Multipart/Form-Data payload:
         number (str): The official letter number (must be unique).
         letter_date (str): Date on the letter (YYYY-MM-DD).
         received_date (str): Date received (YYYY-MM-DD).
         sender (str): The sender of the letter.
         subject (str): The subject or title of the letter.
         classification_id (int): Foreign key linking to a classification.
+        file (FileStorage, optional): The document file to upload.
 
     Returns:
         tuple[Response, int]:
-            * 201: JSON of the created letter.
+            * 201: JSON of the created letter including attachment path.
             * 400: Missing required fields.
             * 401: User authentication failed.
             * 409: Letter number already exists.
-            * 500: Internal Server Error.
+            * 500: Internal Server Error or File Save Error.
     """
-    data = request.json
+
+    data = request.form.to_dict()
     required_fields = ['number', 'letter_date', 'received_date', 'sender', 'subject', 'classification_id']
 
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"{field} is required"}), 400
     
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'incoming_letters')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    file = request.files.get('file')
+    full_path = None
+    
+    if file:
+        try:
+            filename = secure_filename(file.filename)
+            full_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(full_path)
+            
+            data['attachment_path'] = os.path.join('storage', 'documents', 'incoming_letters', filename)
+        except Exception as e:
+            return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+    
     db_session: Session = db.SessionLocal()
     try:
         current_user = get_current_user_obj(db_session)
         if not current_user:
+            if full_path and os.path.exists(full_path):
+                os.remove(full_path)
             return jsonify({"error": "User authentication failed"}), 401
         
         new_letter = create_incoming_letter(db_session, data, user_id=current_user.id)
@@ -76,9 +101,13 @@ def create_incoming_letter_route():
 
     except IntegrityError:
         db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
         return jsonify({"error": "Nomor surat sudah terdaftar (harus unik)."}), 409
     except Exception as e:
         db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
         print(f"Error Incoming Letter: {e}") 
         return jsonify({"error": "Internal Server Error"}), 500
     finally:

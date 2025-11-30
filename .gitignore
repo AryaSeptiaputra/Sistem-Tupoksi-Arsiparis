@@ -3,3 +3,6 @@
 .vscode
 
 __pycache__/
+
+!database/backups/.gitkeep
+!storage/documents/.gitkeep
