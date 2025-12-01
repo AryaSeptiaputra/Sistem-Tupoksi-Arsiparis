@@ -1,8 +1,7 @@
 /**
- * KONFIGURASI API BACKEND
- * Pastikan port sesuai dengan 'main.py' (biasanya port 8000 atau 5000)
+
  */
-const BASE_URL = "http://localhost:8000"; 
+const BASE_URL = "http://127.0.0.1:5000"; 
 
 // --- HELPER FUNCTION (JANGAN DIUBAH) ---
 
