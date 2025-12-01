@@ -3,7 +3,6 @@ import json
 from datetime import datetime
 
 BASE_URL = "http://localhost:5000"
-# Sesuaikan kredensial ini dengan data seed database Anda
 ADMIN_NUPTK = "152022190"
 ADMIN_PASSWORD = "aes040904"
 
@@ -25,7 +24,7 @@ class APITester:
             "user": None,
             "incoming": None,
             "outgoing": None,
-            "report_card": None
+            "diploma": None 
         }
 
     def log(self, message: str, success: bool = True):
@@ -193,7 +192,6 @@ class APITester:
             if res.status_code == 200 and len(res.json()) > 0:
                  self.log(f"Get Outgoing Letter By Keys: Found {len(res.json())} item(s)")
 
-        # ▶️ NOW ADDED: Update Outgoing Letter
         if self.temp_ids['outgoing']:
             update_payload = {
                 "id": self.temp_ids['outgoing'],
@@ -205,44 +203,52 @@ class APITester:
             else:
                 self.log(f"Update Outgoing Letter Gagal: {res.text}", success=False)
 
-    def test_report_card_crud(self):
-        print(f"\n--- 6. TESTING REPORT CARD ---")
+    def test_diploma_crud(self):
+        print(f"\n--- 6. TESTING DIPLOMA (IJAZAH) ---")
         
         unique_num = datetime.now().strftime("%H%M%S")
         
         payload = {
-            "number": f"RC-{unique_num}",
-            "student_name": "Siswa Test API",
-            "class_name": "XII-RPL",
-            "academic_year": "2024/2025"
+            "number": f"DN-{unique_num}",
+            "student_name": "Siswa SMK Test",
+            "major": "Teknik Komputer Jaringan",
+            "academic_year": "2024/2025",
+            "is_collected": "false"
         }
 
-        res = self.session.post(f"{BASE_URL}/report-card/create", data=payload, headers=self.multipart_headers)
+        res = self.session.post(f"{BASE_URL}/diploma/create", data=payload, headers=self.multipart_headers)
         
         if res.status_code == 201:
             data = res.json()
-            self.temp_ids['report_card'] = data['id']
-            self.log(f"Create Report Card: {data['student_name']} (No: {data['number']})")
+            self.temp_ids['diploma'] = data['id']
+            self.log(f"Create Diploma: {data['student_name']} (No: {data['number']})")
         else:
-            self.log(f"Create Report Card Gagal: {res.text}", success=False)
+            self.log(f"Create Diploma Gagal: {res.text}", success=False)
             return
 
-        if self.temp_ids['report_card']:
-            filter_payload = {"filters": {"academic_year": "2024/2025"}}
-            res = self.session.post(f"{BASE_URL}/report-card/get_by_keys", json=filter_payload, headers=self.json_headers)
+        if self.temp_ids['diploma']:
+            # Test Filter by Major
+            filter_payload = {"filters": {"major": "Teknik Komputer"}}
+            res = self.session.post(f"{BASE_URL}/diploma/get_by_keys", json=filter_payload, headers=self.json_headers)
             if res.status_code == 200 and len(res.json()) > 0:
-                 self.log(f"Get Report Card By Keys: Found {len(res.json())} item(s)")
-
-        if self.temp_ids['report_card']:
-            update_payload = {
-                "id": self.temp_ids['report_card'],
-                "student_name": "Siswa Test API (Updated)"
-            }
-            res = self.session.post(f"{BASE_URL}/report-card/update", json=update_payload, headers=self.json_headers)
-            if res.status_code == 200:
-                self.log("Update Report Card: Berhasil")
+                 self.log(f"Get Diploma By Keys (Major): Found {len(res.json())} item(s)")
             else:
-                self.log(f"Update Report Card Gagal: {res.text}", success=False)
+                 self.log(f"Get Diploma By Keys Gagal: {res.text}", success=False)
+
+        if self.temp_ids['diploma']:
+            # Test Update (Misal: Ijazah sudah diambil)
+            update_payload = {
+                "id": self.temp_ids['diploma'],
+                "is_collected": True,
+                "student_name": "Siswa SMK Test (Revisi)"
+            }
+            res = self.session.post(f"{BASE_URL}/diploma/update", json=update_payload, headers=self.json_headers)
+            if res.status_code == 200:
+                updated_data = res.json()
+                status_ambil = updated_data.get('status', {}).get('status_text', 'Unknown')
+                self.log(f"Update Diploma: Berhasil ({status_ambil})")
+            else:
+                self.log(f"Update Diploma Gagal: {res.text}", success=False)
 
     def test_backup_endpoints(self):
         print(f"\n--- 7. TESTING BACKUP ---")
@@ -293,9 +299,9 @@ class APITester:
             res = delete_item("outgoing-letter", self.temp_ids['outgoing'])
             self.log(f"Delete Outgoing: {res.status_code == 200}")
 
-        if self.temp_ids['report_card']:
-            res = delete_item("report-card", self.temp_ids['report_card'])
-            self.log(f"Delete Report Card: {res.status_code == 200}")
+        if self.temp_ids['diploma']:
+            res = delete_item("diploma", self.temp_ids['diploma'])
+            self.log(f"Delete Diploma: {res.status_code == 200}")
 
         if self.temp_ids['user']:
             res = delete_item("user", self.temp_ids['user'])
@@ -313,7 +319,10 @@ if __name__ == "__main__":
         tester.test_user_crud()
         tester.test_incoming_letter_crud()
         tester.test_outgoing_letter_crud()
-        tester.test_report_card_crud()
+        
+        # Test Diploma menggantikan Report Card
+        tester.test_diploma_crud()
+        
         tester.test_backup_endpoints()
         tester.test_log_endpoints()
         tester.cleanup()

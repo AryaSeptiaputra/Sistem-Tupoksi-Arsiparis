@@ -3,7 +3,7 @@ from flask_jwt_extended import JWTManager
 
 from .core.config import settings
 from .core.database import engine, Base
-from .models import user, classification, log, incoming_letter, outgoing_letter, report_card, backup
+from .models import diploma, user, classification, log, incoming_letter, outgoing_letter, backup
 
 from app.core import database as db
 
@@ -29,7 +29,7 @@ def create_app():
     from .routes.classification import classification_bp
     from .routes.incoming_letter import incoming_letter_bp
     from .routes.outgoing_letter import outgoing_letter_bp
-    from .routes.report_card import report_card_bp
+    from .routes.diploma import diploma_bp
     from .routes.log import log_bp
     from .routes.backup import backup_bp
 
@@ -38,8 +38,8 @@ def create_app():
     app.register_blueprint(classification_bp, url_prefix="/classification")
     app.register_blueprint(incoming_letter_bp, url_prefix="/incoming-letter")
     app.register_blueprint(outgoing_letter_bp, url_prefix="/outgoing-letter")
-    app.register_blueprint(report_card_bp, url_prefix="/report-card")
-    app.register_blueprint(log_bp, url_prefix="/log")
+    app.register_blueprint(diploma_bp, url_prefix="/diploma")
+    app.register_blueprint(log_bp, url_prefix="/log")   
     app.register_blueprint(backup_bp, url_prefix="/backup")
 
     return app
