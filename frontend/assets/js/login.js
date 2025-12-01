@@ -12,7 +12,6 @@ async function handleLogin() {
         alert(result.message); // "Selamat Datang..."
         window.location.href = 'dashboard.html'; // Pindah halaman
     } catch (error) {
-        // Error sudah di-handle di api.js (alert muncul), tapi bisa custom disini
         console.log("Gagal login");
     }
 }
