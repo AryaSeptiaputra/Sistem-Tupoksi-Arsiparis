@@ -1,4 +1,5 @@
-from flask import Flask
+import os
+from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 
 from .core.config import settings
@@ -8,17 +9,23 @@ from .models import diploma, user, classification, log, incoming_letter, outgoin
 from app.core import database as db
 
 def create_app():
-    """
-    Initialize and configure the Flask application.
+    # 1. Dapatkan lokasi folder 'app' (folder tempat __init__.py berada)
+    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    This function sets up the application instance, configures JWT handling,
-    initializes the database schema if not already created, and registers
-    all route blueprints used throughout the system.
+    # 2. Tentukan lokasi folder HTML (Template)
+    # Sesuai gambar: app -> frontend -> assets -> html
+    template_dir = os.path.join(app_dir, 'frontend', 'assets', 'html')
+    print(template_dir)
 
-    Returns:
-        Flask: The fully configured Flask application instance.
-    """
-    app = Flask(__name__)
+    # 3. Tentukan lokasi folder Static (CSS/JS)
+    # Sesuai gambar: app -> frontend -> assets
+    static_dir = os.path.join(app_dir, 'frontend', 'assets')
+
+    # (Opsional) Print ini agar Anda bisa cek di terminal apakah path-nya sudah benar
+    print(f"Lokasi Template: {template_dir}") 
+
+    # Inisialisasi Flask dengan path custom
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
 
     JWTManager(app)
@@ -41,5 +48,10 @@ def create_app():
     app.register_blueprint(diploma_bp, url_prefix="/diploma")
     app.register_blueprint(log_bp, url_prefix="/log")   
     app.register_blueprint(backup_bp, url_prefix="/backup")
+
+    # Redirect root '/' langsung ke halaman login
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth.login_page'))
 
     return app

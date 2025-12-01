@@ -259,14 +259,12 @@
                 </div>
             </div>
 
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="nip">NUPTK</label>
-                    <div class="input-control">
+            <form id="login-form"> <div class="form-group">
+                    <label for="nuptk">NUPTK</label> <div class="input-control">
                         <input
                             type="text"
-                            id="nip"
-                            name="nip"
+                            id="nuptk" 
+                            name="nuptk"
                             placeholder="Masukkan NUPTK Anda"
                             autocomplete="username"
                             required
@@ -298,8 +296,8 @@
         </div>
     </div>
 
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/login.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 
     <script>
         const pwdInput = document.getElementById('password');

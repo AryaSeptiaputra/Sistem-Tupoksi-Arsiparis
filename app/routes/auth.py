@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import create_access_token
 from sqlalchemy.orm import Session
 from app.services.auth import login_user
@@ -6,6 +6,10 @@ from app.services.log import create_log
 from app import db
 
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/login', methods=['GET'])
+def login_page():
+    return render_template('login.html')
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
