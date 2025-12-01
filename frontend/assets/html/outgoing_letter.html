@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Input Surat Keluar</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #f8fafc;
+            margin: 0;
+        }
+
+        .container {
+            padding: 32px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .header a {
+            text-decoration: none;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            padding: 40px 20px;
+            border-radius: 12px;
+            text-align: center;
+            background: #f1f5f9;
+        }
+
+        .upload-box h3 {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .btn-select {
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #1e293b;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        label {
+            font-size: 14px;
+            color: #334155;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        textarea {
+            resize: none;
+            height: 80px;
+        }
+
+        .preview-box {
+            height: 500px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #64748b;
+        }
+
+        .preview-box iframe {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        /* TOGGLE SK */
+        .toggle-box {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-row p {
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .toggle-desc {
+            font-size: 12px;
+            color: #0284c7;
+            margin-top: 4px;
+        }
+
+        /* SWITCH */
+        .switch {
+            position: relative;
+            width: 46px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .2s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: .2s;
+        }
+
+        input:checked + .slider {
+            background: #4ade80;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* FOOTER BUTTONS CENTER */
+        .footer-btns {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+        }
+
+        .btn-save {
+            background: #0f172a;
+            color: white;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <a href="dashboard.html">← Kembali</a> | <span>Input Surat Keluar</span>
+    </div>
+
+    <form id="outgoing-form">
+        <input type="hidden" id="outgoing-id" name="id">
+
+        <div class="grid">
+
+            <!-- LEFT -->
+            <div>
+
+                <div class="card upload-area">
+                    <div class="upload-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828817.png" width="50">
+                        <h3>Upload Scan Surat (PDF)</h3>
+                        <p style="color:#64748b;">Drag & drop atau klik untuk memilih file</p>
+                        <input type="file" id="file" name="file" accept="application/pdf" hidden>
+                        <button type="button" class="btn-select" onclick="document.getElementById('file').click()">Pilih File</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size:16px;margin-bottom:16px;">Detail Surat</h3>
+
+                    <div class="form-group">
+                        <label>Nomor Surat</label>
+                        <input type="text" name="number" placeholder="Masukkan nomor surat" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Klasifikasi Surat</label>
+                        <input type="text" name="classification_id" placeholder="Tulis klasifikasi surat" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal Surat</label>
+                        <input type="date" name="letter_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal Dikirim</label>
+                        <input type="date" name="sent_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tujuan / Instansi</label>
+                        <input type="text" name="destination" placeholder="Masukkan tujuan surat" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Perihal / Ringkasan</label>
+                        <textarea name="subject" placeholder="Masukkan ringkasan"></textarea>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+            <div>
+
+                <div class="card">
+                    <h3 style="font-size:16px;margin-bottom:10px;">Document Preview</h3>
+
+                    <div id="preview-box" class="preview-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" width="50" />
+                        <p>Upload dokumen untuk melihat preview</p>
+                    </div>
+
+                    <!-- SK Toggle -->
+                    <div class="toggle-box">
+                        <div class="toggle-row">
+                            <p>Jadikan Surat Keputusan (SK)?</p>
+                            <label class="switch">
+                                <input type="checkbox" id="is_decree" name="is_decree">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-desc">Aktifkan jika dokumen ini adalah Surat Keputusan</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="footer-btns">
+            <button type="button" class="btn btn-cancel" onclick="window.location.href='/outgoing'">Batal</button>
+            <button type="submit" class="btn btn-save">Simpan</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- JS -->
+<script src="/assets/js/api.js"></script>
+<script src="/assets/js/outgoing.js"></script>
+
+<script>
+    // PDF Preview
+    const fileInput = document.getElementById("file");
+    const previewBox = document.getElementById("preview-box");
+
+    fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        previewBox.innerHTML = `<iframe src="${url}"></iframe>`;
+    });
+</script>
+
+</body>
+</html>

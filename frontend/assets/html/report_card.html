@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arsip Ijazah Siswa</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #f8fafc;
+            margin: 0;
+        }
+
+        .container {
+            padding: 32px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .header a {
+            text-decoration: none;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* UPLOAD */
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            padding: 40px 20px;
+            border-radius: 12px;
+            text-align: center;
+            background: #f1f5f9;
+            transition: .2s;
+        }
+
+        .upload-box:hover {
+            border-color: #64748b;
+        }
+
+        .upload-box h3 {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .btn-select {
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #1e293b;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* FORM */
+        .form-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #334155;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            outline: none;
+            background: #ffffff;
+        }
+
+        input::placeholder {
+            color: #9ca3af;
+        }
+
+        /* PREVIEW */
+        .preview-box {
+            height: 520px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 14px;
+            flex-direction: column;
+        }
+
+        .preview-box iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+        }
+
+        /* FOOTER BUTTONS (CENTER) */
+        .footer-btns {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+        }
+
+        .btn-save {
+            background: #0f172a;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <a href="dashboard.html">← Kembali</a> | <span>Arsip Ijazah Siswa</span>
+    </div>
+
+    <!-- FORM REPORT CARD -->
+    <form id="report-card-form">
+        <!-- hidden untuk edit (dipakai report_card.js) -->
+        <input type="hidden" id="report-card-id" name="id" />
+
+        <div class="grid">
+
+            <!-- LEFT SIDE -->
+            <div>
+
+                <!-- UPLOAD FILE -->
+                <div class="card">
+                    <div class="upload-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828817.png" width="50" />
+                        <h3>Upload File Ijazah</h3>
+                        <p style="color:#64748b;">Drag & drop atau klik untuk memilih file</p>
+
+                        <input type="file" id="file" name="file" accept="application/pdf" style="display:none;">
+                        <button type="button" class="btn-select" onclick="document.getElementById('file').click()">Pilih File</button>
+                    </div>
+                </div>
+
+                <!-- DETAIL SISWA -->
+                <div class="card form-section">
+                    <h3>Detail Siswa</h3>
+
+                    <div class="form-group">
+                        <label>Nama Siswa</label>
+                        <input type="text" name="student_name" placeholder="Masukkan nama siswa" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nomor Dokumen / Induk</label>
+                        <input type="text" name="number" placeholder="Masukkan nomor dokumen" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kelas</label>
+                        <select name="class_name" required>
+                            <option value="">Pilih Kelas</option>
+                            <option value="X">X</option>
+                            <option value="XI">XI</option>
+                            <option value="XII">XII</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tahun Ajaran</label>
+                        <select name="academic_year" required>
+                            <option value="">Pilih Tahun</option>
+                            <option value="2023/2024">2023/2024</option>
+                            <option value="2024/2025">2024/2025</option>
+                            <option value="2025/2026">2025/2026</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal Dibuat</label>
+                        <input type="date" name="created_at">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal Diperbarui</label>
+                        <input type="date" name="updated_at">
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div>
+                <div class="card">
+                    <h3 style="font-size:16px;margin-bottom:10px;">Document Preview</h3>
+
+                    <div class="preview-box" id="preview-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" width="50" />
+                        <p>Upload dokumen untuk melihat preview</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="footer-btns">
+            <button type="button" class="btn btn-cancel" onclick="window.location.href='dashboard.html'">Batal</button>
+            <button type="submit" class="btn btn-save">Simpan</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- JS -->
+<script src="assets/js/api.js"></script>
+<script src="assets/js/report_card.js"></script>
+
+<script>
+    // PREVIEW PDF
+    const fileInput = document.getElementById("file");
+    const previewBox = document.getElementById("preview-box");
+
+    fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        previewBox.innerHTML = `<iframe src="${url}"></iframe>`;
+    });
+</script>
+
+</body>
+</html>
