@@ -51,7 +51,7 @@ git clone [https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git](http
 cd Sistem-Tupoksi-Arsiparis
 
 # 2. Setup Virtual Environment (Wajib!)
-python -m venv venv
+python -m venv .venv
 # Windows: venv\Scripts\activate
 # Mac/Linux: source venv/bin/activate
 
