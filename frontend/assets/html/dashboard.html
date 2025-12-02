@@ -204,10 +204,10 @@
     <aside class="sidebar">
         <div class="sidebar-logo">S7</div>
 
-        <div class="nav-item active" data-route="dashboard.html">🏠</div>
-        <div class="nav-item" data-route="incoming_letter.html">📥</div>
-        <div class="nav-item" data-route="outgoing_letter.html">📤</div>
-        <div class="nav-item" data-route="report_card.html">📊</div>
+        <div class="nav-item active" data-route="/page/dashboard" title="Dashboard">🏠</div>
+        <div class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</div>
+        <div class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</div>
+        <div class="nav-item" data-route="/page/diploma" title="Ijazah/Rapor">📊</div>
 
         <button class="logout-btn" id="btn-logout">Logout</button>
     </aside>
@@ -227,11 +227,10 @@
             <h3 style="margin-top:24px;">Akses Cepat</h3>
 
             <div id="quick-access" class="quick-access">
-                <!-- diisi via dashboard.js -->
-            </div>
+                </div>
 
             <button 
-                data-route="incoming_letter.html"
+                data-route="/page/incoming_letter"
                 style="margin-top:20px;padding:10px 18px;border:none;background:#ff8a5c;color:white;border-radius:999px;font-size:13px;cursor:pointer;">
                 + Tambah Surat Masuk
             </button>
@@ -260,10 +259,11 @@
         </aside>
     </main>
 
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/dashboard.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
     <script>
+        // Menangani klik pada elemen dengan atribut data-route
         document.querySelectorAll("[data-route]").forEach(el => {
             el.addEventListener("click", () => {
                 const r = el.dataset.route;
@@ -271,12 +271,14 @@
             });
         });
 
+        // Menangani Logout
         const btnLogout = document.getElementById("btn-logout");
         if (btnLogout) {
             btnLogout.addEventListener("click", () => {
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("auth_user");
-                window.location.href = "login.html";
+                // Redirect ke halaman login view
+                window.location.href = "/page/login";
             });
         }
     </script>

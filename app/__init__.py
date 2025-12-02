@@ -39,6 +39,7 @@ def create_app():
     from .routes.diploma import diploma_bp
     from .routes.log import log_bp
     from .routes.backup import backup_bp
+    from .routes.views import view_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
@@ -48,10 +49,18 @@ def create_app():
     app.register_blueprint(diploma_bp, url_prefix="/diploma")
     app.register_blueprint(log_bp, url_prefix="/log")   
     app.register_blueprint(backup_bp, url_prefix="/backup")
+    app.register_blueprint(view_bp, url_prefix="/page")
 
-    # Redirect root '/' langsung ke halaman login
     @app.route('/')
     def index():
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('view.login_page'))
+    
+    @app.route('/dashboard')
+    def dashboard():
+        return redirect(url_for('view.dashboard_page'))
+    
+    @app.route('/incoming_letter')
+    def incoming_letter():
+        return redirect(url_for('view.incoming_letter_page'))
 
     return app

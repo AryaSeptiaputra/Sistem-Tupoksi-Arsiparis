@@ -7,10 +7,6 @@ from app import db
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/login', methods=['GET'])
-def login_page():
-    return render_template('login.html')
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """

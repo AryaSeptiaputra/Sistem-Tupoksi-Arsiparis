@@ -1,6 +1,6 @@
 import os
 from werkzeug.utils import secure_filename
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,14 @@ from app.services.log import create_log
 from app import db
 
 diploma_bp = Blueprint('diploma', __name__)
+
+@diploma_bp.route('/view', methods=['GET'])
+def diploma_page():
+    """
+    Menampilkan halaman manajemen Ijazah (Frontend).
+    URL: http://localhost:5000/diploma/view
+    """
+    return render_template('diploma.html')
 
 def get_current_user_obj(db_session: Session):
     """Helper function to retrieve the currently logged-in user object.

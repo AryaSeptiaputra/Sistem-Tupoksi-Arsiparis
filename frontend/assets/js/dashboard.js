@@ -3,7 +3,8 @@
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("access_token");
     if (!token) {
-        window.location.href = "login.html";
+        // PERBAIKAN: Redirect ke route view login
+        window.location.href = "/page/login";
         return;
     }
 
@@ -53,16 +54,33 @@ async function loadQuickAccess() {
     container.innerHTML = `<p style="color:#6b7280;">Loading...</p>`;
 
     try {
+        // Mengambil data dari berbagai endpoint
         const [incoming, outgoing, report] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
             api.reportCard.getAll(),
         ]);
 
+        // PERBAIKAN: Set 'route' ke alamat Flask View (/page/...)
         const allDocs = [
-            ...(incoming || []).map(d => ({ ...d, _type: "Surat Masuk", route: "incoming_letter.html", title: d.subject || d.number })),
-            ...(outgoing || []).map(d => ({ ...d, _type: "Surat Keluar", route: "outgoing_letter.html", title: d.subject || d.number })),
-            ...(report || []).map(d => ({ ...d, _type: "Ijazah", route: "report_card.html", title: d.student_name || d.number })),
+            ...(incoming || []).map(d => ({ 
+                ...d, 
+                _type: "Surat Masuk", 
+                route: "/page/incoming_letter", // <--- PERBAIKAN
+                title: d.subject || d.number 
+            })),
+            ...(outgoing || []).map(d => ({ 
+                ...d, 
+                _type: "Surat Keluar", 
+                route: "/page/outgoing_letter", // <--- PERBAIKAN
+                title: d.subject || d.number 
+            })),
+            ...(report || []).map(d => ({ 
+                ...d, 
+                _type: "Ijazah", 
+                route: "/page/diploma", // <--- PERBAIKAN (sesuaikan dengan views.py)
+                title: d.student_name || d.number 
+            })),
         ];
 
         if (!allDocs.length) {
@@ -70,7 +88,10 @@ async function loadQuickAccess() {
             return;
         }
 
+        // Urutkan berdasarkan tanggal terbaru
         allDocs.sort((a, b) => new Date(b.created_at || b.letter_date || 0) - new Date(a.created_at || a.letter_date || 0));
+        
+        // Ambil 4 teratas
         const latest = allDocs.slice(0, 4);
 
         container.innerHTML = latest.map(doc => `
@@ -83,6 +104,7 @@ async function loadQuickAccess() {
             </div>
         `).join("");
 
+        // Tambahkan event listener agar kartu bisa diklik
         container.querySelectorAll(".doc-card").forEach(el => {
             el.addEventListener("click", () => {
                 const r = el.dataset.route;
@@ -125,8 +147,10 @@ async function loadUploadActivity() {
         });
 
         countEl.textContent = monthDocs.length;
+        // Simulasi pertumbuhan (growth)
         if (growthEl) growthEl.textContent = monthDocs.length ? "+100%" : "0%";
 
+        // Visualisasi grafik dummy sederhana
         chart.innerHTML = "";
         for (let i = 0; i < 6; i++) {
             const h = Math.random() * 80 + 10;
