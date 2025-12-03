@@ -3,7 +3,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("access_token");
     if (!token) {
-        // PERBAIKAN: Redirect ke route view login
         window.location.href = "/page/login";
         return;
     }
@@ -54,48 +53,52 @@ async function loadQuickAccess() {
     container.innerHTML = `<p style="color:#6b7280;">Loading...</p>`;
 
     try {
-        // Mengambil data dari berbagai endpoint
-        const [incoming, outgoing, report] = await Promise.all([
+        // PERBAIKAN: Menggunakan api.diploma bukan api.reportCard
+        const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
-            api.reportCard.getAll(),
+            api.diploma.getAll(), 
         ]);
 
-        // PERBAIKAN: Set 'route' ke alamat Flask View (/page/...)
+        // Gabungkan semua data
         const allDocs = [
             ...(incoming || []).map(d => ({ 
                 ...d, 
                 _type: "Surat Masuk", 
-                route: "/page/incoming_letter", // <--- PERBAIKAN
-                title: d.subject || d.number 
+                route: "/page/incoming_letter", 
+                title: d.subject || d.number || "Tanpa Judul",
+                date: d.created_at || d.received_date || new Date().toISOString()
             })),
             ...(outgoing || []).map(d => ({ 
                 ...d, 
                 _type: "Surat Keluar", 
-                route: "/page/outgoing_letter", // <--- PERBAIKAN
-                title: d.subject || d.number 
+                route: "/page/outgoing_letter", 
+                title: d.subject || d.number || "Tanpa Judul",
+                date: d.created_at || d.letter_date || new Date().toISOString()
             })),
-            ...(report || []).map(d => ({ 
+            // Mapping Data Ijazah
+            ...(diplomas || []).map(d => ({ 
                 ...d, 
                 _type: "Ijazah", 
-                route: "/page/diploma", // <--- PERBAIKAN (sesuaikan dengan views.py)
-                title: d.student_name || d.number 
+                route: "/page/diploma", 
+                title: d.student_name || d.number || "Tanpa Nama", // Sesuai diploma.py
+                date: d.created_at || new Date().toISOString()
             })),
         ];
 
         if (!allDocs.length) {
-            container.innerHTML = `<p style="color:#6b7280;">Belum ada dokumen.</p>`;
+            container.innerHTML = `<p style="color:#6b7280;">Belum ada dokumen terbaru.</p>`;
             return;
         }
 
-        // Urutkan berdasarkan tanggal terbaru
-        allDocs.sort((a, b) => new Date(b.created_at || b.letter_date || 0) - new Date(a.created_at || a.letter_date || 0));
+        // Urutkan dari yang terbaru
+        allDocs.sort((a, b) => new Date(b.date) - new Date(a.date));
         
         // Ambil 4 teratas
         const latest = allDocs.slice(0, 4);
 
         container.innerHTML = latest.map(doc => `
-            <div class="doc-card" data-route="${doc.route}">
+            <div class="doc-card" data-route="${doc.route}" style="cursor: pointer;">
                 <div class="doc-icon">📄</div>
                 <div>
                     <div class="doc-chip">${doc._type}</div>
@@ -104,7 +107,7 @@ async function loadQuickAccess() {
             </div>
         `).join("");
 
-        // Tambahkan event listener agar kartu bisa diklik
+        // Event listener klik
         container.querySelectorAll(".doc-card").forEach(el => {
             el.addEventListener("click", () => {
                 const r = el.dataset.route;
@@ -114,52 +117,50 @@ async function loadQuickAccess() {
 
     } catch (err) {
         console.error("Gagal load quick access:", err);
-        container.innerHTML = `<p style="color:red;">Gagal memuat data.</p>`;
+        container.innerHTML = `<p style="color:red; font-size:12px;">Gagal memuat data. Cek koneksi server.</p>`;
     }
 }
 
 /* ---------- UPLOAD ACTIVITY ---------- */
 async function loadUploadActivity() {
     const countEl = document.getElementById("upload-count");
-    const growthEl = document.getElementById("upload-growth");
     const chart = document.getElementById("upload-chart");
     if (!countEl || !chart) return;
 
     try {
-        const [incoming, outgoing, report] = await Promise.all([
+        // PERBAIKAN: Menggunakan api.diploma
+        const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
-            api.reportCard.getAll(),
+            api.diploma.getAll(),
         ]);
 
-        const allDocs = [...(incoming || []), ...(outgoing || []), ...(report || [])];
-        if (!allDocs.length) {
-            countEl.textContent = 0;
-            if (growthEl) growthEl.textContent = "0%";
-            chart.innerHTML = "";
-            return;
-        }
-
+        const allDocs = [...(incoming || []), ...(outgoing || []), ...(diplomas || [])];
+        
+        // Hitung dokumen bulan ini
         const now = new Date();
         const monthDocs = allDocs.filter(doc => {
-            const d = new Date(doc.created_at || doc.letter_date || Date.now());
+            const dateStr = doc.created_at || doc.letter_date || doc.received_date; 
+            if(!dateStr) return false;
+            
+            const d = new Date(dateStr);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         });
 
         countEl.textContent = monthDocs.length;
-        // Simulasi pertumbuhan (growth)
-        if (growthEl) growthEl.textContent = monthDocs.length ? "+100%" : "0%";
 
-        // Visualisasi grafik dummy sederhana
+        // Render Bar Chart (Visualisasi sederhana)
         chart.innerHTML = "";
+        
+        // Buat 6 bar random sebagai hiasan dashboard
         for (let i = 0; i < 6; i++) {
-            const h = Math.random() * 80 + 10;
+            const h = Math.floor(Math.random() * 50) + 20; 
             const div = document.createElement("div");
             div.className = "bar";
             div.style.height = `${h}%`;
             chart.appendChild(div);
         }
     } catch (err) {
-        console.error("Gagal load upload activity:", err);
+        console.error("Gagal load activity:", err);
     }
 }

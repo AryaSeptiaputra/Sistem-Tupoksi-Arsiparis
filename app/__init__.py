@@ -9,22 +9,13 @@ from .models import diploma, user, classification, log, incoming_letter, outgoin
 from app.core import database as db
 
 def create_app():
-    # 1. Dapatkan lokasi folder 'app' (folder tempat __init__.py berada)
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    # 2. Tentukan lokasi folder HTML (Template)
-    # Sesuai gambar: app -> frontend -> assets -> html
-    template_dir = os.path.join(app_dir, 'frontend', 'assets', 'html')
+    template_dir = os.path.join(app_dir, 'assets', 'html')
     print(template_dir)
 
-    # 3. Tentukan lokasi folder Static (CSS/JS)
-    # Sesuai gambar: app -> frontend -> assets
-    static_dir = os.path.join(app_dir, 'frontend', 'assets')
+    static_dir = os.path.join(app_dir, 'assets')
 
-    # (Opsional) Print ini agar Anda bisa cek di terminal apakah path-nya sudah benar
-    print(f"Lokasi Template: {template_dir}") 
-
-    # Inisialisasi Flask dengan path custom
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
 
@@ -44,8 +35,8 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(classification_bp, url_prefix="/classification")
-    app.register_blueprint(incoming_letter_bp, url_prefix="/incoming-letter")
-    app.register_blueprint(outgoing_letter_bp, url_prefix="/outgoing-letter")
+    app.register_blueprint(incoming_letter_bp, url_prefix="/incoming_letter")
+    app.register_blueprint(outgoing_letter_bp, url_prefix="/outgoing_letter")
     app.register_blueprint(diploma_bp, url_prefix="/diploma")
     app.register_blueprint(log_bp, url_prefix="/log")   
     app.register_blueprint(backup_bp, url_prefix="/backup")
@@ -62,5 +53,21 @@ def create_app():
     @app.route('/incoming_letter')
     def incoming_letter():
         return redirect(url_for('view.incoming_letter_page'))
+
+    @app.route('/diploma')
+    def diploma():
+        return redirect(url_for('view.diploma_page'))
+
+    @app.route('/user')
+    def user():
+        return redirect(url_for('view.user_page'))
+    
+    @app.route('/log')
+    def log():
+        return redirect(url_for('view.log'))
+    
+    @app.route('/backup')
+    def backup():
+        return redirect(url_for('view.backup'))
 
     return app

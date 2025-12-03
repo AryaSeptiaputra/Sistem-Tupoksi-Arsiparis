@@ -63,10 +63,14 @@ class OutgoingLetter(Base):
         """
         return {
             "id": self.id,
-            "number": self.number,
+            "mail_number": self.number,
+            "letter_date": self.letter_date.isoformat() if self.letter_date else None,
+            "sent_date": self.sent_date.isoformat() if self.sent_date else None,
             "destination": self.destination,
+            "sender": "Tata Usaha",
             "subject": self.subject,
             "is_decree": self.is_decree,
-            "classification": self.classification.code if self.classification else None,
+            "classification_code": self.classification.code if self.classification else None,
+            "file_path": self.attachment_path,
             "input_by": self.user.username if self.user else None
         }

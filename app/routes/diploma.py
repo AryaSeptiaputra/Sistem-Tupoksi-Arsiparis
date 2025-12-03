@@ -210,55 +210,43 @@ def delete_diploma_route():
     finally:
         db_session.close()
 
+# ... import dan kode atas biarkan sama ...
+
 @diploma_bp.route('/get_all', methods=['GET'])
 def get_all_diplomas_route():
-    """Retrieves all diploma records.
-
-    Fetches a list of all diplomas currently stored in the database.
-
-    Returns:
-        tuple[Response, int]:
-            * 200: A JSON list of diploma objects.
-    """
+    """Retrieves all diploma records."""
     db_session: Session = db.SessionLocal()
     try:
         diplomas = get_all_diplomas(db_session)
+        # Gunakan list comprehension dan to_dict()
         return jsonify([d.to_dict() for d in diplomas]), 200
+    except Exception as e:
+        # PERBAIKAN: Tangkap error agar mengembalikan JSON, bukan HTML
+        print(f"Error Get All Diplomas: {e}")
+        return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
 
 @diploma_bp.route('/get_by_keys', methods=['POST'])
 def get_diplomas_by_keys_route():
-    """Retrieves diploma records filtered by multiple keys.
-
-    Allows advanced filtering using a dictionary of parameters.
-    Example: Filtering for all diplomas in 'TKJ' major that are NOT collected yet.
-
-    Args:
-        No explicit arguments. Expects JSON payload:
-        filters (dict): Dictionary of filter criteria.
-            Example: {"major": "TKJ", "is_collected": false}
-
-    Returns:
-        tuple[Response, int]:
-            * 200: A list of diplomas matching the filters.
-            * 400: Missing 'filters' dictionary or invalid format.
-    """
+    """Retrieves diploma records filtered by keys."""
     data = request.json
-    filters = data.get('filters')
+    # Fallback aman jika data null
+    filters = data.get('filters') if data else None
 
-    if not filters or not isinstance(filters, dict):
-        # Fallback to direct dict check if wrapper key 'filters' is missing
-        if data and isinstance(data, dict):
-             filters = data
-        else:
-             return jsonify({"error": "'filters' dictionary is required"}), 400
-    
+    if not filters:
+         # Cek jika user mengirim dictionary langsung tanpa key 'filters'
+         filters = data if isinstance(data, dict) else {}
+
     db_session: Session = db.SessionLocal()
     try:
         diplomas = get_diplomas_by_keys(db_session, filters)
         return jsonify([d.to_dict() for d in diplomas]), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        # PERBAIKAN: Tangkap error umum juga
+        print(f"Error Filter Diplomas: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
     finally:
         db_session.close()

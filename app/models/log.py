@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Text, DateTime, func, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class Log(Base):
@@ -17,9 +18,11 @@ class Log(Base):
     __tablename__ = "log"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
     action = Column(Text, nullable=False)
     timestamp = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
+    user = relationship("User", backref="logs", lazy="joined")
 
     def to_dict(self):
         """Convert log entry object to dictionary format with ISO-formatted timestamp.
@@ -35,9 +38,16 @@ class Log(Base):
                 - action (str): Description of the action performed (e.g., 'Deleted letter IN/001/2024')
                 - timestamp (str): ISO 8601 formatted datetime string (e.g., '2024-11-30T10:30:45.123456')
         """
+        try:
+            if self.user and self.user.username:
+                username = self.user.username
+        except:
+            pass
+
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "username": username,
             "action": self.action,
             "timestamp": self.timestamp.isoformat(),
         }

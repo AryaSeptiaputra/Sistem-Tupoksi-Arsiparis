@@ -1,21 +1,11 @@
 /**
-
+ * api.js - Service Wrapper untuk komunikasi dengan Backend Flask
  */
 const BASE_URL = "http://127.0.0.1:5000"; 
 
 // --- HELPER FUNCTION (JANGAN DIUBAH) ---
-
-/**
- * Fungsi utama untuk melakukan request ke Backend
- * @param {string} endpoint - Contoh: '/user/create'
- * @param {string} method - GET, POST, DELETE, dll
- * @param {object|FormData} body - Data yang dikirim (JSON object atau FormData untuk upload file)
- */
 async function fetchAPI(endpoint, method = 'GET', body = null) {
-    // 1. Ambil Token dari penyimpanan lokal (setelah login)
     const token = localStorage.getItem('access_token');
-
-    // 2. Siapkan Headers
     const headers = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -26,29 +16,31 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         headers: headers
     };
 
-    // 3. Cek tipe data body (JSON vs FormData)
     if (body) {
         if (body instanceof FormData) {
-            // Jika upload file, jangan set Content-Type (biarkan browser mengaturnya otomatis)
+            // Upload file: biarkan browser atur Content-Type
             config.body = body;
         } else {
-            // Jika data biasa, jadikan JSON
+            // Data JSON biasa
             headers['Content-Type'] = 'application/json';
             config.body = JSON.stringify(body);
         }
     }
 
     try {
-        // 4. Tembak ke Server
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
+        
+        // Cek jika response bukan JSON (misal HTML Error 404/500)
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Server Error: Respon bukan JSON (Mungkin URL salah atau Error 500)");
+        }
+
         const result = await response.json();
 
-        // 5. Cek apakah sukses (Status 200-299)
         if (!response.ok) {
-            // Jika token kadaluarsa (401), bisa redirect ke login (opsional)
             if (response.status === 401) {
-                console.warn("Sesi habis, silakan login ulang.");
-                // window.location.href = '/login.html'; 
+                console.warn("Sesi habis.");
             }
             throw new Error(result.message || result.error || 'Terjadi kesalahan pada server');
         }
@@ -56,21 +48,21 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         return result;
     } catch (error) {
         console.error(`API Error [${endpoint}]:`, error);
-        alert(error.message); // Tampilkan pesan error ke user
+        // Jangan alert setiap kali error agar tidak mengganggu UI, cukup throw
         throw error;
     }
 }
 
-// --- DAFTAR SERVICE (SESUAI FILE PYTHON KAMU) ---
+// --- DAFTAR SERVICE ---
 
 const api = {
-    // 1. AUTH (auth.py)
+    // 1. AUTH
     auth: {
         login: (nuptk, password) => fetchAPI('/auth/login', 'POST', { nuptk, password }),
-        logout: () => localStorage.removeItem('access_token') // Hapus token di client side
+        logout: () => localStorage.removeItem('access_token')
     },
 
-    // 2. USER (user.py)
+    // 2. USER
     user: {
         create: (data) => fetchAPI('/user/create', 'POST', data),
         update: (data) => fetchAPI('/user/update', 'POST', data),
@@ -79,7 +71,7 @@ const api = {
         getByKeys: (filters) => fetchAPI('/user/get_by_keys', 'POST', { filters })
     },
 
-    // 3. CLASSIFICATION (classification.py)
+    // 3. CLASSIFICATION
     classification: {
         create: (data) => fetchAPI('/classification/create', 'POST', data),
         update: (data) => fetchAPI('/classification/update', 'POST', data),
@@ -88,9 +80,8 @@ const api = {
         getByKeys: (filters) => fetchAPI('/classification/get_by_keys', 'POST', { filters })
     },
 
-    // 4. INCOMING LETTER / SURAT MASUK (incoming_letter.py)
+    // 4. INCOMING LETTER
     incomingLetter: {
-        // PENTING: Gunakan FormData karena ada upload file
         create: (formData) => fetchAPI('/incoming_letter/create', 'POST', formData),
         update: (data) => fetchAPI('/incoming_letter/update', 'POST', data),
         delete: (id) => fetchAPI('/incoming_letter/delete', 'POST', { id }),
@@ -98,9 +89,8 @@ const api = {
         getByKeys: (filters) => fetchAPI('/incoming_letter/get_by_keys', 'POST', { filters })
     },
 
-    // 5. OUTGOING LETTER / SURAT KELUAR (outgoing_letter.py)
+    // 5. OUTGOING LETTER
     outgoingLetter: {
-        // PENTING: Gunakan FormData karena ada upload file
         create: (formData) => fetchAPI('/outgoing_letter/create', 'POST', formData),
         update: (data) => fetchAPI('/outgoing_letter/update', 'POST', data),
         delete: (id) => fetchAPI('/outgoing_letter/delete', 'POST', { id }),
@@ -108,23 +98,23 @@ const api = {
         getByKeys: (filters) => fetchAPI('/outgoing_letter/get_by_keys', 'POST', { filters })
     },
 
-    // 6. REPORT CARD / RAPOT (report_card.py)
-    reportCard: {
-        // PENTING: Gunakan FormData karena ada upload file
-        create: (formData) => fetchAPI('/report_card/create', 'POST', formData),
-        update: (data) => fetchAPI('/report_card/update', 'POST', data),
-        delete: (id) => fetchAPI('/report_card/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/report_card/get_all', 'GET'),
-        getByKeys: (filters) => fetchAPI('/report_card/get_by_keys', 'POST', { filters })
+    // 6. DIPLOMA / IJAZAH (MENGGANTIKAN REPORT CARD)
+    diploma: {
+        // Create butuh FormData karena ada upload file scan ijazah
+        create: (formData) => fetchAPI('/diploma/create', 'POST', formData),
+        update: (data) => fetchAPI('/diploma/update', 'POST', data),
+        delete: (id) => fetchAPI('/diploma/delete', 'POST', { id }),
+        getAll: () => fetchAPI('/diploma/get_all', 'GET'),
+        getByKeys: (filters) => fetchAPI('/diploma/get_by_keys', 'POST', { filters })
     },
 
-    // 7. LOG ACTIVITY (log.py)
+    // 7. LOG ACTIVITY
     log: {
         getAll: () => fetchAPI('/log/get_all', 'GET'),
         getByKeys: (filters) => fetchAPI('/log/get_by_keys', 'POST', { filters })
     },
 
-    // 8. BACKUP (backup.py)
+    // 8. BACKUP
     backup: {
         manual: () => fetchAPI('/backup/manual', 'POST'),
         getLogs: () => fetchAPI('/backup/logs', 'GET')

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Arsip - Data Pengguna</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">S7</div>
+        <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
+        <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
+        <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
+        <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
+        <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
+        <a class="nav-item active" data-route="/page/user" title="Pengguna">👥</a>
+        <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
+        <a class="nav-item" data-route="/page/backup" title="Backup Database">💾</a>
+
+        <div style="margin-top: auto;">
+            <a class="nav-item btn-logout-sidebar" id="btn-logout" title="Logout">🚪</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="header-page">
+            <div class="header-title">
+                <h1>Data Pengguna (Users)</h1>
+                <p>Kelola akun guru, admin, dan kepala sekolah</p>
+            </div>
+            <div class="header-tools">
+                <button class="btn-add" onclick="addUser()">+</button>
+                <div class="user-avatar">👨‍🏫</div>
+            </div>
+        </div>
+
+        <section class="content-card">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Cari NUPTK atau Username..." id="searchInput">
+            </div>
+
+            <div class="filter-row">
+                <select class="filter-select" id="filterRole">
+                    <option value="">Semua Role</option>
+                    <option value="headmaster">Headmaster (Kepsek)</option>
+                    <option value="admin">Admin (TU)</option>
+                    <option value="teacher">Teacher (Guru)</option>
+                </select>
+
+                <select class="filter-select" id="filterStatus">
+                    <option value="">Semua Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+
+                <button class="btn-export"><span>⬇️</span> Export CSV</button>
+            </div>
+
+            <div class="table-responsive">
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>NUPTK</th>
+                            <th>Username</th>
+                            <th>Role / Jabatan</th>
+                            <th>Status Akun</th>
+                            <th style="text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const token = localStorage.getItem("access_token");
+            if (!token) { window.location.href = "/page/login"; return; }
+
+            document.querySelectorAll("[data-route]").forEach(el => {
+                el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
+            });
+            document.getElementById("btn-logout").addEventListener("click", () => {
+                localStorage.removeItem("access_token"); window.location.href = "/page/login";
+            });
+
+            await loadUsers();
+
+            // Event Listener Filter
+            document.getElementById('searchInput').addEventListener('keyup', filterTable);
+            document.getElementById('filterRole').addEventListener('change', filterTable);
+            document.getElementById('filterStatus').addEventListener('change', filterTable);
+        });
+
+        async function loadUsers() {
+            const tableBody = document.getElementById("table-body");
+            tableBody.innerHTML = `<tr><td colspan="5" class="loading-text">Sedang memuat data...</td></tr>`;
+            try {
+                const data = await api.user.getAll();
+                tableBody.innerHTML = "";
+                if (!data || data.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="loading-text">Belum ada data.</td></tr>`; return; }
+
+                data.forEach(user => {
+                    const row = document.createElement("tr");
+
+                    let roleBadge = user.role === 'admin' ? 'role-admin' : (user.role === 'headmaster' ? 'role-headmaster' : 'role-teacher');
+                    let roleLabel = user.role === 'admin' ? 'Admin / TU' : (user.role === 'headmaster' ? 'Kepala Sekolah' : 'Guru');
+
+                    let statusClass = (user.status === 'active') ? 'status-active' : 'status-inactive';
+                    let statusTextClass = (user.status === 'active') ? 'text-active' : 'text-inactive';
+                    let statusLabel = (user.status === 'active') ? 'Aktif' : 'Nonaktif';
+
+                    row.innerHTML = `
+                        <td style="font-weight: 500;">${user.nuptk || '-'}</td>
+                        <td><div style="font-weight:600;">${user.username || '-'}</div></td>
+                        <td><span class="role-badge ${roleBadge}">${roleLabel}</span></td>
+                        <td>
+                            <div style="display:flex; align-items:center;">
+                                <span class="status-dot ${statusClass}"></span>
+                                <span class="status-text ${statusTextClass}">${statusLabel}</span>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="btn-action-group">
+                                <button class="btn-action-view btn-edit" onclick="editUser('${user.id}')">✏️</button>
+                                <button class="btn-action-view btn-delete" onclick="deleteUser('${user.id}')">🗑️</button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) { tableBody.innerHTML = `<tr><td colspan="5" class="loading-text" style="color:red;">Gagal memuat.</td></tr>`; }
+        }
+
+        function filterTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const role = document.getElementById('filterRole').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value.toLowerCase();
+            const rows = document.querySelectorAll('#table-body tr');
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const roleText = row.cells[2] ? row.cells[2].innerText.toLowerCase() : '';
+                const statusText = row.cells[3] ? row.cells[3].innerText.toLowerCase() : '';
+
+                const matchSearch = text.includes(search);
+                const matchRole = role === '' || roleText.includes(role === 'headmaster' ? 'kepala' : role === 'admin' ? 'admin' : 'guru');
+                const matchStatus = status === '' || statusText.includes(status === 'active' ? 'aktif' : 'nonaktif');
+
+                row.style.display = (matchSearch && matchRole && matchStatus) ? '' : 'none';
+            });
+        }
+
+        function addUser() { alert("Fitur Tambah User: Buat form modal atau halaman baru."); }
+        function editUser(id) { alert("Edit user ID: " + id); }
+        async function deleteUser(id) {
+            if (confirm("Hapus user ini?")) {
+                try { await api.user.delete(id); loadUsers(); }
+                catch (e) { alert("Gagal hapus: " + e.message); }
+            }
+        }
+    </script>
+</body>
+
+</html>

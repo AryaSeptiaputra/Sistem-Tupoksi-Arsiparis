@@ -20,7 +20,7 @@ class Classification(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), index=True, unique=True, nullable=False)
-    code = Column(String(3), index=True, unique=True, nullable=False)
+    code = Column(String(10), index=True, unique=True, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(
         DateTime, 

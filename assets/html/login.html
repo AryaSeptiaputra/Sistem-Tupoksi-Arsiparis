@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Arsip Digital - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+    <div class="auth-wrapper">
+        <div class="auth-visual">
+            <div class="illustration-box">
+                <div class="floating-items">
+                    <div class="float-icon">📘</div>
+                    <div class="float-icon">✉️</div>
+                    <div class="float-pill">RPP & Dokumen Guru</div>
+                    <div class="float-pill">Surat Masuk & Keluar</div>
+                </div>
+            </div>  
+            <div>
+                <h1>Sistem Arsip Digital SMKN 7 Bandung</h1>
+                <p>Mengelola dokumen dan arsip sekolah dengan mudah, aman, dan terorganisir.</p>
+            </div>
+        </div>
+
+        <div class="auth-form">
+            <div class="auth-header">
+                <div class="auth-icon">🏫</div>
+                <div>
+                    <div class="auth-title">Sistem Arsip Digital</div>
+                    <div class="auth-subtitle">Selamat datang! Silakan login untuk melanjutkan.</div>
+                </div>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="nuptk">NUPTK</label>
+                    <div class="input-control">
+                        <input type="text" id="nuptk" name="nuptk" placeholder="Masukkan NUPTK Anda" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-control">
+                        <input type="password" id="password" name="password" placeholder="Masukkan password Anda" required />
+                        <span class="toggle-password" id="toggle-password">👁️</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+                <div class="school-footer">© 2025 SMKN 7 Bandung. Sistem Arsip Digital.</div>
+            </form>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    <script>
+        const pwdInput = document.getElementById('password');
+        const toggle = document.getElementById('toggle-password');
+        if (toggle && pwdInput) {
+            toggle.addEventListener('click', () => {
+                const isPwd = pwdInput.type === 'password';
+                pwdInput.type = isPwd ? 'text' : 'password';
+            });
+        }
+    </script>
+</body>
+</html>

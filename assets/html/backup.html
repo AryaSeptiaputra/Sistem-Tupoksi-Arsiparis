@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Arsip - Backup Database</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        /* Style Khusus Halaman Backup */
+        .btn-backup-now {
+            background-color: #22c55e; /* Hijau */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 99px;
+            border: none;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+            transition: 0.2s;
+        }
+        .btn-backup-now:hover { background-color: #16a34a; transform: translateY(-2px); }
+        .btn-backup-now:disabled { background-color: #bbf7d0; cursor: not-allowed; transform: none; }
+
+        .file-icon { font-size: 18px; margin-right: 8px; }
+        .file-size { color: #6b7280; font-size: 12px; font-family: monospace; }
+        
+        .btn-download { background: #3b82f6; border: none; }
+        .btn-restore { background: #f59e0b; border: none; } /* Kuning */
+        .btn-download:hover { background: #2563eb; }
+        .btn-restore:hover { background: #d97706; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">S7</div>
+        
+        <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
+        <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
+        <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
+        <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
+        <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
+        <a class="nav-item" data-route="/page/user" title="Pengguna">👥</a>
+        <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
+        
+        <a class="nav-item active" data-route="/page/backup" title="Backup Database">💾</a>
+
+        <div style="margin-top: auto;">
+            <a class="nav-item btn-logout-sidebar" id="btn-logout" title="Logout">🚪</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        
+        <div class="header-page">
+            <div class="header-title">
+                <h1>Cadangkan & Pulihkan Basis Data</h1>
+                <p>Amankan data sistem dengan melakukan pencadangan rutin</p>
+            </div>
+            <div class="header-tools">
+                <div class="user-avatar">👨‍🏫</div>
+            </div>
+        </div>
+
+        <section class="content-card">
+            
+            <div class="filter-row" style="justify-content: space-between;">
+                <div>
+                    <h3 style="margin:0; font-size:16px;">Riwayat Cadangan</h3>
+                    <p style="margin:0; font-size:12px; color:#6b7280;">Daftar file backup yang tersedia di server</p>
+                </div>
+
+                <button class="btn-backup-now" id="btnBackup" onclick="triggerManualBackup()">
+                    <span>⚡</span> Backup Sekarang
+                </button>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+
+            <div class="table-responsive">
+                <table id="backupTable">
+                    <thead>
+                        <tr>
+                            <th>Nama File</th>
+                            <th>Tanggal Dibuat</th>
+                            <th>Ukuran</th>
+                            <th style="text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="4" class="loading-text">Memuat data backup...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            // 1. Cek Login
+            const token = localStorage.getItem("access_token");
+            if (!token) { window.location.href = "/page/login"; return; }
+
+            // 2. Setup Navigasi
+            document.querySelectorAll("[data-route]").forEach(el => {
+                el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
+            });
+            document.getElementById("btn-logout").addEventListener("click", () => {
+                localStorage.removeItem("access_token"); window.location.href = "/page/login";
+            });
+
+            // 3. Load Data Backup
+            await loadBackups();
+        });
+
+        async function loadBackups() {
+            const tableBody = document.getElementById("table-body");
+            try {
+                // Panggil API getLogs untuk backup
+                const data = await api.backup.getLogs(); 
+                
+                tableBody.innerHTML = "";
+
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="loading-text">Belum ada file backup.</td></tr>`;
+                    return;
+                }
+
+                // Urutkan dari yang terbaru
+                data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                data.forEach(item => {
+                    const row = document.createElement("tr");
+
+                    // Format Tanggal
+                    const dateObj = new Date(item.created_at);
+                    const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+                        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    });
+
+                    // Format Ukuran File (jika ada, misal dalam bytes)
+                    // Asumsi response API mengirim size string atau bytes
+                    const sizeDisplay = item.size ? item.size : '-'; 
+
+                    row.innerHTML = `
+                        <td style="font-weight: 500;">
+                            <span class="file-icon">📦</span> ${item.filename}
+                        </td>
+                        <td>${formattedDate}</td>
+                        <td><span class="file-size">${sizeDisplay}</span></td>
+                        <td style="text-align: center;">
+                            <div class="btn-action-group">
+                                <button class="btn-action-view btn-download" onclick="downloadBackup('${item.filename}')" title="Download">⬇️</button>
+                                <button class="btn-action-view btn-restore" onclick="restoreBackup('${item.filename}')" title="Restore Database">♻️</button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error(error);
+                tableBody.innerHTML = `<tr><td colspan="4" class="loading-text" style="color:red;">Gagal memuat data backup.</td></tr>`;
+            }
+        }
+
+        async function triggerManualBackup() {
+            const btn = document.getElementById("btnBackup");
+            if(!confirm("Apakah Anda yakin ingin melakukan backup database sekarang?")) return;
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = "<span>⏳</span> Memproses...";
+                
+                // Panggil API Backup Manual
+                const res = await api.backup.manual();
+                
+                alert("Backup berhasil dibuat!");
+                await loadBackups(); // Refresh tabel
+
+            } catch (error) {
+                alert("Gagal melakukan backup: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "<span>⚡</span> Backup Sekarang";
+            }
+        }
+
+        function downloadBackup(filename) {
+            // Karena download file biasanya butuh akses langsung, 
+            // kita bisa redirect window ke endpoint download atau fetch blob.
+            // Asumsi: ada endpoint GET /backup/download/<filename>
+            // Jika belum ada di api.js, bisa gunakan window.open
+            const token = localStorage.getItem('access_token');
+            // Contoh cara download dengan menyertakan token (agak tricky via window.open)
+            // Cara paling mudah adalah endpoint download dibuat public dengan token di query param,
+            // atau gunakan fetch BLOB.
+            alert("Fitur download: " + filename);
+        }
+
+        function restoreBackup(filename) {
+            if(confirm(`PERINGATAN: Restore akan menimpa database saat ini dengan file '${filename}'. Data baru mungkin hilang. Lanjutkan?`)) {
+                alert("Fitur Restore belum diimplementasikan.");
+                // Panggil API restore di sini
+            }
+        }
+    </script>
+</body>
+</html>
