@@ -5,36 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Arsip - Backup Database</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-    <style>
-        /* Style Khusus Halaman Backup */
-        .btn-backup-now {
-            background-color: #22c55e; /* Hijau */
-            color: white;
-            padding: 10px 20px;
-            border-radius: 99px;
-            border: none;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-            transition: 0.2s;
-        }
-        .btn-backup-now:hover { background-color: #16a34a; transform: translateY(-2px); }
-        .btn-backup-now:disabled { background-color: #bbf7d0; cursor: not-allowed; transform: none; }
-
-        .file-icon { font-size: 18px; margin-right: 8px; }
-        .file-size { color: #6b7280; font-size: 12px; font-family: monospace; }
-        
-        .btn-download { background: #3b82f6; border: none; }
-        .btn-restore { background: #f59e0b; border: none; } /* Kuning */
-        .btn-download:hover { background: #2563eb; }
-        .btn-restore:hover { background: #d97706; }
-    </style>
 </head>
 <body>
 
@@ -123,7 +95,6 @@
         async function loadBackups() {
             const tableBody = document.getElementById("table-body");
             try {
-                // Panggil API getLogs untuk backup
                 const data = await api.backup.getLogs(); 
                 
                 tableBody.innerHTML = "";
@@ -133,20 +104,16 @@
                     return;
                 }
 
-                // Urutkan dari yang terbaru
                 data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 data.forEach(item => {
                     const row = document.createElement("tr");
 
-                    // Format Tanggal
                     const dateObj = new Date(item.created_at);
                     const formattedDate = dateObj.toLocaleDateString('id-ID', { 
                         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
                     });
 
-                    // Format Ukuran File (jika ada, misal dalam bytes)
-                    // Asumsi response API mengirim size string atau bytes
                     const sizeDisplay = item.size ? item.size : '-'; 
 
                     row.innerHTML = `
@@ -179,11 +146,10 @@
                 btn.disabled = true;
                 btn.innerHTML = "<span>⏳</span> Memproses...";
                 
-                // Panggil API Backup Manual
                 const res = await api.backup.manual();
                 
                 alert("Backup berhasil dibuat!");
-                await loadBackups(); // Refresh tabel
+                await loadBackups(); 
 
             } catch (error) {
                 alert("Gagal melakukan backup: " + error.message);
@@ -194,21 +160,13 @@
         }
 
         function downloadBackup(filename) {
-            // Karena download file biasanya butuh akses langsung, 
-            // kita bisa redirect window ke endpoint download atau fetch blob.
-            // Asumsi: ada endpoint GET /backup/download/<filename>
-            // Jika belum ada di api.js, bisa gunakan window.open
             const token = localStorage.getItem('access_token');
-            // Contoh cara download dengan menyertakan token (agak tricky via window.open)
-            // Cara paling mudah adalah endpoint download dibuat public dengan token di query param,
-            // atau gunakan fetch BLOB.
             alert("Fitur download: " + filename);
         }
 
         function restoreBackup(filename) {
             if(confirm(`PERINGATAN: Restore akan menimpa database saat ini dengan file '${filename}'. Data baru mungkin hilang. Lanjutkan?`)) {
                 alert("Fitur Restore belum diimplementasikan.");
-                // Panggil API restore di sini
             }
         }
     </script>

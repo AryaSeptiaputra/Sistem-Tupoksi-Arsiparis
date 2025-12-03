@@ -1,5 +1,8 @@
 // assets/js/dashboard.js
 
+// Cache data global
+let allDocumentsCache = [];
+
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("access_token");
     if (!token) {
@@ -8,8 +11,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     loadUserInfo();
-    loadQuickAccess();
+    loadDocuments(); 
     loadUploadActivity();
+    setupSearch(); 
 });
 
 /* ---------- USER INFO ---------- */
@@ -20,7 +24,6 @@ async function loadUserInfo() {
 
     try {
         let user = null;
-
         try {
             user = await api.auth.me();
         } catch (_) {
@@ -31,7 +34,6 @@ async function loadUserInfo() {
         if (!user) {
             if (welcomeEl) welcomeEl.textContent = "Selamat Datang!";
             if (nameEl) nameEl.textContent = "Pengguna";
-            if (roleEl) roleEl.textContent = "—";
             return;
         }
 
@@ -46,113 +48,152 @@ async function loadUserInfo() {
     }
 }
 
-/* ---------- QUICK ACCESS ---------- */
-async function loadQuickAccess() {
+/* ---------- LOAD DOCUMENTS ---------- */
+async function loadDocuments() {
     const container = document.getElementById("quick-access");
     if (!container) return;
-    container.innerHTML = `<p style="color:#6b7280;">Loading...</p>`;
+    container.innerHTML = `<p style="color:#6b7280;">Memuat dokumen...</p>`;
 
     try {
-        // PERBAIKAN: Menggunakan api.diploma bukan api.reportCard
         const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
             api.diploma.getAll(), 
         ]);
 
-        // Gabungkan semua data
-        const allDocs = [
+        allDocumentsCache = [
             ...(incoming || []).map(d => ({ 
                 ...d, 
                 _type: "Surat Masuk", 
-                route: "/page/incoming_letter", 
-                title: d.subject || d.number || "Tanpa Judul",
-                date: d.created_at || d.received_date || new Date().toISOString()
+                _route: "/page/incoming_letter", 
+                _title: d.subject || d.number || "Surat Masuk Tanpa Judul",
+                _date: d.created_at || new Date().toISOString() 
             })),
             ...(outgoing || []).map(d => ({ 
                 ...d, 
                 _type: "Surat Keluar", 
-                route: "/page/outgoing_letter", 
-                title: d.subject || d.number || "Tanpa Judul",
-                date: d.created_at || d.letter_date || new Date().toISOString()
+                _route: "/page/outgoing_letter", 
+                _title: d.subject || d.number || "Surat Keluar Tanpa Judul",
+                _date: d.created_at || new Date().toISOString()
             })),
-            // Mapping Data Ijazah
             ...(diplomas || []).map(d => ({ 
                 ...d, 
                 _type: "Ijazah", 
-                route: "/page/diploma", 
-                title: d.student_name || d.number || "Tanpa Nama", // Sesuai diploma.py
-                date: d.created_at || new Date().toISOString()
+                _route: "/page/diploma", 
+                _title: d.student_name || d.number || "Ijazah Tanpa Nama",
+                _date: d.created_at || new Date().toISOString()
             })),
         ];
 
-        if (!allDocs.length) {
-            container.innerHTML = `<p style="color:#6b7280;">Belum ada dokumen terbaru.</p>`;
-            return;
-        }
+        // Sorting: Terbaru (Desc)
+        allDocumentsCache.sort((a, b) => new Date(b._date) - new Date(a._date));
 
-        // Urutkan dari yang terbaru
-        allDocs.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // Ambil 4 teratas
-        const latest = allDocs.slice(0, 4);
-
-        container.innerHTML = latest.map(doc => `
-            <div class="doc-card" data-route="${doc.route}" style="cursor: pointer;">
-                <div class="doc-icon">📄</div>
-                <div>
-                    <div class="doc-chip">${doc._type}</div>
-                    <div class="doc-title">${doc.title}</div>
-                </div>
-            </div>
-        `).join("");
-
-        // Event listener klik
-        container.querySelectorAll(".doc-card").forEach(el => {
-            el.addEventListener("click", () => {
-                const r = el.dataset.route;
-                if (r) window.location.href = r;
-            });
-        });
+        renderDocs(allDocumentsCache);
 
     } catch (err) {
-        console.error("Gagal load quick access:", err);
-        container.innerHTML = `<p style="color:red; font-size:12px;">Gagal memuat data. Cek koneksi server.</p>`;
+        console.error("Gagal load documents:", err);
+        container.innerHTML = `<p style="color:red; font-size:12px;">Gagal memuat data.</p>`;
     }
 }
 
-/* ---------- UPLOAD ACTIVITY ---------- */
+function renderDocs(data) {
+    const container = document.getElementById("quick-access");
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#9ca3af; padding:20px;">Tidak ada dokumen ditemukan.</div>`;
+        return;
+    }
+
+    container.innerHTML = data.map(doc => {
+        const dateObj = new Date(doc._date);
+        const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return `
+            <div class="doc-card" onclick="window.location.href='${doc._route}'" style="cursor: pointer;">
+                <div class="doc-icon">
+                    ${doc._type === 'Ijazah' ? '🎓' : doc._type === 'Surat Keluar' ? '📤' : '📄'}
+                </div>
+                <div style="width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="doc-chip">${doc._type}</span>
+                        <span style="font-size:11px; color:#9ca3af;">${dateStr}</span>
+                    </div>
+                    <div class="doc-title" style="margin-top:6px;">${doc._title}</div>
+                    <div style="font-size:12px; color:#6b7280; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${doc.number || '-'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+/* ---------- FILTER LOGIC ---------- */
+window.filterDocs = function(type, btnElement) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+
+    let filteredData = [];
+    if (type === 'all') {
+        filteredData = allDocumentsCache;
+        document.getElementById("list-title").textContent = "Dokumen Terkini";
+    } else {
+        filteredData = allDocumentsCache.filter(doc => doc._type === type);
+        document.getElementById("list-title").textContent = `Daftar ${type} Terbaru`;
+    }
+    renderDocs(filteredData);
+};
+
+/* ---------- SEARCH LOGIC ---------- */
+function setupSearch() {
+    const searchInput = document.getElementById("searchInput");
+    if(!searchInput) return;
+
+    searchInput.addEventListener("keyup", (e) => {
+        const keyword = e.target.value.toLowerCase();
+        
+        const searchResults = allDocumentsCache.filter(doc => {
+            const titleMatch = doc._title.toLowerCase().includes(keyword);
+            const numMatch = (doc.number || "").toLowerCase().includes(keyword);
+            return titleMatch || numMatch;
+        });
+
+        if(keyword.length > 0) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById("list-title").textContent = `Hasil Pencarian: "${keyword}"`;
+        } else {
+             document.getElementById("list-title").textContent = "Dokumen Terkini";
+             document.querySelector('.filter-btn').classList.add('active');
+        }
+        renderDocs(searchResults);
+    });
+}
+
+/* ---------- UPLOAD ACTIVITY (SIMPLE) ---------- */
 async function loadUploadActivity() {
     const countEl = document.getElementById("upload-count");
     const chart = document.getElementById("upload-chart");
     if (!countEl || !chart) return;
 
     try {
-        // PERBAIKAN: Menggunakan api.diploma
         const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
             api.diploma.getAll(),
         ]);
+        const allDocs = [...(incoming||[]), ...(outgoing||[]), ...(diplomas||[])];
 
-        const allDocs = [...(incoming || []), ...(outgoing || []), ...(diplomas || [])];
-        
-        // Hitung dokumen bulan ini
         const now = new Date();
         const monthDocs = allDocs.filter(doc => {
             const dateStr = doc.created_at || doc.letter_date || doc.received_date; 
             if(!dateStr) return false;
-            
             const d = new Date(dateStr);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         });
 
         countEl.textContent = monthDocs.length;
 
-        // Render Bar Chart (Visualisasi sederhana)
         chart.innerHTML = "";
-        
-        // Buat 6 bar random sebagai hiasan dashboard
         for (let i = 0; i < 6; i++) {
             const h = Math.floor(Math.random() * 50) + 20; 
             const div = document.createElement("div");
@@ -160,7 +201,5 @@ async function loadUploadActivity() {
             div.style.height = `${h}%`;
             chart.appendChild(div);
         }
-    } catch (err) {
-        console.error("Gagal load activity:", err);
-    }
+    } catch (e) { console.log(e); }
 }

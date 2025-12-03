@@ -32,15 +32,21 @@
                     <p>Kelola semua dokumen Anda dengan mudah.</p>
                 </div>
             </div>
+
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari dokumen..." />
+                <input type="text" id="searchInput" class="search-input" placeholder="Cari dokumen..." />
             </div>
-            <h3 style="margin-top:24px;">Akses Cepat</h3>
-            <div id="quick-access" class="filter-row" style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="filterDocs('all', this)">Semua</button>
+                <button class="filter-btn" onclick="filterDocs('Surat Masuk', this)">📥 Surat Masuk</button>
+                <button class="filter-btn" onclick="filterDocs('Surat Keluar', this)">📤 Surat Keluar</button>
+                <button class="filter-btn" onclick="filterDocs('Ijazah', this)">🎓 Ijazah</button>
+            </div>
+
+            <h3 style="margin-bottom:12px;" id="list-title">Dokumen Terkini</h3>
+            <div id="quick-access" class="docs-grid">
                 </div>
-            <button data-route="/page/incoming_letter" class="btn-add" style="width:auto; padding:0 20px; font-size:14px; margin-top:20px;">
-                + Tambah Surat Masuk
-            </button>
         </section>
 
         <aside style="display:flex; flex-direction:column; gap:20px;">

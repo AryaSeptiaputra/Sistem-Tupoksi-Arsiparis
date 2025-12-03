@@ -5,8 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Arsip - Surat Masuk</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
@@ -14,9 +14,7 @@
     <aside class="sidebar">
         <div class="logo">S7</div>
         <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
-
         <a class="nav-item active" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
-
         <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
         <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
         <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
@@ -36,22 +34,31 @@
                 <p>Kelola dan akses semua dokumen arsip sekolah dengan mudah</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add" title="Tambah">+</button>
+                <button class="btn-add" id="btnAddLetter" title="Tambah Surat Masuk">+</button>
                 <div class="user-avatar">👨‍🏫</div>
             </div>
         </div>
 
         <section class="content-card">
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari dokumen..." id="searchInput">
+                <input type="text" class="search-input" placeholder="Cari No. Surat, Pengirim, atau Subjek..." id="searchInput">
             </div>
 
             <div class="filter-row">
-                <div class="filter-date-range"><span>📅</span><span>DD/MM/YYYY</span></div>
-                <select class="filter-select">
-                    <option>Semua Klasifikasi</option>
-                </select>
-                <button class="btn-export"><span>⬇️</span> Export Data</button>
+                <div class="filter-group" title="Filter Berdasarkan Tanggal Diterima">
+                    <span style="font-size: 12px;">📅</span>
+                    <input type="date" id="startDate" class="filter-input-date">
+                    <span style="color:#ccc">-</span>
+                    <input type="date" id="endDate" class="filter-input-date">
+                </div>
+
+                <select class="filter-select" id="classificationFilter">
+                    <option value="">Semua Klasifikasi</option>
+                    </select>
+
+                <button class="btn-export" id="btnResetFilter" style="margin-left:auto; background:#f3f4f6; border:none;">
+                    <span>🔄</span> Reset
+                </button>
             </div>
 
             <div class="table-responsive">
@@ -64,108 +71,17 @@
                             <th>Pengirim</th>
                             <th>Subjek</th>
                             <th>Klasifikasi</th>
-                            <th>Aksi</th>
+                            <th style="text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </section>
     </main>
+
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            // 1. Cek Login
-            const token = localStorage.getItem("access_token");
-            if (!token) { window.location.href = "/page/login"; return; }
-
-            // 2. Setup Navigasi Sidebar
-            document.querySelectorAll("[data-route]").forEach(el => {
-                el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
-            });
-            document.getElementById("btn-logout").addEventListener("click", () => {
-                localStorage.removeItem("access_token"); window.location.href = "/page/login";
-            });
-
-            // 3. Load Data Surat Masuk
-            await loadIncomingLetters();
-
-            // 4. Setup Pencarian
-            document.getElementById('searchInput').addEventListener('keyup', filterTable);
-        });
-
-        async function loadIncomingLetters() {
-            const tableBody = document.getElementById("table-body");
-            tableBody.innerHTML = `<tr><td colspan="7" class="loading-text">Sedang memuat data...</td></tr>`;
-
-            try {
-                // Panggil API (Sesuai api.js: api.incomingLetter.getAll())
-                const data = await api.incomingLetter.getAll();
-
-                tableBody.innerHTML = "";
-                if (!data || data.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="7" class="loading-text">Belum ada surat masuk.</td></tr>`;
-                    return;
-                }
-
-                // Urutkan berdasarkan tanggal diterima (terbaru diatas)
-                data.sort((a, b) => new Date(b.received_date) - new Date(a.received_date));
-
-                data.forEach(item => {
-                    const row = document.createElement("tr");
-
-                    // Format Tanggal (Contoh: 03 Des 2025)
-                    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-                    const dateLetter = item.letter_date ? new Date(item.letter_date).toLocaleDateString('id-ID', options) : '-';
-                    const dateReceived = item.received_date ? new Date(item.received_date).toLocaleDateString('id-ID', options) : '-';
-
-                    // Cek ada file lampiran atau tidak
-                    const btnFileClass = item.file_path ? 'btn-view-file' : 'btn-disabled';
-                    const fileAction = item.file_path ? `viewFile('${item.file_path}')` : '';
-                    const fileIcon = item.file_path ? '📄' : '❌';
-
-                    row.innerHTML = `
-                    <td style="font-weight: 500; font-family: 'Courier New';">${item.mail_number || '-'}</td>
-                    <td>${dateLetter}</td>
-                    <td><span style="color:var(--primary-color); font-weight:500;">${dateReceived}</span></td>
-                    <td>${item.sender || '-'}</td>
-                    <td>${item.subject || '-'}</td>
-                    <td><span class="code-badge">${item.classification_code || '-'}</span></td>
-                    <td style="text-align: center;">
-                        <div class="btn-action-group">
-                            <button class="btn-action-view" onclick="${fileAction}" title="Lihat File">${fileIcon}</button>
-                            <button class="btn-action-view btn-edit" onclick="editLetter('${item.id}')">✏️</button>
-                            <button class="btn-action-view btn-delete" onclick="deleteLetter('${item.id}')">🗑️</button>
-                        </div>
-                    </td>
-                `;
-                    tableBody.appendChild(row);
-                });
-            } catch (error) {
-                console.error(error);
-                tableBody.innerHTML = `<tr><td colspan="7" class="loading-text" style="color:red;">Gagal memuat data.</td></tr>`;
-            }
-        }
-
-        function filterTable() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            document.querySelectorAll('#table-body tr').forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
-            });
-        }
-
-        // Placeholder functions untuk aksi
-        function viewFile(path) { alert("Membuka file: " + path); /* Implement window.open(path) here */ }
-        function editLetter(id) { alert("Edit ID: " + id); }
-        async function deleteLetter(id) {
-            if (confirm("Hapus surat masuk ini?")) {
-                try { await api.incomingLetter.delete(id); loadIncomingLetters(); }
-                catch (e) { alert("Gagal hapus: " + e.message); }
-            }
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/incoming_letter.js') }}"></script>
 </body>
-
 </html>

@@ -72,5 +72,7 @@ class OutgoingLetter(Base):
             "is_decree": self.is_decree,
             "classification_code": self.classification.code if self.classification else None,
             "file_path": self.attachment_path,
-            "input_by": self.user.username if self.user else None
+            "input_by": self.user.username if self.user else None,
+            "created_at": self.created_at,
+            "updated_at": self.created_at
         }

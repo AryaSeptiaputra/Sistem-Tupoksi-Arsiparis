@@ -1,6 +1,8 @@
 /* static/css/style.css */
 
-/* --- 1. VARIABEL GLOBAL & RESET --- */
+/* =========================================
+   1. VARIABEL GLOBAL & RESET
+   ========================================= */
 :root {
     --bg-page: #f5f7fb;
     --primary: #ff8a5c;
@@ -16,10 +18,10 @@
     --auth-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
 }
 
-/* Reset Margin & Padding agar tidak ada ruang kosong tak terduga */
+/* Reset Margin & Padding */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* KUNCI: Membuat Body tidak bisa discroll */
+/* Setup Body Utama (Dashboard) */
 body {
     font-family: "Poppins", sans-serif;
     background: var(--bg-page);
@@ -32,25 +34,10 @@ body {
     display: flex;       /* Layout Flexbox (Sidebar Kiri, Konten Kanan) */
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: "Poppins", sans-serif;
-    background: var(--bg-page);
-    color: var(--text-main);
-    
-    /* UBAH BAGIAN INI */
-    height: 100vh;       /* Kunci tinggi agar pas layar */
-    overflow: hidden;    /* Matikan scrollbar browser utama */
-    
-    display: flex;
-}
-
 /* =========================================
-   2. BAGIAN DASHBOARD / UTAMA
+   2. BAGIAN DASHBOARD / LAYOUT UTAMA
    ========================================= */
 
-/* --- 2. SIDEBAR --- */
 /* --- SIDEBAR --- */
 .sidebar {
     width: var(--sidebar-width);
@@ -62,19 +49,16 @@ body {
     align-items: center;
     
     height: 100vh;       
-    overflow-y: auto;    /* Tetap allow scroll logikanya */
+    overflow-y: auto;    
     flex-shrink: 0;      
     z-index: 100;
 
-    /* TAMBAHAN: Sembunyikan Scrollbar agar bersih */
-    scrollbar-width: none;      /* Untuk Firefox */
-    -ms-overflow-style: none;   /* Untuk Internet Explorer dan Edge */
+    /* Sembunyikan Scrollbar */
+    scrollbar-width: none;      
+    -ms-overflow-style: none;   
 }
 
-/* Sembunyikan Scrollbar untuk Chrome, Safari, dan Opera */
-.sidebar::-webkit-scrollbar {
-    display: none;
-}
+.sidebar::-webkit-scrollbar { display: none; }
 
 .logo {
     width: 44px; height: 44px;
@@ -118,14 +102,14 @@ body {
     opacity: 0.9;
 }
 
-/* --- 3. LAYOUT KONTEN UTAMA --- */
+/* --- KONTEN UTAMA --- */
 .main-content {
-    flex: 1;             /* Mengambil sisa lebar layar */
-    height: 100vh;       /* Tinggi full layar */
+    flex: 1;             
+    height: 100vh;       
     overflow-y: auto;    /* SCROLLBAR PINDAH KE SINI */
-    overflow-x: hidden;  /* Mencegah scroll horizontal halaman */
+    overflow-x: hidden;  
     
-    padding: 32px 40px;  /* Jarak dalam */
+    padding: 32px 40px;  
     position: relative;
 }
 
@@ -175,9 +159,31 @@ body {
 }
 
 .filter-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center; }
+
 .filter-select {
     padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;
     background: white; color: var(--text-main); font-family: inherit; font-size: 13px; cursor: pointer;
+}
+
+/* Style Tambahan untuk Filter Group (Input Date Range) - BARU DITAMBAHKAN */
+.filter-group {
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+    background: white; 
+    border: 1px solid var(--border-color);
+    padding: 5px 12px; 
+    border-radius: 8px;
+    height: 40px; /* Samakan tinggi dengan element lain */
+}
+
+.filter-input-date {
+    border: none; 
+    outline: none; 
+    color: var(--text-muted);
+    font-family: inherit; 
+    font-size: 13px;
+    background: transparent;
 }
 
 .filter-date-range {
@@ -191,84 +197,35 @@ body {
 }
 
 /* --- TABEL --- */
-
 .table-responsive { 
     overflow-x: auto; 
     overflow-y: auto;
-    
-    /* Tinggi tabel menyesuaikan sisa layar */
-    max-height: calc(100vh - 280px); 
-    
+    max-height: calc(100vh - 280px); /* Tinggi tabel responsif */
     border-radius: 12px; 
     border: 1px solid var(--border-color);
     background: white;
-
-    /* 1. Sembunyikan scrollbar untuk Firefox */
     scrollbar-width: none;  
-    
-    /* 2. Sembunyikan scrollbar untuk IE dan Edge lama */
     -ms-overflow-style: none;  
 }
 
-/* 3. Sembunyikan scrollbar untuk Chrome, Safari, dan Opera */
-.table-responsive::-webkit-scrollbar {
-    display: none;
-}
-.table-responsive::-webkit-scrollbar-track {
-    background: #f1f1f1; 
-    border-radius: 4px;
-}
-.table-responsive::-webkit-scrollbar-thumb {
-    background: #d1d5db; 
-    border-radius: 4px;
-}
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af; 
-}
+.table-responsive::-webkit-scrollbar { display: none; }
+.table-responsive::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+.table-responsive::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+.table-responsive::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
-table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    min-width: 900px; 
-}
-
-thead tr { 
-    background-color: var(--table-head-bg); 
-}
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+thead tr { background-color: var(--table-head-bg); }
 
 th { 
-    text-align: left; 
-    padding: 16px; 
-    font-size: 13px; 
-    font-weight: 600; 
-    color: #374151; 
-    white-space: nowrap;
-    
-    /* AGAR HEADER TETAP DI ATAS SAAT SCROLL (STICKY) */
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    /* Background wajib diset agar tulisan tidak tembus pandang */
+    text-align: left; padding: 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;
+    position: sticky; top: 0; z-index: 10;
     background-color: var(--table-head-bg); 
-    /* Sedikit bayangan agar batas header terlihat jelas */
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
-td { 
-    padding: 16px; 
-    font-size: 13px; 
-    color: #4b5563; 
-    border-bottom: 1px solid #f3f4f6; 
-    vertical-align: middle; 
-}
-
-tr:last-child td { 
-    border-bottom: none; 
-}
-
-tr:hover td { 
-    background-color: #f9fafb; 
-}
+td { padding: 16px; font-size: 13px; color: #4b5563; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #f9fafb; }
 
 /* --- BADGES & BUTTONS --- */
 .badge-sk { display: inline-block; padding: 4px 10px; background-color: #bfdbfe; color: #1d4ed8; border-radius: 6px; font-weight: 600; font-size: 11px; }
@@ -335,41 +292,119 @@ tr:hover td {
 .btn-edit:hover { background: #2563eb; }
 .btn-delete:hover { background: #dc2626; }
 
-/* --- KHUSUS HALAMAN KLASIFIKASI --- */
+/* =========================================
+   3. KHUSUS HALAMAN SPESIFIK
+   ========================================= */
+
+/* --- KLASIFIKASI --- */
 .code-badge {
     background-color: #e0f2fe; color: #0284c7; padding: 6px 12px;
     border-radius: 8px; font-weight: 600; font-family: "Courier New", Courier, monospace;
     font-size: 13px;
 }
-
 .desc-text {
     color: var(--text-muted); font-size: 13px; max-width: 350px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* --- KHUSUS HALAMAN LOG AKTIVITAS --- */
+/* --- LOG AKTIVITAS --- */
 .timestamp-text {
     font-family: "Courier New", Courier, monospace; font-size: 13px;
     color: #4b5563; background: #f3f4f6; padding: 4px 8px;
     border-radius: 6px; display: inline-block; white-space: nowrap;
 }
-
 .user-link { font-weight: 600; color: var(--primary); text-decoration: none; font-size: 13px; }
 .action-desc { font-size: 13px; line-height: 1.5; color: var(--text-main); }
 
+/* --- KHUSUS HALAMAN BACKUP --- */
+.btn-backup-now {
+    background-color: #22c55e; 
+    color: white; padding: 10px 20px; border-radius: 99px; border: none; font-weight: 600; font-size: 13px;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); transition: 0.2s;
+}
+.btn-backup-now:hover { background-color: #16a34a; transform: translateY(-2px); }
+.btn-backup-now:disabled { background-color: #bbf7d0; cursor: not-allowed; transform: none; }
+.file-icon { font-size: 18px; margin-right: 8px; }
+.file-size { color: #6b7280; font-size: 12px; font-family: monospace; }
+.btn-download { background: #3b82f6; border: none; }
+.btn-restore { background: #f59e0b; border: none; }
+.btn-download:hover { background: #2563eb; }
+.btn-restore:hover { background: #d97706; }
+
+/* --- DASHBOARD (REDESIGN) --- */
+/* Style untuk Tombol Filter Dashboard */
+.filter-group {
+    display: flex; gap: 10px; margin-top: 16px; margin-bottom: 24px;
+    overflow-x: auto; padding-bottom: 4px;
+}
+
+/* Style untuk Tombol Filter Dashboard - Disesuaikan dengan elemen lain (kotak rounded) */
+.filter-btn {
+    background: white; 
+    border: 1px solid var(--border-color); 
+    padding: 10px 18px;       /* Padding disamakan dengan tombol Export/Filter halaman lain */
+    border-radius: 8px;       /* Radius 8px agar konsisten dengan Search Input & Dropdown */
+    font-size: 13px; 
+    font-weight: 500; 
+    color: var(--text-muted); 
+    cursor: pointer;
+    transition: all 0.2s ease; 
+    white-space: nowrap;
+}
+
+.filter-btn:hover { 
+    background: #f9fafb; 
+    border-color: #d1d5db; 
+    color: var(--text-main); 
+}
+
+.filter-btn.active {
+    background: var(--primary); 
+    color: white; 
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(255, 138, 92, 0.3); /* Shadow sedikit lebih lembut */
+}
+
+/* Grid Layout Dokumen - SCROLLABLE AREA */
+/* Update: Scrollbar disembunyikan total agar lebih bersih (sesuai request) */
+.docs-grid {
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 16px;
+
+    /* --- LOGIKA SCROLLING --- */
+    max-height: calc(100vh - 260px); 
+    overflow-y: auto; 
+    
+    padding-right: 4px; /* Padding dikurangi karena scrollbar hilang */
+    padding-bottom: 20px;
+
+    /* 1. Hilangkan Scrollbar di Firefox */
+    scrollbar-width: none; 
+    
+    /* 2. Hilangkan Scrollbar di IE dan Edge lama */
+    -ms-overflow-style: none;  
+}
+
+/* 3. Hilangkan Scrollbar di Chrome, Safari, dan Opera (Webkit) */
+.docs-grid::-webkit-scrollbar {
+    display: none;
+}
 
 /* =========================================
-   3. BAGIAN AUTH / LOGIN PAGE
+   4. BAGIAN AUTH / LOGIN PAGE
    ========================================= */
 
-/* Class khusus untuk body halaman login agar tidak bentrok dengan Dashboard */
+/* Class khusus untuk body halaman login */
 body.login-page {
     background: radial-gradient(circle at top left, #fef3f0 0, #f3f6ff 40%, #eef4ff 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Reset layout dashboard */
     flex-direction: row; 
+    height: 100vh;
+    overflow: hidden;
 }
 
 .auth-wrapper {
