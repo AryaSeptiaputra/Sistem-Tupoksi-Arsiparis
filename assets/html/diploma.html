@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
     <aside class="sidebar">
         <div class="logo">S7</div>
@@ -30,16 +32,40 @@
         <div class="header-page">
             <div class="header-title">
                 <h1>Data Ijazah Siswa</h1>
-                <p>Kelola pengambilan dan pendataan ijazah lulusan</p>
+                <p>Kelola pendataan, status pengambilan, dan arsip ijazah lulusan</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add">+</button>
+                <button class="btn-add" title="Tambah Data Ijazah">+</button>
                 <div class="user-avatar">👨‍🏫</div>
             </div>
         </div>
 
         <section class="content-card">
-            <div class="search-container"><input type="text" class="search-input" placeholder="Cari..." id="searchInput"></div>
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Cari Nama Siswa atau No. Seri..." id="searchInput">
+            </div>
+
+            <div class="filter-row">
+                <select id="filterMajor" class="filter-select">
+                    <option value="">Semua Jurusan</option>
+                    </select>
+
+                <select id="filterYear" class="filter-select">
+                    <option value="">Semua Tahun Ajaran</option>
+                    </select>
+
+                <div class="toggle-container" id="toggleStatusContainer" title="Tampilkan yang belum diambil saja">
+                    <div class="toggle-switch"></div>
+                    <span>Belum Diambil</span>
+                </div>
+
+                <button id="btnResetFilter" class="filter-btn" title="Reset filter">
+                    🔄
+                </button>
+
+                <button class="btn-export" id="btnExport"><span>⬇️</span> Export Data</button>
+            </div>
+
             <div class="table-responsive">
                 <table id="diplomaTable">
                     <thead>
@@ -47,60 +73,21 @@
                             <th>No. Seri Ijazah</th>
                             <th>Nama Siswa</th>
                             <th>Jurusan</th>
-                            <th>Tahun Ajaran</th>
-                            <th>Status</th>
-                            <th>Tanggal Diambil</th>
+                            <th>Thn. Ajaran</th>
+                            <th>Status Pengambilan</th>
+                            <th>Tgl Diambil</th>
                             <th style="text-align:center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                         </tbody>
+                        </tbody>
                 </table>
             </div>
         </section>
     </main>
-    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            if (!localStorage.getItem("access_token")) { window.location.href = "/page/login"; return; }
-            document.querySelectorAll("[data-route]").forEach(el => {
-                el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
-            });
-            document.getElementById("btn-logout").addEventListener("click", () => {
-                localStorage.removeItem("access_token"); window.location.href = "/page/login";
-            });
-            await loadDiplomas();
-        });
 
-        async function loadDiplomas() {
-            const tableBody = document.getElementById("table-body");
-            tableBody.innerHTML = `<tr><td colspan="7" class="loading-text">Sedang memuat data...</td></tr>`;
-            try {
-                // Pastikan route 'diploma' sudah ada di api.js
-                const data = await fetchAPI('/diploma/get_all', 'GET'); 
-                tableBody.innerHTML = "";
-                if (!data || data.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="loading-text">Belum ada data.</td></tr>`; return; }
-                
-                data.forEach(item => {
-                    const row = document.createElement("tr");
-                    const statusBadge = item.is_collected ? `<span class="badge-taken">Sudah Diambil</span>` : `<span class="badge-pending">Belum Diambil</span>`;
-                    row.innerHTML = `
-                    <td style="font-weight: 500; font-family:'Courier New';">${item.number || '-'}</td>
-                    <td style="font-weight:600; color:var(--text-main);">${item.student_name || '-'}</td>
-                    <td>${item.major || '-'}</td>
-                    <td>${item.academic_year || '-'}</td>
-                    <td>${statusBadge}</td>
-                    <td style="font-size:12px;">${item.collected_at || '-'}</td>
-                    <td style="text-align:center;">
-                        <div class="btn-action-group">
-                            <button class="btn-action-view" title="Lihat Detail">👁️</button>
-                        </div>
-                    </td>
-                `;
-                    tableBody.appendChild(row);
-                });
-            } catch (error) { tableBody.innerHTML = `<tr><td colspan="7" class="loading-text" style="color:red;">Gagal memuat.</td></tr>`; }
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/diploma.js') }}"></script>
 </body>
+
 </html>

@@ -159,31 +159,9 @@ body {
 }
 
 .filter-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center; }
-
 .filter-select {
     padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;
     background: white; color: var(--text-main); font-family: inherit; font-size: 13px; cursor: pointer;
-}
-
-/* Style Tambahan untuk Filter Group (Input Date Range) - BARU DITAMBAHKAN */
-.filter-group {
-    display: flex; 
-    align-items: center; 
-    gap: 10px;
-    background: white; 
-    border: 1px solid var(--border-color);
-    padding: 5px 12px; 
-    border-radius: 8px;
-    height: 40px; /* Samakan tinggi dengan element lain */
-}
-
-.filter-input-date {
-    border: none; 
-    outline: none; 
-    color: var(--text-muted);
-    font-family: inherit; 
-    font-size: 13px;
-    background: transparent;
 }
 
 .filter-date-range {
@@ -367,7 +345,25 @@ tr:hover td { background-color: #f9fafb; }
 }
 
 /* Grid Layout Dokumen - SCROLLABLE AREA */
-/* Update: Scrollbar disembunyikan total agar lebih bersih (sesuai request) */
+.docs-grid {
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 16px;
+
+    /* --- LOGIKA SCROLLING BARU --- */
+    /* 1. Tentukan tinggi maksimal area ini. 
+          Rumus: 100vh (tinggi layar) dikurangi tinggi elemen header/filter di atasnya (kira-kira 260px) */
+    max-height: calc(100vh - 260px); 
+    
+    /* 2. Aktifkan scroll vertikal jika konten melebihi tinggi maksimal */
+    overflow-y: auto; 
+    
+    /* 3. Padding tambahan agar scrollbar tidak menempel konten */
+    padding-right: 8px; 
+    padding-bottom: 20px;
+}
+
+/* Grid Layout Dokumen - SCROLLABLE AREA */
 .docs-grid {
     display: grid; 
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 

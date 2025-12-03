@@ -5,8 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Arsip - Surat Masuk</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
@@ -14,7 +14,9 @@
     <aside class="sidebar">
         <div class="logo">S7</div>
         <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
+
         <a class="nav-item active" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
+
         <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
         <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
         <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
@@ -34,31 +36,31 @@
                 <p>Kelola dan akses semua dokumen arsip sekolah dengan mudah</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add" id="btnAddLetter" title="Tambah Surat Masuk">+</button>
+                <button class="btn-add" title="Tambah">+</button>
                 <div class="user-avatar">👨‍🏫</div>
             </div>
         </div>
 
         <section class="content-card">
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari No. Surat, Pengirim, atau Subjek..." id="searchInput">
+                <input type="text" class="search-input" placeholder="Cari No Surat, Pengirim, atau Subjek..."
+                    id="searchInput">
             </div>
 
             <div class="filter-row">
-                <div class="filter-group" title="Filter Berdasarkan Tanggal Diterima">
-                    <span style="font-size: 12px;">📅</span>
-                    <input type="date" id="startDate" class="filter-input-date">
-                    <span style="color:#ccc">-</span>
-                    <input type="date" id="endDate" class="filter-input-date">
-                </div>
+                <input type="date" id="startDate" class="filter-select" title="Tanggal Mulai (Diterima)">
+                <span style="color: var(--text-muted); font-weight: bold;">-</span>
+                <input type="date" id="endDate" class="filter-select" title="Tanggal Akhir (Diterima)">
 
-                <select class="filter-select" id="classificationFilter">
+                <select id="filterClassification" class="filter-select">
                     <option value="">Semua Klasifikasi</option>
-                    </select>
+                </select>
 
-                <button class="btn-export" id="btnResetFilter" style="margin-left:auto; background:#f3f4f6; border:none;">
-                    <span>🔄</span> Reset
+                <button id="btnResetFilter" class="filter-btn" title="Reset semua filter">
+                    🔄 Reset
                 </button>
+
+                <button class="btn-export" id="btnExport"><span>⬇️</span> Export Data</button>
             </div>
 
             <div class="table-responsive">
@@ -66,22 +68,22 @@
                     <thead>
                         <tr>
                             <th>No Surat</th>
-                            <th>Tanggal Surat</th>
-                            <th>Tanggal Diterima</th>
+                            <th>Tgl Diterima</th>
                             <th>Pengirim</th>
                             <th>Subjek</th>
                             <th>Klasifikasi</th>
+                            <th>Penginput</th>
                             <th style="text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </section>
     </main>
-
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/incoming_letter.js') }}"></script>
 </body>
+
 </html>

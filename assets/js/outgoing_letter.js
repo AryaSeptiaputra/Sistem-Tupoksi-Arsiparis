@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    // State Management untuk Data
-    let allLetters = []; 
+    // State Management
+    let allLetters = [];
 
     // Referensi Elemen DOM
     const elTableBody = document.getElementById("table-body");
@@ -8,95 +8,116 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elStartDate = document.getElementById("startDate");
     const elEndDate = document.getElementById("endDate");
     const elClassFilter = document.getElementById("filterClassification");
+    const elToggleDecree = document.getElementById("toggleDecreeContainer");
     const elBtnReset = document.getElementById("btnResetFilter");
 
-    // 1. Load Data Awal
+    // 1. Cek Login & Navigasi
+    const token = localStorage.getItem("access_token");
+    if (!token) { window.location.href = "/page/login"; return; }
+
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
+    });
+    document.getElementById("btn-logout").addEventListener("click", () => {
+        localStorage.removeItem("access_token"); window.location.href = "/page/login";
+    });
+
+    // 2. Load Data Awal
     await initPage();
 
-    // 2. Event Listeners untuk Filter (Real-time)
+    // 3. Event Listeners untuk Filter
     elSearch.addEventListener("keyup", applyFilters);
     elStartDate.addEventListener("change", applyFilters);
     elEndDate.addEventListener("change", applyFilters);
     elClassFilter.addEventListener("change", applyFilters);
     
-    // 3. Tombol Reset
+    // Logic Toggle SK
+    elToggleDecree.addEventListener("click", () => {
+        elToggleDecree.classList.toggle("active"); // Ubah visual toggle
+        applyFilters(); // Trigger filter ulang
+    });
+
+    // Tombol Reset
     elBtnReset.addEventListener("click", () => {
         elSearch.value = "";
         elStartDate.value = "";
         elEndDate.value = "";
         elClassFilter.value = "";
-        applyFilters(); // Render ulang tabel full
+        elToggleDecree.classList.remove("active");
+        applyFilters();
     });
 
     async function initPage() {
         renderLoading();
         try {
-            // Menggunakan API existing Anda
-            const data = await api.incomingLetter.getAll();
-            
+            // Panggil API
+            const data = await api.outgoingLetter.getAll();
+
             if (!data || data.length === 0) {
-                renderEmpty("Belum ada data surat masuk.");
+                renderEmpty("Belum ada data surat keluar.");
                 return;
             }
 
-            // Simpan ke state global agar tidak perlu fetch ulang saat filter
             allLetters = data;
 
-            // Urutkan default: Tanggal Diterima (Terbaru)
-            allLetters.sort((a, b) => new Date(b.received_date) - new Date(a.received_date));
+            // Urutkan default: Tanggal Surat (Terbaru diatas)
+            allLetters.sort((a, b) => new Date(b.letter_date) - new Date(a.letter_date));
 
-            // Isi Dropdown Klasifikasi berdasarkan data yang ada
+            // Populate Dropdown Klasifikasi
             populateClassificationOptions(allLetters);
 
-            // Tampilkan Data
+            // Render Table
             renderTable(allLetters);
 
         } catch (error) {
-            console.error("Error fetching data:", error);
+            console.error(error);
             renderEmpty("Gagal memuat data dari server.", true);
         }
     }
 
-    // --- LOGIKA FILTER UTAMA ---
+    // --- LOGIKA FILTER ---
     function applyFilters() {
         const searchTerm = elSearch.value.toLowerCase();
         const startDate = elStartDate.value ? new Date(elStartDate.value) : null;
         const endDate = elEndDate.value ? new Date(elEndDate.value) : null;
         const classFilter = elClassFilter.value;
+        const isDecreeOnly = elToggleDecree.classList.contains("active"); // Cek apakah toggle nyala
 
-        // Reset jam pada endDate agar mencakup seluruh hari tersebut (23:59:59)
         if (endDate) endDate.setHours(23, 59, 59);
 
         const filteredData = allLetters.filter(item => {
-            // 1. Filter Text (No Surat, Pengirim, Subjek)
+            // 1. Filter Text (No Surat, Tujuan, Subjek)
             const textMatch = 
                 (item.mail_number && item.mail_number.toLowerCase().includes(searchTerm)) ||
-                (item.sender && item.sender.toLowerCase().includes(searchTerm)) ||
+                (item.destination && item.destination.toLowerCase().includes(searchTerm)) ||
                 (item.subject && item.subject.toLowerCase().includes(searchTerm));
 
             // 2. Filter Klasifikasi
             const classMatch = classFilter === "" || item.classification_code === classFilter;
 
-            // 3. Filter Rentang Tanggal (Berdasarkan received_date)
+            // 3. Filter Tanggal (Berdasarkan letter_date)
             let dateMatch = true;
-            if (item.received_date) {
-                const itemDate = new Date(item.received_date);
+            if (item.letter_date) {
+                const itemDate = new Date(item.letter_date);
                 if (startDate && itemDate < startDate) dateMatch = false;
                 if (endDate && itemDate > endDate) dateMatch = false;
             }
 
-            return textMatch && classMatch && dateMatch;
+            // 4. Filter Toggle SK (Jika aktif, hanya tampilkan yang is_decree == true)
+            // Jika toggle mati, tampilkan semua (SK maupun Biasa)
+            const decreeMatch = isDecreeOnly ? (item.is_decree === true) : true;
+
+            return textMatch && classMatch && dateMatch && decreeMatch;
         });
 
         renderTable(filteredData);
     }
 
-    // --- RENDER TABLE ---
+    // --- RENDER ---
     function renderTable(data) {
         elTableBody.innerHTML = "";
-
         if (data.length === 0) {
-            renderEmpty("Data tidak ditemukan dengan filter tersebut.");
+            renderEmpty("Data tidak ditemukan.");
             return;
         }
 
@@ -104,24 +125,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             const row = document.createElement("tr");
 
             // Format Tanggal
-            const dateReceived = item.received_date ? new Date(item.received_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
-            
+            const dateLetter = item.letter_date 
+                ? new Date(item.letter_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                : '-';
+
+            // Logic SK Badge (Menggunakan class badge-sk dari style.css)
+            // badge-sk di CSS warnanya biru muda
+            const decreeBadge = item.is_decree 
+                ? `<span class="badge-sk">SK</span>` 
+                : `<span style="color:var(--text-muted); font-size:11px;">Biasa</span>`;
+
             // Logic File
             const hasFile = !!item.file_path;
-            const fileBtnClass = hasFile ? 'btn-view-file' : 'btn-disabled';
-            const fileIcon = hasFile ? '📄' : '❌';
             const fileAction = hasFile ? `viewFile('${item.file_path}')` : '';
+            const fileIcon = hasFile ? '📄' : '❌';
 
             row.innerHTML = `
                 <td style="font-weight: 500; font-family: 'Courier New';">${item.mail_number || '-'}</td>
-                <td><span style="color:var(--primary-color); font-weight:500;">${dateReceived}</span></td>
-                <td>${item.sender || '-'}</td>
+                <td>${dateLetter}</td>
+                <td style="font-weight:500;">${item.destination || '-'}</td>
                 <td>${item.subject || '-'}</td>
                 <td>
                     ${item.classification_code 
                         ? `<span class="code-badge">${item.classification_code}</span>` 
                         : '-'}
                 </td>
+                <td style="text-align: center;">${decreeBadge}</td>
                 <td>
                     <span style="font-size:12px; color:var(--text-muted);">
                         👤 ${item.input_by || 'System'}
@@ -141,17 +170,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- HELPER FUNCTIONS ---
-    
-    // Ambil list klasifikasi unik dari data yang ada untuk filter dropdown
+    // --- HELPERS ---
     function populateClassificationOptions(data) {
-        // Ambil unique codes, filter yang null
         const uniqueCodes = [...new Set(data.map(item => item.classification_code).filter(c => c))];
-        
-        // Urutkan A-Z
         uniqueCodes.sort();
-
-        // Tambahkan ke dropdown
         uniqueCodes.forEach(code => {
             const option = document.createElement("option");
             option.value = code;
@@ -161,11 +183,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function renderLoading() {
-        elTableBody.innerHTML = `<tr><td colspan="7" class="loading-text">Sedang memuat data...</td></tr>`;
+        elTableBody.innerHTML = `<tr><td colspan="8" class="loading-text">Sedang memuat data...</td></tr>`;
     }
 
-    function renderEmpty(message, isError = false) {
+    function renderEmpty(msg, isError = false) {
         const color = isError ? 'red' : 'inherit';
-        elTableBody.innerHTML = `<tr><td colspan="7" class="loading-text" style="color:${color};">${message}</td></tr>`;
+        elTableBody.innerHTML = `<tr><td colspan="8" class="loading-text" style="color:${color};">${msg}</td></tr>`;
     }
+
+    // Placeholder Actions
+    window.viewFile = (path) => { alert("Membuka file: " + path); };
+    window.editLetter = (id) => { alert("Edit ID: " + id); };
+    window.deleteLetter = async (id) => {
+        if (confirm("Hapus surat keluar ini?")) {
+            try { 
+                await api.outgoingLetter.delete(id); 
+                // Refresh data setelah delete
+                const currentData = await api.outgoingLetter.getAll();
+                allLetters = currentData;
+                allLetters.sort((a, b) => new Date(b.letter_date) - new Date(a.letter_date));
+                applyFilters(); // Re-render dengan filter yang sedang aktif
+            } catch (e) { alert("Gagal hapus: " + e.message); }
+        }
+    };
 });

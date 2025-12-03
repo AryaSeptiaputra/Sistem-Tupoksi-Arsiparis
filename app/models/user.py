@@ -56,6 +56,9 @@ class User(Base):
             "id": self.id,
             "nuptk": self.nuptk,
             "username": self.username,
+            "password":self.username,
             "role": str(self.role),
             "status": str(self.status),
+            "created_at":self.created_at,
+            "update_at":self.updated_at
         }

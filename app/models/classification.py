@@ -52,5 +52,7 @@ class Classification(Base):
             "id": self.id,
             "code": self.code,
             "name": self.name,
-            "description": self.description
+            "description": self.description,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
         }

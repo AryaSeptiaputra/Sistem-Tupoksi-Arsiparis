@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Arsip - Data Klasifikasi</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
 
     <aside class="sidebar">
@@ -14,9 +17,9 @@
         <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
         <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
         <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
-        
+
         <a class="nav-item active" data-route="/page/classification" title="Klasifikasi">🏷️</a>
-        
+
         <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
         <a class="nav-item" data-route="/page/user" title="Pengguna">👥</a>
         <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
@@ -41,106 +44,48 @@
 
         <section class="content-card">
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari Kode atau Nama Klasifikasi..." id="searchInput">
+                <input type="text" class="search-input" placeholder="Cari No Surat, Pengirim, atau Subjek..."
+                    id="searchInput">
             </div>
 
             <div class="filter-row">
-                <select class="filter-select" id="sortFilter">
-                    <option value="code_asc">Urutkan: Kode (0-9)</option>
-                    <option value="name_asc">Urutkan: Nama (A-Z)</option>
+                <input type="date" id="startDate" class="filter-select" title="Tanggal Mulai (Diterima)">
+                <span style="color: var(--text-muted); font-weight: bold;">-</span>
+                <input type="date" id="endDate" class="filter-select" title="Tanggal Akhir (Diterima)">
+
+                <select id="filterClassification" class="filter-select">
+                    <option value="">Semua Klasifikasi</option>
                 </select>
 
-                <button class="btn-export"><span>⬇️</span> Export Data</button>
+                <button id="btnResetFilter" class="filter-btn" title="Reset semua filter">
+                    🔄 Reset
+                </button>
+
+                <button class="btn-export" id="btnExport"><span>⬇️</span> Export Data</button>
             </div>
 
             <div class="table-responsive">
-                <table id="classificationTable">
+                <table id="incomingTable">
                     <thead>
                         <tr>
-                            <th style="width: 150px;">Kode</th>
-                            <th>Nama Klasifikasi</th>
-                            <th>Keterangan</th>
-                            <th style="text-align: center; width: 120px;">Aksi</th>
+                            <th>No Surat</th>
+                            <th>Tgl Diterima</th>
+                            <th>Pengirim</th>
+                            <th>Subjek</th>
+                            <th>Klasifikasi</th>
+                            <th>Penginput</th>
+                            <th style="text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </section>
     </main>
 
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const token = localStorage.getItem("access_token");
-            if (!token) { window.location.href = "/page/login"; return; }
-
-            document.querySelectorAll("[data-route]").forEach(el => {
-                el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
-            });
-            document.getElementById("btn-logout").addEventListener("click", () => {
-                localStorage.removeItem("access_token"); window.location.href = "/page/login";
-            });
-
-            await loadClassifications();
-            document.getElementById('searchInput').addEventListener('keyup', filterTable);
-        });
-
-        async function loadClassifications() {
-            const tableBody = document.getElementById("table-body");
-            try {
-                const data = await api.classification.getAll(); 
-                tableBody.innerHTML = "";
-                if (!data || data.length === 0) { tableBody.innerHTML = `<tr><td colspan="4" class="loading-text">Belum ada data.</td></tr>`; return; }
-
-                // Sort by Code
-                data.sort((a, b) => (a.code || '').localeCompare(b.code || ''));
-
-                data.forEach(item => {
-                    const row = document.createElement("tr");
-                    const code = item.code || item.classification_code || '-';
-                    const name = item.name || item.classification_name || '-';
-                    const desc = item.description || '-';
-
-                    row.innerHTML = `
-                        <td><span class="code-badge">${code}</span></td>
-                        <td style="font-weight: 500;">${name}</td>
-                        
-                        <td>
-                            <div class="desc-text" title="${desc}">
-                                ${desc}
-                            </div>
-                        </td>
-                        
-                        <td style="text-align: center;">
-                            <div class="btn-action-group">
-                                <button class="btn-action-view btn-edit" onclick="editClass('${item.id}')">✏️</button>
-                                <button class="btn-action-view btn-delete" onclick="deleteClass('${item.id}')">🗑️</button>
-                            </div>
-                        </td>
-`;
-                    tableBody.appendChild(row);
-                });
-            } catch (error) { tableBody.innerHTML = `<tr><td colspan="4" class="loading-text" style="color:red;">Gagal memuat.</td></tr>`; }
-        }
-
-        function filterTable() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            document.querySelectorAll('#table-body tr').forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
-            });
-        }
-
-        function addClassification() { alert("Fitur Tambah: Buat Modal"); }
-        function editClass(id) { alert("Edit ID: " + id); }
-        async function deleteClass(id) {
-            if(confirm("Hapus klasifikasi ini?")) {
-                try { await api.classification.delete(id); loadClassifications(); } 
-                catch(e) { alert("Gagal hapus: " + e.message); }
-            }
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/classification.js') }}"></script>
 </body>
+
 </html>
