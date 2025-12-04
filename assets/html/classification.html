@@ -34,51 +34,40 @@
         <div class="header-page">
             <div class="header-title">
                 <h1>Data Klasifikasi</h1>
-                <p>Kelola kode klasifikasi untuk pengarsipan surat</p>
+                <p>Kelola kode referensi untuk pengarsipan surat</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add" title="Tambah Klasifikasi" onclick="addClassification()">+</button>
-                <div class="user-avatar">👨‍🏫</div>
+                <button class="btn-add" title="Tambah Klasifikasi" onclick="window.location.href='/page/classification/create'">+</button>
+                <div class="user-avatar" id="header-avatar">?</div>
             </div>
         </div>
 
         <section class="content-card">
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari No Surat, Pengirim, atau Subjek..."
-                    id="searchInput">
-            </div>
+            <div class="filter-row" style="justify-content: space-between;">
+                <div class="search-container" style="margin-bottom: 0; width: 400px;">
+                    <input type="text" class="search-input" placeholder="Cari Kode atau Nama Klasifikasi..."
+                        id="searchInput">
+                </div>
 
-            <div class="filter-row">
-                <input type="date" id="startDate" class="filter-select" title="Tanggal Mulai (Diterima)">
-                <span style="color: var(--text-muted); font-weight: bold;">-</span>
-                <input type="date" id="endDate" class="filter-select" title="Tanggal Akhir (Diterima)">
-
-                <select id="filterClassification" class="filter-select">
-                    <option value="">Semua Klasifikasi</option>
-                </select>
-
-                <button id="btnResetFilter" class="filter-btn" title="Reset semua filter">
-                    🔄 Reset
-                </button>
-
-                <button class="btn-export" id="btnExport"><span>⬇️</span> Export Data</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btnResetFilter" class="filter-btn" title="Reset pencarian">
+                        🔄 Reset
+                    </button>
+                    </div>
             </div>
 
             <div class="table-responsive">
-                <table id="incomingTable">
+                <table id="classificationTable">
                     <thead>
                         <tr>
-                            <th>No Surat</th>
-                            <th>Tgl Diterima</th>
-                            <th>Pengirim</th>
-                            <th>Subjek</th>
-                            <th>Klasifikasi</th>
-                            <th>Penginput</th>
-                            <th style="text-align: center;">Aksi</th>
+                            <th width="15%">Kode</th>
+                            <th width="30%">Nama Klasifikasi</th>
+                            <th>Deskripsi</th>
+                            <th width="15%" style="text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </section>

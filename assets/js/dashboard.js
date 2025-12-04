@@ -228,3 +228,35 @@ async function loadUploadActivity() {
         }
     } catch (e) { console.log("Chart Error:", e); }
 }
+
+/* ---------- USER INFO ---------- */
+function loadUserInfo() {
+    const welcomeEl = document.getElementById("user-welcome");
+    const nameEl = document.getElementById("profile-name");
+    const roleEl = document.getElementById("profile-role");
+    const avatarEl = document.getElementById("dashboard-avatar"); // Tambahkan ini
+
+    // Ambil data langsung dari token (fungsi ini ada di api.js)
+    const user = api.auth.getUserData();
+
+    if (!user) {
+        if (welcomeEl) welcomeEl.textContent = "Selamat Datang!";
+        if (nameEl) nameEl.textContent = "Pengguna";
+        if (roleEl) roleEl.textContent = "—";
+        if (avatarEl) avatarEl.textContent = "?";
+        return;
+    }
+
+    // Ambil data dari claim token
+    const displayName = user.username || "Pengguna";
+    const displayRole = user.role || "Staf";
+    
+    // Ambil huruf pertama untuk avatar
+    const initial = displayName.charAt(0).toUpperCase();
+
+    // Update UI
+    if (welcomeEl) welcomeEl.textContent = `Selamat Datang, ${displayName}!`;
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) roleEl.textContent = displayRole;
+    if (avatarEl) avatarEl.textContent = initial; // Set inisial ke avatar
+}   

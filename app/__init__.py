@@ -66,6 +66,10 @@ def create_app():
     def log():
         return redirect(url_for('view.log'))
     
+    @app.route('/classification')
+    def classification():
+        return redirect(url_for('view.classification'))
+    
     @app.route('/backup')
     def backup():
         return redirect(url_for('view.backup'))

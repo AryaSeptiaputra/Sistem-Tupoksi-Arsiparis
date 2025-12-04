@@ -44,30 +44,32 @@ def login():
         if not existing_user:
             return jsonify({"message": "NUPTK atau kata sandi tidak valid"}), 401
 
-        user_role = getattr(existing_user, 'role', 'User') 
-        
+        # --- UPDATE START: Memasukkan semua atribut user ke claims ---
+        # Pastikan konversi tipe data (seperti Enum dan Datetime) ke string agar JSON serializable
         additional_claims = {
             "id": existing_user.id,
+            "nuptk": existing_user.nuptk,
             "username": existing_user.username,
-            "role": user_role
+            "role": str(existing_user.role) if existing_user.role else "teacher", 
+            "status": str(existing_user.status) if existing_user.status else "inactive",
+            "created_at": existing_user.created_at.strftime("%Y-%m-%d %H:%M:%S") if existing_user.created_at else "-",
+            "updated_at": existing_user.updated_at.strftime("%Y-%m-%d %H:%M:%S") if existing_user.updated_at else "-"
         }
+        # --- UPDATE END ---
 
         access_token = create_access_token(
             identity=str(existing_user.nuptk),
             additional_claims=additional_claims
         )
-        # --- UPDATE END ---
 
-        username = existing_user.username 
-        
         try:
-            action = f"Pengguna melakukan login."
+            action = f"Pengguna {existing_user.username} melakukan login."
             create_log(db_session, existing_user.id, action)
         except Exception as e:
             print(f"Login Log Error: {e}") 
 
         return jsonify({
-            "message": f"Selamat Datang! {username}!",
+            "message": f"Selamat Datang, {existing_user.username}!",
             "access_token": access_token
         }), 200
 

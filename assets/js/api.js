@@ -143,3 +143,26 @@ const api = {
         getLogs: () => fetchAPI('/backup/logs', 'GET')
     }
 };
+
+// ... (kode api.js sebelumnya) ...
+
+// --- TAMBAHAN: UPDATE HEADER AVATAR GLOBAL ---
+document.addEventListener("DOMContentLoaded", () => {
+    // Cari elemen avatar di header
+    const headerAvatar = document.getElementById("header-avatar");
+    
+    if (headerAvatar) {
+        const user = api.auth.getUserData();
+        if (user && user.username) {
+            // Set inisial nama
+            headerAvatar.textContent = user.username.charAt(0).toUpperCase();
+            
+            // Tambahkan link ke profil saat diklik
+            headerAvatar.style.cursor = "pointer";
+            headerAvatar.title = "Klik untuk lihat profil";
+            headerAvatar.onclick = () => {
+                window.location.href = "/page/user_profile";
+            };
+        }
+    }
+});
