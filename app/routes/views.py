@@ -45,3 +45,7 @@ def form_incoming_letter():
 @view_bp.route('/form_outgoing_letter', methods=['GET'])
 def form_outgoing_letter():
     return render_template('form_outgoing_letter.html')
+
+@view_bp.route('/user_profile', methods=['GET'])
+def user_profile():
+    return render_template('user_profile.html')
