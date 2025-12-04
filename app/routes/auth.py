@@ -44,7 +44,20 @@ def login():
         if not existing_user:
             return jsonify({"message": "NUPTK atau kata sandi tidak valid"}), 401
 
-        access_token = create_access_token(identity=str(existing_user.nuptk))
+        user_role = getattr(existing_user, 'role', 'User') 
+        
+        additional_claims = {
+            "id": existing_user.id,
+            "username": existing_user.username,
+            "role": user_role
+        }
+
+        access_token = create_access_token(
+            identity=str(existing_user.nuptk),
+            additional_claims=additional_claims
+        )
+        # --- UPDATE END ---
+
         username = existing_user.username 
         
         try:

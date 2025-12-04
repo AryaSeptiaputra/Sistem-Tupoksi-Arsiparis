@@ -4,48 +4,66 @@
 let allDocumentsCache = [];
 
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. Cek Token Login
     const token = localStorage.getItem("access_token");
     if (!token) {
         window.location.href = "/page/login";
         return;
     }
 
+    // 2. Load Data User & Dokumen
     loadUserInfo();
     loadDocuments(); 
     loadUploadActivity();
     setupSearch(); 
+
+    // 3. Setup Event Listeners (Logout & Navigasi)
+    setupEventListeners();
 });
 
 /* ---------- USER INFO ---------- */
-async function loadUserInfo() {
+function loadUserInfo() {
     const welcomeEl = document.getElementById("user-welcome");
     const nameEl = document.getElementById("profile-name");
     const roleEl = document.getElementById("profile-role");
 
-    try {
-        let user = null;
-        try {
-            user = await api.auth.me();
-        } catch (_) {
-            const saved = localStorage.getItem("auth_user");
-            if (saved) user = JSON.parse(saved);
-        }
+    // Ambil data langsung dari token (fungsi ini ada di api.js)
+    const user = api.auth.getUserData();
 
-        if (!user) {
-            if (welcomeEl) welcomeEl.textContent = "Selamat Datang!";
-            if (nameEl) nameEl.textContent = "Pengguna";
-            return;
-        }
-
-        const displayName = user.full_name || user.username || user.nuptk || "Pengguna";
-        const displayRole = user.role || "Pengguna Sistem";
-
-        if (welcomeEl) welcomeEl.textContent = `Selamat Datang, ${displayName}!`;
-        if (nameEl) nameEl.textContent = displayName;
-        if (roleEl) roleEl.textContent = displayRole;
-    } catch (err) {
-        console.error("Gagal load user info:", err);
+    if (!user) {
+        // Jika gagal decode token atau token rusak
+        if (welcomeEl) welcomeEl.textContent = "Selamat Datang!";
+        if (nameEl) nameEl.textContent = "Pengguna";
+        if (roleEl) roleEl.textContent = "—";
+        return;
     }
+
+    // Ambil data dari claim token (sesuai auth.py)
+    const displayName = user.username || "Pengguna";
+    const displayRole = user.role || "Staf";
+
+    // Update UI
+    if (welcomeEl) welcomeEl.textContent = `Selamat Datang, ${displayName}!`;
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) roleEl.textContent = displayRole;
+}
+
+/* ---------- EVENT LISTENERS (LOGOUT & NAV) ---------- */
+function setupEventListeners() {
+    // Tombol Logout
+    const btnLogout = document.getElementById("btn-logout");
+    if (btnLogout) {
+        btnLogout.addEventListener("click", () => {
+            api.auth.logout(); // Panggil fungsi logout dari api.js
+        });
+    }
+
+    // Navigasi Sidebar (data-route)
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => {
+            if(el.dataset.route) window.location.href = el.dataset.route;
+        });
+    });
 }
 
 /* ---------- LOAD DOCUMENTS ---------- */
@@ -55,12 +73,14 @@ async function loadDocuments() {
     container.innerHTML = `<p style="color:#6b7280;">Memuat dokumen...</p>`;
 
     try {
+        // Fetch semua data secara paralel
         const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
             api.diploma.getAll(), 
         ]);
 
+        // Gabungkan dan format data
         allDocumentsCache = [
             ...(incoming || []).map(d => ({ 
                 ...d, 
@@ -92,7 +112,7 @@ async function loadDocuments() {
 
     } catch (err) {
         console.error("Gagal load documents:", err);
-        container.innerHTML = `<p style="color:red; font-size:12px;">Gagal memuat data.</p>`;
+        container.innerHTML = `<p style="color:red; font-size:12px;">Gagal memuat data (API Error).</p>`;
     }
 }
 
@@ -153,7 +173,7 @@ function setupSearch() {
         const keyword = e.target.value.toLowerCase();
         
         const searchResults = allDocumentsCache.filter(doc => {
-            const titleMatch = doc._title.toLowerCase().includes(keyword);
+            const titleMatch = (doc._title || "").toLowerCase().includes(keyword);
             const numMatch = (doc.number || "").toLowerCase().includes(keyword);
             return titleMatch || numMatch;
         });
@@ -163,7 +183,9 @@ function setupSearch() {
             document.getElementById("list-title").textContent = `Hasil Pencarian: "${keyword}"`;
         } else {
              document.getElementById("list-title").textContent = "Dokumen Terkini";
-             document.querySelector('.filter-btn').classList.add('active');
+             // Reset filter ke 'Semua' jika search kosong
+             const allBtn = document.querySelector('.filter-btn'); 
+             if(allBtn) allBtn.classList.add('active');
         }
         renderDocs(searchResults);
     });
@@ -176,6 +198,8 @@ async function loadUploadActivity() {
     if (!countEl || !chart) return;
 
     try {
+        // Reuse data jika sudah ada di cache, atau fetch ulang jika perlu
+        // Di sini kita fetch ulang agar data fresh khusus statistik
         const [incoming, outgoing, diplomas] = await Promise.all([
             api.incomingLetter.getAll(),
             api.outgoingLetter.getAll(),
@@ -193,6 +217,7 @@ async function loadUploadActivity() {
 
         countEl.textContent = monthDocs.length;
 
+        // Render Simple Chart Bars
         chart.innerHTML = "";
         for (let i = 0; i < 6; i++) {
             const h = Math.floor(Math.random() * 50) + 20; 
@@ -201,5 +226,5 @@ async function loadUploadActivity() {
             div.style.height = `${h}%`;
             chart.appendChild(div);
         }
-    } catch (e) { console.log(e); }
+    } catch (e) { console.log("Chart Error:", e); }
 }

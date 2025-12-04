@@ -75,16 +75,5 @@
 
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    <script>
-        document.querySelectorAll("[data-route]").forEach(el => {
-            el.addEventListener("click", () => {
-                if(el.dataset.route) window.location.href = el.dataset.route;
-            });
-        });
-        document.getElementById("btn-logout").addEventListener("click", () => {
-            localStorage.removeItem("access_token");
-            window.location.href = "/page/login";
-        });
-    </script>
 </body>
 </html>

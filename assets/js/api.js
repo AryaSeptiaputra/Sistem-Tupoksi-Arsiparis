@@ -18,10 +18,8 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
 
     if (body) {
         if (body instanceof FormData) {
-            // Upload file: biarkan browser atur Content-Type
             config.body = body;
         } else {
-            // Data JSON biasa
             headers['Content-Type'] = 'application/json';
             config.body = JSON.stringify(body);
         }
@@ -30,10 +28,9 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
     try {
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
         
-        // Cek jika response bukan JSON (misal HTML Error 404/500)
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Server Error: Respon bukan JSON (Mungkin URL salah atau Error 500)");
+            throw new Error("Server Error: Respon bukan JSON");
         }
 
         const result = await response.json();
@@ -41,6 +38,8 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         if (!response.ok) {
             if (response.status === 401) {
                 console.warn("Sesi habis.");
+                // Opsional: Redirect ke login jika token expired saat request
+                // window.location.href = '/page/login'; 
             }
             throw new Error(result.message || result.error || 'Terjadi kesalahan pada server');
         }
@@ -48,7 +47,6 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         return result;
     } catch (error) {
         console.error(`API Error [${endpoint}]:`, error);
-        // Jangan alert setiap kali error agar tidak mengganggu UI, cukup throw
         throw error;
     }
 }
@@ -58,8 +56,34 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
 const api = {
     // 1. AUTH
     auth: {
-        login: (nuptk, password) => fetchAPI('/auth/login', 'POST', { nuptk, password }),
-        logout: () => localStorage.removeItem('access_token')
+        // UPDATE: Login kini async dan menyimpan token otomatis
+        login: async (nuptk, password) => {
+            const result = await fetchAPI('/auth/login', 'POST', { nuptk, password });
+            if (result.access_token) {
+                localStorage.setItem('access_token', result.access_token);
+            }
+            return result;
+        },
+        logout: () => {
+            localStorage.removeItem('access_token');
+            window.location.href = '/page/login'; // Redirect setelah logout
+        },
+        // BARU: Ambil data user dari token yang tersimpan
+        getUserData: () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) return null;
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                console.error("Error parsing JWT:", e);
+                return null;
+            }
+        }
     },
 
     // 2. USER
@@ -98,9 +122,8 @@ const api = {
         getByKeys: (filters) => fetchAPI('/outgoing_letter/get_by_keys', 'POST', { filters })
     },
 
-    // 6. DIPLOMA / IJAZAH (MENGGANTIKAN REPORT CARD)
+    // 6. DIPLOMA / IJAZAH
     diploma: {
-        // Create butuh FormData karena ada upload file scan ijazah
         create: (formData) => fetchAPI('/diploma/create', 'POST', formData),
         update: (data) => fetchAPI('/diploma/update', 'POST', data),
         delete: (id) => fetchAPI('/diploma/delete', 'POST', { id }),
