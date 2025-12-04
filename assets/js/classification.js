@@ -141,20 +141,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    window.editData = function(id, code, name) {
-        // Contoh: Redirect ke halaman edit atau buka modal
-        // Karena form belum ada, kita bisa gunakan prompt sederhana untuk demo update
-        // Atau redirect: window.location.href = `/page/classification/edit?id=${id}`;
-        
-        // Versi Simple Prompt (Optional):
-        /*
-        const newName = prompt("Ubah Nama Klasifikasi:", name);
-        if(newName && newName !== name) {
-             api.classification.update({ id: id, name: newName })
-                .then(() => initPage())
-                .catch(err => alert(err.message));
-        }
-        */
-       alert("Fitur edit akan mengarahkan ke form edit (Logic Edit belum diimplementasikan di snippet ini). ID: " + id);
+    window.editData = function(id) {
+    window.location.href = `/page/classification/edit?id=${id}`;
+
     };
 });

@@ -142,6 +142,18 @@ def get_all_classifications_route():
     finally:
         db_session.close()
 
+@classification_bp.route('/get/<int:cls_id>', methods=['GET'])
+@jwt_required()
+def get_classification_by_id(cls_id):
+    db_session: Session = db.SessionLocal()
+    try:
+        item = db_session.query(Classification).filter_by(id=cls_id).first()
+        if not item:
+            return jsonify({"error": "Classification not found"}), 404
+        return jsonify(item.to_dict()), 200
+    finally:
+        db_session.close()
+
 @classification_bp.route('/get_by_keys', methods=['POST'])
 def get_classifications_by_keys_route():
     """

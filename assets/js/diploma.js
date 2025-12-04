@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Placeholder Actions
     window.viewFile = (path) => { alert("Membuka scan ijazah: " + path); };
-    window.editDiploma = (id) => { alert("Edit ID: " + id); };
+    window.editDiploma = function(id) { window.location.href = `/page/form_diploma/edit?id=${id}`};
     window.deleteDiploma = (id) => { 
         if(confirm("Hapus data ini?")) alert("Implementasi delete ID: " + id); 
     };

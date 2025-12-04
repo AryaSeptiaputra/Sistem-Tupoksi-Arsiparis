@@ -202,8 +202,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Placeholder Actions (Global)
     window.viewFile = (path) => { alert("Membuka file: " + path); };
-    window.editLetter = (id) => { alert("Edit ID: " + id); };
+    window.editLetter = function(id) { window.location.href = `/page/form_incoming_letter/edit?id=${id}`};
     window.deleteLetter = async (id) => {
         if (confirm("Hapus data ini?")) alert("Implementasi delete ID: " + id);
     };
 });
+
+// window.editData = function(id) {
+//     window.location.href = `/page/classification/edit?id=${id}`;

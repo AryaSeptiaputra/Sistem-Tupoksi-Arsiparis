@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Placeholder Actions
     window.viewFile = (path) => { alert("Membuka file: " + path); };
-    window.editLetter = (id) => { alert("Edit ID: " + id); };
+    window.editLetter = function(id) { window.location.href = `/page/form_outgoing_letter/edit?id=${id}`};
     window.deleteLetter = async (id) => {
         if (confirm("Hapus surat keluar ini?")) {
             try { 
@@ -218,3 +218,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 });
+
+// window.editData = function(id) {
+//     window.location.href = `/page/classification/edit?id=${id}`;
