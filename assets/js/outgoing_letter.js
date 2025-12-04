@@ -1,4 +1,19 @@
 document.addEventListener("DOMContentLoaded", async () => {
+
+    const token = localStorage.getItem("access_token");
+    if (!token) { window.location.href = "/page/login"; return; }
+
+    // FIX NAVBAR NOT WORKING
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => {
+            if (el.dataset.route) window.location.href = el.dataset.route;
+        });
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", () => {
+        localStorage.removeItem("access_token");
+        window.location.href = "/page/login";
+    });
     // State Management
     let allLetters = [];
 
@@ -10,10 +25,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elClassFilter = document.getElementById("filterClassification");
     const elToggleDecree = document.getElementById("toggleDecreeContainer");
     const elBtnReset = document.getElementById("btnResetFilter");
-
-    // 1. Cek Login & Navigasi
-    const token = localStorage.getItem("access_token");
-    if (!token) { window.location.href = "/page/login"; return; }
 
     document.querySelectorAll("[data-route]").forEach(el => {
         el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
@@ -88,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const filteredData = allLetters.filter(item => {
             // 1. Filter Text (No Surat, Tujuan, Subjek)
             const textMatch = 
-                (item.mail_number && item.mail_number.toLowerCase().includes(searchTerm)) ||
+                (item.number && item.number.toLowerCase().includes(searchTerm)) ||
                 (item.destination && item.destination.toLowerCase().includes(searchTerm)) ||
                 (item.subject && item.subject.toLowerCase().includes(searchTerm));
 
@@ -141,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const fileIcon = hasFile ? '📄' : '❌';
 
             row.innerHTML = `
-                <td style="font-weight: 500; font-family: 'Courier New';">${item.mail_number || '-'}</td>
+                <td style="font-weight: 500; font-family: 'Courier New';">${item.number || '-'}</td>
                 <td>${dateLetter}</td>
                 <td style="font-weight:500;">${item.destination || '-'}</td>
                 <td>${item.subject || '-'}</td>

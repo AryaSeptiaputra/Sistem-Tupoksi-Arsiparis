@@ -36,7 +36,7 @@
                 <p>Kelola dan akses semua dokumen arsip sekolah dengan mudah</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add" title="Tambah">+</button>
+                <button class="btn-add" data-route="/page/form_incoming_letter" title="Tambah">+</button>
                 <div class="user-avatar">👨‍🏫</div>
             </div>
         </div>
@@ -48,9 +48,19 @@
             </div>
 
             <div class="filter-row">
-                <input type="date" id="startDate" class="filter-select" title="Tanggal Mulai (Diterima)">
-                <span style="color: var(--text-muted); font-weight: bold;">-</span>
-                <input type="date" id="endDate" class="filter-select" title="Tanggal Akhir (Diterima)">
+                <div class="filter-date-range" title="Filter Berdasarkan Tanggal Diterima">
+                    <span style="font-size: 10px; font-weight: 700; color: #4b5563; margin-right:4px;">TERIMA:</span>
+                    <input type="date" id="startDate" style="border:none; outline:none; font-family:inherit; font-size:13px; color:var(--text-muted);">
+                    <span style="color: var(--text-muted); font-weight: bold;">-</span>
+                    <input type="date" id="endDate" style="border:none; outline:none; font-family:inherit; font-size:13px; color:var(--text-muted);">
+                </div>
+
+                <div class="filter-date-range" title="Filter Berdasarkan Tanggal Surat">
+                    <span style="font-size: 10px; font-weight: 700; color: #4b5563; margin-right:4px;">SURAT:</span>
+                    <input type="date" id="letterStartDate" style="border:none; outline:none; font-family:inherit; font-size:13px; color:var(--text-muted);">
+                    <span style="color: var(--text-muted); font-weight: bold;">-</span>
+                    <input type="date" id="letterEndDate" style="border:none; outline:none; font-family:inherit; font-size:13px; color:var(--text-muted);">
+                </div>
 
                 <select id="filterClassification" class="filter-select">
                     <option value="">Semua Klasifikasi</option>
@@ -68,7 +78,7 @@
                     <thead>
                         <tr>
                             <th>No Surat</th>
-                            <th>Tgl Diterima</th>
+                            <th>Tgl Surat</th> <th>Tgl Diterima</th>
                             <th>Pengirim</th>
                             <th>Subjek</th>
                             <th>Klasifikasi</th>
