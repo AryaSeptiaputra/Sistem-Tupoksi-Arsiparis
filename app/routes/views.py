@@ -49,3 +49,7 @@ def form_outgoing_letter():
 @view_bp.route('/user_profile', methods=['GET'])
 def user_profile():
     return render_template('user_profile.html')
+
+@view_bp.route('/form_diploma', methods=['GET'])
+def form_diploma():
+    return render_template('form_diploma.html')

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Form Ijazah Siswa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo">S7</div>
+        <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
+        <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
+        <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
+        <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
+        <a class="nav-item active" data-route="/page/diploma" title="Data Ijazah">🎓</a>
+        <a class="nav-item" data-route="/page/user" title="Pengguna">👥</a>
+        <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
+        <a class="nav-item" data-route="/page/backup" title="Backup Database">💾</a>
+
+        <div style="margin-top: auto;">
+            <a class="nav-item btn-logout-sidebar" id="btn-logout" title="Logout">🚪</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <!-- HEADER -->
+        <div class="header-page">
+            <div class="header-title">
+                <h1>Tambah Data Ijazah</h1>
+                <p>Unggah dokumen & lengkapi detail ijazah siswa</p>
+            </div>
+
+            <div class="header-tools">
+                <div class="user-avatar">📄</div>
+            </div>
+        </div>
+
+        <!-- GRID LAYOUT -->
+        <div style="
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+        ">
+
+            <!-- LEFT FORM -->
+            <section class="content-card" style="padding:28px; border-radius:16px;">
+                <!-- UPLOAD BOX -->
+                <div style="border:2px dashed #d1d5db; padding:30px; border-radius:14px; text-align:center; margin-bottom:24px;">
+                    <div style="font-size:36px; opacity:0.5; margin-bottom:8px;">⤴️</div>
+                    <h3 style="font-size:16px; font-weight:600;">Upload File Ijazah</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">Drag & drop atau klik untuk memilih file</p>
+
+                    <label style="
+                        margin-top:14px;
+                        display:inline-block;
+                        padding:10px 18px;
+                        background:white;
+                        border:1px solid var(--border-color);
+                        border-radius:10px;
+                        cursor:pointer;
+                        font-size:13px;
+                    ">Pilih File
+                        <input type="file" id="fileInput" style="display:none;">
+                    </label>
+                </div>
+
+                <!-- FORM INPUTS -->
+                <h3 style="font-size:16px; margin-bottom:16px; font-weight:600;">Detail Siswa</h3>
+
+                <div class="form-group">
+                    <label>Nama Siswa</label>
+                    <div class="input-control">
+                        <input type="text" id="studentName" placeholder="Masukkan nama siswa">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Nomor Dokumen/Induk</label>
+                    <div class="input-control">
+                        <input type="text" id="documentNumber" placeholder="Masukkan nomor dokumen">
+                    </div>
+                </div>
+
+                <!-- Dropdown grid -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:16px;">
+                    <div>
+                        <label>Kelas</label>
+                        <select id="classSelect" class="filter-select" style="width:100%; margin-top:6px;">
+                            <option>Pilih Kelas</option>
+                            <option>X</option>
+                            <option>XI</option>
+                            <option>XII</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Tahun Ajaran</label>
+                        <select id="yearSelect" class="filter-select" style="width:100%; margin-top:6px;">
+                            <option>Pilih Tahun</option>
+                            <option>2022/2023</option>
+                            <option>2023/2024</option>
+                            <option>2024/2025</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dates -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:18px;">
+                    <div>
+                        <label>Tanggal Dibuat</label>
+                        <input type="date" class="filter-select" style="width:100%; margin-top:6px;">
+                    </div>
+
+                    <div>
+                        <label>Tanggal Diperbarui</label>
+                        <input type="date" class="filter-select" style="width:100%; margin-top:6px;">
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div style="display:flex; justify-content:space-between; margin-top:32px;">
+                    <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;">← Kembali</button>
+
+                    <div style="display:flex; gap:10px;">
+                        <button style="
+                            padding:10px 18px;
+                            background:#ef4444;
+                            color:white;
+                            border-radius:10px;
+                            border:none;
+                            cursor:pointer;
+                        ">Hapus</button>
+
+                        <button style="
+                            padding:10px 18px;
+                            background:var(--primary);
+                            color:white;
+                            border-radius:10px;
+                            border:none;
+                            cursor:pointer;
+                        ">Simpan</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT PREVIEW -->
+            <section class="content-card" style="padding:24px; border-radius:16px; min-height:420px;">
+                <h3 style="font-size:16px; margin-bottom:14px; font-weight:600;">Document Preview</h3>
+
+                <div style="
+                    border:2px dashed #d1d5db;
+                    height:100%;
+                    min-height:360px;
+                    border-radius:14px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:var(--text-muted);
+                    flex-direction:column;
+                ">
+                    <div style="font-size:40px; opacity:0.5; margin-bottom:8px;">📄</div>
+                    <p>Upload dokumen untuk melihat preview</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ROUTER LOGIC -->
+    <script>
+        document.querySelectorAll("[data-route]").forEach(el => {
+            el.addEventListener("click", () => {
+                window.location.href = el.dataset.route;
+            });
+        });
+    </script>
+</body>
+
+</html>

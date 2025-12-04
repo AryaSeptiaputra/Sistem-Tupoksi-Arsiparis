@@ -85,5 +85,9 @@ def create_app():
     @app.route('/user_profile')
     def user_profile():
         return redirect(url_for('view.user_profile'))
+    
+    @app.route('/form_diploma')
+    def form_diploma():
+        return redirect(url_for('view.form_diploma'))
 
     return app
