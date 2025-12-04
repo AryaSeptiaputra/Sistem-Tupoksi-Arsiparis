@@ -69,5 +69,17 @@ def create_app():
     @app.route('/backup')
     def backup():
         return redirect(url_for('view.backup'))
+    
+    @app.route('/form_incoming_letter')
+    def form_incoming_letter():
+        return redirect(url_for('view.form_incoming_letter'))
+    
+    @app.route('/form_outgoing_letter')
+    def form_outgoing_letter():
+        return redirect(url_for('view.form_outgoing_letter'))
+    
+    @app.route('/user_profile')
+    def user_profile():
+        return redirect(url_for('view.user_profile'))
 
     return app

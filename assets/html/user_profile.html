@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil Pengguna</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo">S7</div>
+
+        <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
+        <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
+        <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
+        <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
+        <a class="nav-item" data-route="/page/diploma" title="Data Ijazah">🎓</a>
+
+        <!-- HALAMAN INI -->
+        <a class="nav-item active" data-route="/page/user_profile" title="Profil Pengguna">👤</a>
+
+        <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
+        <a class="nav-item" data-route="/page/backup" title="Backup Database">💾</a>
+
+        <div style="margin-top: auto;">
+            <a class="nav-item btn-logout-sidebar" id="btn-logout" title="Logout">🚪</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="header-page">
+            <div class="header-title">
+                <h1>Profil Pengguna</h1>
+                <p>Kelola dan akses informasi pengguna dengan mudah</p>
+            </div>
+
+            <div class="header-tools">
+                <div class="user-avatar">🧑‍💼</div>
+            </div>
+        </div>
+
+        <!-- PROFILE LAYOUT -->
+        <div style="
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        ">
+
+            <!-- LEFT PROFILE CARD -->
+            <div class="content-card" style="text-align:center; padding:32px; border-radius:18px;">
+                <div style="
+                    width:120px; 
+                    height:120px; 
+                    border-radius:60px; 
+                    background:#3b82f6; 
+                    margin: 0 auto 20px; 
+                    display:flex; 
+                    align-items:center; 
+                    justify-content:center; 
+                    color:white;
+                    font-size:42px;
+                    font-weight:600;
+                ">
+                    P
+                </div>
+
+                <h2 style="font-size:20px; font-weight:600;">Pak Budi</h2>
+
+                <p style="margin-top:6px; color:var(--text-muted); font-size:14px;">
+                    NUPTK: 1234567890123456
+                </p>
+
+                <div style="margin:16px 0;">
+                    <span class="role-badge role-admin">Admin</span>
+                </div>
+
+                <div style="margin-top:6px; font-size:14px;">
+                    <span class="status-dot status-active"></span>
+                    <span class="text-active">Active</span>
+                </div>
+
+                <p style="margin-top:20px; color:var(--text-muted); font-size:13px;">
+                    📅 Joined 15 Jan 2024
+                </p>
+            </div>
+
+            <!-- RIGHT FORM -->
+            <div class="content-card" style="padding:32px; border-radius:18px;">
+                <h3 style="margin-bottom:20px; font-size:18px; font-weight:600;">
+                    Personal Informations
+                </h3>
+
+                <!-- NUPTK -->
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:13px; font-weight:600;">NUPTK</label>
+                    <div class="input-control">
+                        <input type="text" value="1234567890123456" readonly>
+                        <span class="toggle-password">✏️</span>
+                    </div>
+                </div>
+
+                <!-- USERNAME -->
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:13px; font-weight:600;">Username</label>
+                    <div class="input-control">
+                        <input type="text" value="Budi0917@gmail.com">
+                        <span class="toggle-password">✏️</span>
+                    </div>
+                </div>
+
+                <!-- PASSWORD -->
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:13px; font-weight:600;">Password</label>
+                    <div class="input-control">
+                        <input type="password" value="******">
+                        <span class="toggle-password">✏️</span>
+                    </div>
+                </div>
+
+                <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+                    📅 Updated 15 Jan 2024
+                </p>
+
+                <button style="
+                    margin-top:24px;
+                    padding:12px 20px;
+                    background: var(--primary);
+                    border:none;
+                    border-radius:10px;
+                    color:white;
+                    font-weight:600;
+                    cursor:pointer;
+                    float:right;
+                ">Update</button>
+
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        document.querySelectorAll("[data-route]").forEach(el => {
+            el.addEventListener("click", () => {
+                window.location.href = el.dataset.route;
+            });
+        });
+
+        document.getElementById("btn-logout").addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            window.location.href = "/page/login";
+        });
+    </script>
+</body>
+
+</html>
