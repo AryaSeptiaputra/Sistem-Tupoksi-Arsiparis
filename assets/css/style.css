@@ -21,17 +21,17 @@
 /* Reset Margin & Padding */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Setup Body Utama (Dashboard) */
+/* Setup Body Utama (Fixed Layout) */
 body {
     font-family: "Poppins", sans-serif;
     background: var(--bg-page);
     color: var(--text-main);
     
-    height: 100vh;       /* Paksa tinggi pas 100% layar */
+    height: 100vh;       /* Tinggi pas layar */
     width: 100vw;        /* Lebar full layar */
-    overflow: hidden;    /* HILANGKAN SCROLLBAR UTAMA DI SINI */
+    overflow: hidden;    /* MATIKAN SCROLL GLOBAL */
     
-    display: flex;       /* Layout Flexbox (Sidebar Kiri, Konten Kanan) */
+    display: flex;       /* Layout Flexbox */
 }
 
 /* =========================================
@@ -49,11 +49,11 @@ body {
     align-items: center;
     
     height: 100vh;       
-    overflow-y: auto;    
+    overflow-y: auto;    /* Sidebar tetap bisa scroll jika menu banyak */
     flex-shrink: 0;      
     z-index: 100;
 
-    /* Sembunyikan Scrollbar */
+    /* Sembunyikan Scrollbar Sidebar */
     scrollbar-width: none;      
     -ms-overflow-style: none;   
 }
@@ -68,6 +68,7 @@ body {
     display: flex; align-items: center; justify-content: center;
     color: white; font-weight: 700; font-size: 20px;
     box-shadow: 0 4px 10px rgba(255, 138, 92, 0.4);
+    flex-shrink: 0;
 }
 
 .nav-item {
@@ -81,6 +82,7 @@ body {
     transition: 0.2s;
     text-decoration: none;
     position: relative;
+    flex-shrink: 0;
 }
 
 .nav-item:hover { background: #f3f4f6; color: var(--primary); }
@@ -102,29 +104,43 @@ body {
     opacity: 0.9;
 }
 
-/* --- KONTEN UTAMA --- */
+/* --- KONTEN UTAMA (LAYOUT FLEX) --- */
 .main-content {
     flex: 1;             
     height: 100vh;       
-    overflow-y: auto;    /* SCROLLBAR PINDAH KE SINI */
-    overflow-x: hidden;  
+    overflow: hidden;    /* Scroll dimatikan di container utama */
     
-    padding: 32px 40px;  
-    position: relative;
+    padding: 24px 32px;  
+    display: flex;       
+    flex-direction: column; /* Susunan vertikal */
 }
 
+/* Khusus Layout Dashboard (Grid) */
 .layout-dashboard {
     flex: 1;
     display: grid;
     grid-template-columns: 1fr 340px;
-    padding: 24px;
+    padding: 24px 32px;
     gap: 24px;
-    overflow-y: auto;
+    overflow: hidden; /* Container dashboard fix */
+    height: 100vh;
+}
+
+/* Section kiri di dashboard agar bisa scroll sendiri jika konten panjang */
+.layout-dashboard > section {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
 }
 
 /* --- HEADER HALAMAN --- */
 .header-page {
-    display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 20px;
+    flex-shrink: 0; /* Header tidak boleh mengecil/penyet */
 }
 .header-title h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
 .header-title p { color: var(--text-muted); font-size: 14px; }
@@ -141,16 +157,23 @@ body {
 .user-avatar {
     width: 40px; height: 40px; background: #fbbf24; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-weight: 600; color: white;
 }
 
 /* --- KOMPONEN KARTU & FILTER --- */
 .content-card {
     background: white; border-radius: 16px; padding: 24px;
     box-shadow: 0 2px 15px rgba(0,0,0,0.03);
+    
+    /* Layout Flex agar tabel mengisi sisa ruang */
+    flex: 1; 
+    display: flex; 
+    flex-direction: column;
+    overflow: hidden; /* Kunci agar konten tidak meluber keluar kartu */
+    min-height: 0;    /* Fix bug flexbox scrolling */
 }
 
-.search-container { margin-bottom: 24px; }
+.search-container { margin-bottom: 20px; flex-shrink: 0; }
 .search-input {
     width: 100%; padding: 12px 16px 12px 40px; 
     border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;
@@ -158,7 +181,11 @@ body {
     background-size: 20px; font-size: 14px;
 }
 
-.filter-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: center; }
+.filter-row { 
+    display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; 
+    align-items: center; flex-shrink: 0; 
+}
+
 .filter-select {
     padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px;
     background: white; color: var(--text-main); font-family: inherit; font-size: 13px; cursor: pointer;
@@ -193,13 +220,12 @@ body {
     display: none !important; /* Chrome, Edge, Safari */
 }
 
-
 table { width: 100%; border-collapse: collapse; min-width: 900px; }
 thead tr { background-color: var(--table-head-bg); }
 
 th { 
     text-align: left; padding: 16px; font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;
-    position: sticky; top: 0; z-index: 10;
+    position: sticky; top: 0; z-index: 10; /* Header tabel tetap di atas saat scroll */
     background-color: var(--table-head-bg); 
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
@@ -245,7 +271,7 @@ tr:hover td { background-color: #f9fafb; }
 .doc-chip { background: #e0f2fe; color: #0284c7; padding: 3px 10px; border-radius: 999px; font-size: 10px; }
 .doc-title { font-size: 14px; font-weight: 600; }
 .profile-card { background: var(--primary); color: white; border-radius: 24px; padding: 20px; }
-.avatar-lg { width: 48px; height: 48px; border-radius: 14px; background: white; color: #fb923c; font-size: 26px; display: flex; align-items: center; justify-content: center; }
+.avatar-lg { width: 48px; height: 48px; border-radius: 14px; background: white; color: #fb923c; font-size: 26px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 .mini-chart { height: 90px; display: flex; gap: 6px; align-items: flex-end; }
 .bar { flex: 1; border-radius: 999px; background: linear-gradient(180deg, #ff8a5c, #fb923c); }
 
@@ -313,19 +339,17 @@ tr:hover td { background-color: #f9fafb; }
 .btn-download:hover { background: #2563eb; }
 .btn-restore:hover { background: #d97706; }
 
-/* --- DASHBOARD (REDESIGN) --- */
-/* Style untuk Tombol Filter Dashboard */
+/* --- DASHBOARD ELEMENTS --- */
 .filter-group {
     display: flex; gap: 10px; margin-top: 16px; margin-bottom: 24px;
-    overflow-x: auto; padding-bottom: 4px;
+    overflow-x: auto; padding-bottom: 4px; flex-shrink: 0;
 }
 
-/* Style untuk Tombol Filter Dashboard - Disesuaikan dengan elemen lain (kotak rounded) */
 .filter-btn {
     background: white; 
     border: 1px solid var(--border-color); 
-    padding: 10px 18px;       /* Padding disamakan dengan tombol Export/Filter halaman lain */
-    border-radius: 8px;       /* Radius 8px agar konsisten dengan Search Input & Dropdown */
+    padding: 10px 18px;       
+    border-radius: 8px;       
     font-size: 13px; 
     font-weight: 500; 
     color: var(--text-muted); 
@@ -344,58 +368,39 @@ tr:hover td { background-color: #f9fafb; }
     background: var(--primary); 
     color: white; 
     border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(255, 138, 92, 0.3); /* Shadow sedikit lebih lembut */
+    box-shadow: 0 4px 12px rgba(255, 138, 92, 0.3); 
 }
 
-/* Grid Layout Dokumen - SCROLLABLE AREA */
+/* Grid Layout Dokumen (Dashboard) - Scrollable Area */
+/* Grid Layout Dokumen (Dashboard) - Scrollable Area */
 .docs-grid {
     display: grid; 
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
     gap: 16px;
 
-    /* --- LOGIKA SCROLLING BARU --- */
-    /* 1. Tentukan tinggi maksimal area ini. 
-          Rumus: 100vh (tinggi layar) dikurangi tinggi elemen header/filter di atasnya (kira-kira 260px) */
-    max-height: calc(100vh - 260px); 
+    /* Logic Scrolling untuk Flex Container */
+    flex: 1;
+    overflow-y: auto; /* Tetap bisa di-scroll */
     
-    /* 2. Aktifkan scroll vertikal jika konten melebihi tinggi maksimal */
-    overflow-y: auto; 
-    
-    /* 3. Padding tambahan agar scrollbar tidak menempel konten */
-    padding-right: 8px; 
+    padding-right: 4px; 
     padding-bottom: 20px;
-}
-
-/* Grid Layout Dokumen - SCROLLABLE AREA */
-.docs-grid {
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-    gap: 16px;
-
-    /* --- LOGIKA SCROLLING --- */
-    max-height: calc(100vh - 260px); 
-    overflow-y: auto; 
     
-    padding-right: 4px; /* Padding dikurangi karena scrollbar hilang */
-    padding-bottom: 20px;
-
     /* 1. Hilangkan Scrollbar di Firefox */
-    scrollbar-width: none; 
+    scrollbar-width: none;
     
     /* 2. Hilangkan Scrollbar di IE dan Edge lama */
-    -ms-overflow-style: none;  
+    -ms-overflow-style: none;
 }
 
 /* 3. Hilangkan Scrollbar di Chrome, Safari, dan Opera (Webkit) */
 .docs-grid::-webkit-scrollbar {
     display: none;
 }
+.docs-grid::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 
 /* =========================================
    4. BAGIAN AUTH / LOGIN PAGE
    ========================================= */
-
-/* Class khusus untuk body halaman login */
 body.login-page {
     background: radial-gradient(circle at top left, #fef3f0 0, #f3f6ff 40%, #eef4ff 100%);
     display: flex;
@@ -482,7 +487,6 @@ body.login-page {
     .auth-visual { display: none; }
     .auth-form { padding: 32px 24px 26px; }
 }
-
 .auth-icon {
     width: 60px;
     height: 60px;
@@ -524,4 +528,3 @@ main > section,
 
 /* INI YANG PALING PENTING */
 /* Table scroll hanya DI DALAM .table-responsive */
-
