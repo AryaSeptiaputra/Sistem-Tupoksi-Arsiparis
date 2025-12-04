@@ -175,21 +175,24 @@ body {
 }
 
 /* --- TABEL --- */
-.table-responsive { 
-    overflow-x: auto; 
-    overflow-y: auto;
-    max-height: calc(100vh - 280px); /* Tinggi tabel responsif */
-    border-radius: 12px; 
-    border: 1px solid var(--border-color);
-    background: white;
-    scrollbar-width: none;  
-    -ms-overflow-style: none;  
+.table-responsive {
+    max-height: calc(100vh - 260px); /* tinggi area table */
+    overflow-y: scroll;              /* scroll aktif */
+    overflow-x: hidden;              /* horizontal mati */
+    
+    position: relative;
+
+    /* Hilangkan scrollbar di semua browser */
+    scrollbar-width: none !important;   /* Firefox */
+    -ms-overflow-style: none !important; /* IE & Edge lama */
 }
 
-.table-responsive::-webkit-scrollbar { display: none; }
-.table-responsive::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-.table-responsive::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-.table-responsive::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+.table-responsive::-webkit-scrollbar {
+    width: 0 !important; 
+    height: 0 !important;
+    display: none !important; /* Chrome, Edge, Safari */
+}
+
 
 table { width: 100%; border-collapse: collapse; min-width: 900px; }
 thead tr { background-color: var(--table-head-bg); }
@@ -479,3 +482,46 @@ body.login-page {
     .auth-visual { display: none; }
     .auth-form { padding: 32px 24px 26px; }
 }
+
+.auth-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 6px;
+}
+
+.auth-icon img.school-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+html, body {
+    overflow: hidden !important;
+    height: 100vh;
+}
+
+/* Pastikan main-content TIDAK ikut scroll */
+.main-content {
+    overflow: hidden !important;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Section wrapper TIDAK boleh scroll */
+main .content-card,
+main > section,
+.page-container {
+    overflow: visible !important;
+}
+
+/* INI YANG PALING PENTING */
+/* Table scroll hanya DI DALAM .table-responsive */
+
