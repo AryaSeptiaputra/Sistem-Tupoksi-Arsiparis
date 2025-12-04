@@ -37,3 +37,11 @@ def log_page():
 @view_bp.route('/backup', methods=['GET'])
 def backup():
     return render_template('backup.html')
+
+@view_bp.route('/form_incoming_letter', methods=['GET'])
+def form_incoming_letter():
+    return render_template('form_incoming_letter.html')
+
+@view_bp.route('/form_outgoing_letter', methods=['GET'])
+def form_outgoing_letter():
+    return render_template('form_outgoing_letter.html')

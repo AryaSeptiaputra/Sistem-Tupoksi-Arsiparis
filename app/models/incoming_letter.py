@@ -59,7 +59,7 @@ class IncomingLetter(Base):
         """
         return {
             "id": self.id,
-            "mail_number": self.number,
+            "number": self.number,
             "letter_date": self.letter_date.isoformat() if self.letter_date else None,
             "received_date": self.received_date.isoformat() if self.received_date else None,
             "sender": self.sender,

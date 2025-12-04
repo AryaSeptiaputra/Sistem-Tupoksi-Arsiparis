@@ -67,10 +67,10 @@ Buat file baru bernama `.env` di folder paling luar (root), lalu isi dengan konf
 
 ```ini
 # Ganti 'password' dengan password database MySQL lokal kalian
-DATABASE_URL=[URL yang dishare digrup]
+DATABASE_URL=[mysql+pymysql://root:password@localhost/arsiparis_smk7]
 
 # Key untuk keamanan login (Jangan disebar sembarangan)
-JWT_SECRET_KEY=[Kode yang dishare digrup]
+JWT_SECRET_KEY=[5584c6c09bd32c2db66d179a24a5f04f488a4428c37269a17358ca7554dccb09]
 ```
 
 > ⚠️ **PENTING:** Jangan pernah push file `.env` ini ke GitHub\! Pastikan file ini sudah ada di dalam `.gitignore`.

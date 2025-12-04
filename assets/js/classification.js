@@ -1,4 +1,19 @@
 document.addEventListener("DOMContentLoaded", async () => {
+
+    const token = localStorage.getItem("access_token");
+    if (!token) { window.location.href = "/page/login"; return; }
+
+    // FIX NAVBAR NOT WORKING
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => {
+            if (el.dataset.route) window.location.href = el.dataset.route;
+        });
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", () => {
+        localStorage.removeItem("access_token");
+        window.location.href = "/page/login";
+    });
     // State Management untuk Data
     let allLetters = []; 
 
@@ -70,7 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const filteredData = allLetters.filter(item => {
             // 1. Filter Text (No Surat, Pengirim, Subjek)
             const textMatch = 
-                (item.mail_number && item.mail_number.toLowerCase().includes(searchTerm)) ||
+                (item.number && item.number.toLowerCase().includes(searchTerm)) ||
                 (item.sender && item.sender.toLowerCase().includes(searchTerm)) ||
                 (item.subject && item.subject.toLowerCase().includes(searchTerm));
 
@@ -113,7 +128,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const fileAction = hasFile ? `viewFile('${item.file_path}')` : '';
 
             row.innerHTML = `
-                <td style="font-weight: 500; font-family: 'Courier New';">${item.mail_number || '-'}</td>
+                <td style="font-weight: 500; font-family: 'Courier New';">${item.number || '-'}</td>
                 <td><span style="color:var(--primary-color); font-weight:500;">${dateReceived}</span></td>
                 <td>${item.sender || '-'}</td>
                 <td>${item.subject || '-'}</td>
