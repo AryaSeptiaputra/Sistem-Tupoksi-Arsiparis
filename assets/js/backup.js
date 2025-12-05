@@ -1,231 +1,222 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    // State Data
-    let allBackups = [];
 
-    // Referensi DOM
-    const elTableBody = document.getElementById("table-body");
-    const elSearch = document.getElementById("searchInput");
-    const elStartDate = document.getElementById("startDate");
-    const elEndDate = document.getElementById("endDate");
-    const elFilterStatus = document.getElementById("filterStatus");
-    const elFilterInitiator = document.getElementById("filterInitiator");
-    const elBtnReset = document.getElementById("btnResetFilter");
-    const elBtnTrigger = document.getElementById("btnTriggerBackup");
+    // --- 0. NAVIGASI & AUTH ---
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => window.location.href = el.dataset.route);
+    });
 
-    // 1. Cek Login & Navigasi
     const token = localStorage.getItem("access_token");
     if (!token) { window.location.href = "/page/login"; return; }
 
-    document.querySelectorAll("[data-route]").forEach(el => {
-        el.addEventListener("click", () => { if (el.dataset.route) window.location.href = el.dataset.route; });
-    });
-    document.getElementById("btn-logout").addEventListener("click", () => {
-        localStorage.removeItem("access_token"); window.location.href = "/page/login";
-    });
+    // --- STATE VARIABLES ---
+    let backupLogs = [];
+    let userMap = {}; // Object untuk mapping user_id -> username
 
-    // 2. Load Data Awal
+    // --- DOM REFERENCES ---
+    const btnBackup = document.getElementById("btnTriggerBackup");
+    const tbody = document.getElementById("table-body");
+    
+    // Filters
+    const searchInput = document.getElementById("searchInput");
+    const startDate = document.getElementById("startDate");
+    const endDate = document.getElementById("endDate");
+    const filterStatus = document.getElementById("filterStatus");
+    const filterInitiator = document.getElementById("filterInitiator");
+    const btnResetFilter = document.getElementById("btnResetFilter");
+
+    // --- INITIALIZATION ---
     await initPage();
 
-    // 3. Event Listeners Filters
-    elSearch.addEventListener("keyup", applyFilters);
-    elStartDate.addEventListener("change", applyFilters);
-    elEndDate.addEventListener("change", applyFilters);
-    elFilterStatus.addEventListener("change", applyFilters);
-    elFilterInitiator.addEventListener("change", applyFilters);
+    // --- EVENT LISTENERS ---
+    
+    // 1. Trigger Backup
+    if (btnBackup) {
+        btnBackup.addEventListener("click", handleManualBackup);
+    }
 
-    elBtnReset.addEventListener("click", () => {
-        elSearch.value = "";
-        elStartDate.value = "";
-        elEndDate.value = "";
-        elFilterStatus.value = "";
-        elFilterInitiator.value = "";
-        applyFilters();
+    // 2. Filters
+    [searchInput, startDate, endDate, filterStatus, filterInitiator].forEach(el => {
+        if(el) {
+            el.addEventListener("change", applyFilters);
+            el.addEventListener("keyup", applyFilters);
+        }
     });
 
-    // Event Trigger Backup Manual
-    elBtnTrigger.addEventListener("click", triggerManualBackup);
+    if (btnResetFilter) {
+        btnResetFilter.addEventListener("click", () => {
+            searchInput.value = "";
+            startDate.value = "";
+            endDate.value = "";
+            filterStatus.value = "";
+            filterInitiator.value = "";
+            applyFilters();
+        });
+    }
+
+    // --- CORE FUNCTIONS ---
 
     async function initPage() {
-        renderLoading();
+        // Load Data User dulu untuk mapping nama di tabel (karena log cuma simpan user_id)
+        await loadUserMap();
+        // Load Log Backup
+        await loadBackupLogs();
+    }
+
+    async function loadUserMap() {
         try {
-            // Fetch data dari API (Asumsi method getLogs() sudah ada di api.js)
-            const data = await api.backup.getLogs();
-
-            if (!data || data.length === 0) {
-                renderEmpty("Belum ada riwayat backup.");
-                return;
-            }
-
-            allBackups = data;
-
-            // Sort Default: Terbaru (Created At Descending)
-            allBackups.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            // Isi Dropdown Inisiator (User selain SYSTEM)
-            populateInitiatorFilter(allBackups);
-
-            // Render Tabel
-            renderTable(allBackups);
-
-        } catch (error) {
-            console.error(error);
-            renderEmpty("Gagal memuat data backup.", true);
+            const users = await api.user.getAll();
+            
+            // Isi Dropdown Filter Inisiator
+            // filterInitiator sudah ada opsi default "SYSTEM" di HTML
+            users.forEach(u => {
+                userMap[u.id] = u.username; // Simpan di map
+                
+                // Tambah ke dropdown filter
+                if(filterInitiator) {
+                    const opt = document.createElement("option");
+                    opt.value = u.username;
+                    opt.textContent = u.username;
+                    filterInitiator.appendChild(opt);
+                }
+            });
+        } catch (e) {
+            console.warn("Gagal memuat list user:", e);
         }
     }
 
-    // --- LOGIKA FILTER ---
-    function applyFilters() {
-        const searchTerm = elSearch.value.toLowerCase();
-        const startDate = elStartDate.value ? new Date(elStartDate.value) : null;
-        const endDate = elEndDate.value ? new Date(elEndDate.value) : null;
-        const statusFilter = elFilterStatus.value.toLowerCase();
-        const initiatorFilter = elFilterInitiator.value;
-
-        // Set End Date ke akhir hari
-        if (endDate) endDate.setHours(23, 59, 59);
-
-        const filteredData = allBackups.filter(item => {
-            // 1. Filter Text (Filename)
-            const textMatch = (item.filename || '').toLowerCase().includes(searchTerm);
-
-            // 2. Filter Status
-            const itemStatus = (item.status || '').toLowerCase();
-            const statusMatch = statusFilter === "" || itemStatus === statusFilter;
-
-            // 3. Filter Initiator
-            const itemInitiator = item.triggered_by || 'SYSTEM';
-            const initiatorMatch = initiatorFilter === "" || itemInitiator === initiatorFilter;
-
-            // 4. Filter Tanggal
-            let dateMatch = true;
-            if (item.created_at) {
-                const itemDate = new Date(item.created_at);
-                if (startDate && itemDate < startDate) dateMatch = false;
-                if (endDate && itemDate > endDate) dateMatch = false;
-            }
-
-            return textMatch && statusMatch && initiatorMatch && dateMatch;
-        });
-
-        renderTable(filteredData);
+    async function loadBackupLogs() {
+        tbody.innerHTML = `<tr><td colspan="5" class="loading-text" style="text-align:center; padding:20px;">Memuat riwayat backup...</td></tr>`;
+        
+        try {
+            // Panggil API getLogs dari api.js
+            backupLogs = await api.backup.getLogs();
+            renderTable(backupLogs);
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+        }
     }
 
-    // --- RENDER TABLE ---
-    function renderTable(data) {
-        elTableBody.innerHTML = "";
+    async function handleManualBackup() {
+        if(!confirm("Apakah Anda yakin ingin melakukan backup database sekarang?")) return;
 
-        if (data.length === 0) {
-            renderEmpty("Data tidak ditemukan.");
+        const originalText = btnBackup.innerHTML;
+        btnBackup.innerHTML = `<span>⏳</span> Memproses...`;
+        btnBackup.disabled = true;
+
+        try {
+            // Panggil API manual backup
+            const result = await api.backup.manual();
+            
+            alert("Backup Berhasil! File tersimpan: " + (result.data ? result.data.filename : "Database"));
+            
+            // Refresh tabel log
+            await loadBackupLogs();
+            
+        } catch (e) {
+            console.error(e);
+            alert("Backup Gagal: " + (e.message || "Terjadi kesalahan server"));
+        } finally {
+            btnBackup.innerHTML = originalText;
+            btnBackup.disabled = false;
+        }
+    }
+
+    function renderTable(data) {
+        tbody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Belum ada riwayat backup.</td></tr>`;
             return;
         }
 
         data.forEach(item => {
-            const row = document.createElement("tr");
+            const tr = document.createElement("tr");
 
-            // Format Tanggal
-            const dateObj = new Date(item.created_at);
-            const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            // 1. Format Tanggal
+            const dateStr = item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : "-";
 
-            // Visual Status
-            const isSuccess = (item.status || '').toLowerCase() === 'success';
+            // 2. Status Badge
+            const isSuccess = (item.status || "").toLowerCase() === 'success';
             const statusBadge = isSuccess 
-                ? `<span class="badge-taken" style="font-size:11px;">Success</span>` 
-                : `<span class="badge-pending" style="background:#fee2e2; color:#b91c1c;">Failed</span>`;
+                ? `<span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;">✅ Success</span>`
+                : `<span style="background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;">❌ Failed</span>`;
 
-            // Visual Initiator
-            const isSystem = (item.triggered_by === 'SYSTEM');
-            const initiatorDisplay = isSystem 
-                ? `<span style="font-weight:600; color:var(--text-muted);">🤖 SYSTEM</span>`
-                : `<span style="font-weight:600; color:var(--primary);">👤 ${item.triggered_by}</span>`;
+            // 3. Inisiator (User atau System)
+            let initiatorName = "SYSTEM (Auto)";
+            if (item.user_id) {
+                // Ambil dari map atau tampilkan ID jika user terhapus
+                initiatorName = userMap[item.user_id] ? `👤 ${userMap[item.user_id]}` : `User ID: ${item.user_id}`;
+            }
 
-            // Disable download button if failed
-            const downloadAttr = isSuccess ? `onclick="downloadBackup('${item.filename}')"` : 'disabled style="background:#ccc; cursor:not-allowed;"';
+            // 4. File Size (Mockup jika API belum kirim size, atau ambil dari message)
+            // Asumsi filename berisi path
+            const filename = item.filename || "backup.sql";
 
-            row.innerHTML = `
-                <td style="font-weight: 500; font-family:'Courier New'; color:var(--text-main);">
-                    📦 ${item.filename || '-'}
+            tr.innerHTML = `
+                <td style="font-weight:500;">
+                    <span style="font-family:monospace;">${filename}</span>
                 </td>
-                <td>
-                    <div style="font-size:13px;">${dateStr} <span style="color:#9ca3af; font-size:12px;">(${timeStr})</span></div>
-                </td>
+                <td style="font-size:13px; color:#6b7280;">${dateStr}</td>
                 <td>${statusBadge}</td>
-                <td>${initiatorDisplay}</td>
-                <td style="text-align: center;">
+                <td style="font-size:13px;">${initiatorName}</td>
+                <td style="text-align:center;">
                     <div class="btn-action-group">
-                        <button class="btn-action-view btn-download" title="Download File" ${downloadAttr}>
+                        <button class="btn-action-view btn-edit" style="background:#3b82f6;" title="Download" 
+                            onclick="alert('Fitur download file ${filename} akan segera tersedia.')">
                             ⬇️
                         </button>
-                        <button class="btn-action-view btn-restore" onclick="restoreBackup('${item.filename}')" title="Restore Database" style="background:#f59e0b;">
-                            ♻️
+                        <button class="btn-action-view btn-delete" style="background:#f59e0b;" title="Restore Database" 
+                            onclick="if(confirm('PERINGATAN: Restore akan menimpa database saat ini. Lanjutkan?')) alert('Fitur restore sedang dalam pengembangan.')">
+                            🔄
                         </button>
                     </div>
                 </td>
             `;
-            elTableBody.appendChild(row);
+            tbody.appendChild(tr);
         });
     }
 
-    // --- ACTIONS ---
-    async function triggerManualBackup() {
-        if(!confirm("Apakah Anda yakin ingin melakukan backup database sekarang?")) return;
+    function applyFilters() {
+        const term = searchInput.value.toLowerCase();
+        const status = filterStatus.value.toLowerCase();
+        const initiator = filterInitiator.value; // Username atau 'SYSTEM'
 
-        const btn = elBtnTrigger;
-        const originalText = btn.innerHTML;
-        
-        try {
-            btn.disabled = true;
-            btn.innerHTML = "<span>⏳</span> Memproses...";
-            
-            // Panggil API Backup Manual
-            await api.backup.manual(); 
-            
-            alert("Backup berhasil dibuat!");
-            
-            // Reload data
-            const newData = await api.backup.getLogs();
-            allBackups = newData;
-            applyFilters(); // Re-render
+        const start = startDate.value ? new Date(startDate.value) : null;
+        const end = endDate.value ? new Date(endDate.value) : null;
+        if(end) end.setHours(23, 59, 59);
 
-        } catch (error) {
-            alert("Gagal melakukan backup: " + error.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    }
+        const filtered = backupLogs.filter(item => {
+            // Text Search (Filename)
+            const txtMatch = (item.filename || "").toLowerCase().includes(term);
 
-    // --- HELPERS ---
-    function populateInitiatorFilter(data) {
-        // Ambil user unik selain SYSTEM
-        const users = [...new Set(data.map(item => item.triggered_by).filter(u => u && u !== 'SYSTEM'))].sort();
-        
-        users.forEach(user => {
-            const option = document.createElement("option");
-            option.value = user;
-            option.textContent = user;
-            elFilterInitiator.appendChild(option);
+            // Status Filter
+            const itemStatus = (item.status || "").toLowerCase();
+            const statusMatch = status === "" || itemStatus === status;
+
+            // Initiator Filter
+            let itemInitiator = "SYSTEM";
+            if(item.user_id && userMap[item.user_id]) itemInitiator = userMap[item.user_id];
+            
+            // Logic khusus: filter 'SYSTEM' vs Username
+            let initMatch = true;
+            if (initiator === "SYSTEM") {
+                initMatch = !item.user_id; // Kalau null berarti SYSTEM
+            } else if (initiator !== "") {
+                initMatch = itemInitiator === initiator;
+            }
+
+            // Date Filter
+            let dateMatch = true;
+            if (item.created_at) {
+                const d = new Date(item.created_at);
+                if (start && d < start) dateMatch = false;
+                if (end && d > end) dateMatch = false;
+            }
+
+            return txtMatch && statusMatch && initMatch && dateMatch;
         });
+
+        renderTable(filtered);
     }
-
-    function renderLoading() {
-        elTableBody.innerHTML = `<tr><td colspan="5" class="loading-text">Sedang memuat data...</td></tr>`;
-    }
-
-    function renderEmpty(msg, isError = false) {
-        const color = isError ? 'red' : 'inherit';
-        elTableBody.innerHTML = `<tr><td colspan="5" class="loading-text" style="color:${color};">${msg}</td></tr>`;
-    }
-
-    // Placeholder Global Functions
-    window.downloadBackup = (filename) => {
-        // Implementasi download real: window.location.href = `/api/backup/download/${filename}`;
-        alert("Mengunduh file: " + filename);
-    };
-
-    window.restoreBackup = (filename) => {
-        if(confirm(`PERINGATAN BAHAYA:\nRestore akan menimpa database saat ini dengan file '${filename}'.\n\nData baru yang dibuat setelah backup ini akan HILANG.\nApakah Anda yakin?`)) {
-            alert("Memproses restore untuk: " + filename);
-        }
-    };
 });

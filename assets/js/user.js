@@ -104,8 +104,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(user => {
             const tr = document.createElement("tr");
             
-            // Status Logic
+            // Status Logic (Handle berbagai kemungkinan format dari backend)
             const isActive = user.is_active || user.status === 'active' || user.status === true;
+            
             const statusBadge = isActive 
                 ? `<span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:600;">Active</span>`
                 : `<span style="background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:600;">Inactive</span>`;
@@ -157,6 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputUsername.value = data.username;
             inputRole.value = data.role;
             
+            // Baca status dari data yang ada
             const isActive = data.is_active || data.status === 'active' || data.status === true;
             inputStatusToggle.checked = isActive;
             
@@ -220,7 +222,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             nuptk: inputNuptk.value,
             username: inputUsername.value,
             role: inputRole.value,
-            is_active: inputStatusToggle.checked // Boolean
+            
+            // --- PERBAIKAN DI SINI ---
+            // Backend mewajibkan key 'status' dengan nilai string 'active'/'inactive'
+            // Sebelumnya dikirim sebagai 'is_active' (boolean) yang menyebabkan error 400
+            status: inputStatusToggle.checked ? 'active' : 'inactive' 
         };
         
         // Kirim password hanya jika diisi
@@ -234,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             if(isEditMode) {
                 payload.id = currentEditId;
-                await api.user.update(payload); // Pastikan backend terima JSON
+                await api.user.update(payload); 
                 alert("User berhasil diperbarui!");
             } else {
                 await api.user.create(payload);
@@ -288,4 +294,4 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         renderTable(filtered);
     }
-});
+}); 

@@ -7,7 +7,7 @@ def seed_admin():
     db = SessionLocal()
     
     # --- KONFIGURASI ADMIN PERTAMA ---
-    admin_nuptk = "152022190"
+    admin_nuptk = "112022190"
     admin_password = "aes040904"
     admin_username = "AryaSeptiaputra"
     
