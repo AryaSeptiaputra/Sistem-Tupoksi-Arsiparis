@@ -14,37 +14,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleLogin() {
-    // Pastikan ID ini sudah sama dengan di HTML (sekarang sudah 'nuptk')
     const nuptkInput = document.getElementById('nuptk').value; 
     const passInput = document.getElementById('password').value;
     const btnLogin = document.querySelector('.btn-login');
 
     try {
-        // (Opsional) Ubah teks tombol biar user tahu sedang loading
+        // UI: Loading state
         btnLogin.textContent = "Loading...";
         btnLogin.disabled = true;
 
-        // Panggil fungsi API (Pastikan api.js strukturnya benar menerima ini)
+        // Panggil fungsi API
+        // api.js akan otomatis menyimpan token jika login berhasil
         const result = await api.auth.login(nuptkInput, passInput);
         
-        // Simpan token
-        localStorage.setItem('access_token', result.access_token);
+        // FIX: Hapus localStorage.setItem manual di sini karena sudah dilakukan di api.js
         
-        // Feedback sukses
-        alert(result.message); 
-        
-        // Redirect
-        // Saran: Gunakan window.location.origin untuk path absolut jika perlu
-        window.location.href = '/dashboard'; // Sesuaikan dengan route dashboard Flask Anda
+        // Cek sukses
+        if (result && result.access_token) {
+            alert(result.message || "Login Berhasil!"); 
+            window.location.href = '/dashboard'; 
+        } else {
+            // Jika api tidak return error tapi token kosong (edge case)
+            throw new Error("Gagal mendapatkan token akses.");
+        }
         
     } catch (error) {
         console.error("Login Error:", error);
-        // Tampilkan pesan error dari server jika ada, atau pesan default
+        // Tampilkan pesan error
         const errorMsg = error.message || "Gagal login. Periksa NUPTK dan Password.";
         alert(errorMsg);
     } finally {
-        // Kembalikan tombol seperti semula
+        // UI: Reset state
         btnLogin.textContent = "Login";
         btnLogin.disabled = false;
     }
-}   
+}

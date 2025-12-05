@@ -3,8 +3,7 @@
  */
 const BASE_URL = "http://127.0.0.1:5000"; 
 
-// --- HELPER FUNCTION (JANGAN DIUBAH) ---
-/* static/js/api.js - Update bagian fetchAPI */
+// --- HELPER FUNCTION ---
 
 async function fetchAPI(endpoint, method = 'GET', body = null) {
     const token = localStorage.getItem('access_token');
@@ -35,20 +34,16 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         // --- BLOK PENANGANAN ERROR ---
         if (!response.ok) {
             // JIKA ERROR 401 (UNAUTHORIZED)
-            if (response.status === 401) {
+            // FIX: Tambahkan pengecekan endpoint !== '/auth/login'
+            // Agar jika password salah saat login, dia tidak me-refresh halaman (redirect), tapi melempar error ke catch.
+            if (response.status === 401 && endpoint !== '/auth/login') {
                 console.warn("Sesi habis atau Token invalid. Mengalihkan ke login...");
-                
-                // 1. Hapus token yang basi
                 localStorage.removeItem('access_token');
-                
-                // 2. Paksa user ke halaman login
                 window.location.href = '/page/login'; 
-                
-                // 3. Hentikan eksekusi agar tidak lanjut ke error handling bawah
                 return; 
             }
 
-            // Jika error lain (500, 404, dll), coba baca pesan error dari JSON
+            // Jika error lain (500, 404, atau 401 saat login), baca pesan error
             const result = await response.json().catch(() => ({}));
             throw new Error(result.message || result.error || `Server Error (${response.status})`);
         }
@@ -68,19 +63,19 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
 const api = {
     // 1. AUTH
     auth: {
-        // UPDATE: Login kini async dan menyimpan token otomatis
         login: async (nuptk, password) => {
             const result = await fetchAPI('/auth/login', 'POST', { nuptk, password });
-            if (result.access_token) {
+            
+            // FIX: Cek apakah result valid DAN memiliki access_token sebelum disimpan
+            if (result && result.access_token) {
                 localStorage.setItem('access_token', result.access_token);
             }
             return result;
         },
         logout: () => {
             localStorage.removeItem('access_token');
-            window.location.href = '/page/login'; // Redirect setelah logout
+            window.location.href = '/page/login'; 
         },
-        // BARU: Ambil data user dari token yang tersimpan
         getUserData: () => {
             const token = localStorage.getItem('access_token');
             if (!token) return null;
@@ -156,20 +151,14 @@ const api = {
     }
 };
 
-// ... (kode api.js sebelumnya) ...
-
-// --- TAMBAHAN: UPDATE HEADER AVATAR GLOBAL ---
+// --- GLOBAL EVENT LISTENERS ---
 document.addEventListener("DOMContentLoaded", () => {
-    // Cari elemen avatar di header
+    // 1. Setup Header Avatar
     const headerAvatar = document.getElementById("header-avatar");
-    
     if (headerAvatar) {
         const user = api.auth.getUserData();
         if (user && user.username) {
-            // Set inisial nama
             headerAvatar.textContent = user.username.charAt(0).toUpperCase();
-            
-            // Tambahkan link ke profil saat diklik
             headerAvatar.style.cursor = "pointer";
             headerAvatar.title = "Klik untuk lihat profil";
             headerAvatar.onclick = () => {
@@ -177,11 +166,13 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         }
     }
-});
 
-const logoutBtn = document.getElementById("btn-logout");
+    // 2. Setup Logout Button
+    const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
+        logoutBtn.addEventListener("click", (e) => {
+            e.preventDefault(); // Mencegah perilaku default link jika itu tag <a>
             api.auth.logout();
         });
     }
+});
