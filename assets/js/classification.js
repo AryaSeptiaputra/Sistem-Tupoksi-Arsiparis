@@ -1,160 +1,237 @@
 document.addEventListener("DOMContentLoaded", async () => {
+    
+    // --- 0. NAVIGASI & AUTH ---
+    document.querySelectorAll("[data-route]").forEach(el => {
+        el.addEventListener("click", () => window.location.href = el.dataset.route);
+    });
 
     const token = localStorage.getItem("access_token");
     if (!token) { window.location.href = "/page/login"; return; }
 
-    // NAVIGASI SIDEBAR
-    document.querySelectorAll("[data-route]").forEach(el => {
-        el.addEventListener("click", () => {
-            if (el.dataset.route) window.location.href = el.dataset.route;
-        });
-    });
+    // --- STATE VARIABLES ---
+    let allClassifications = [];
+    let isEditMode = false;
+    let currentEditId = null;
 
-    document.getElementById("btn-logout").addEventListener("click", () => {
-        localStorage.removeItem("access_token");
-        window.location.href = "/page/login";
-    });
+    // --- DOM REFERENCES ---
+    // Views
+    const viewTable = document.getElementById("view-table");
+    const viewForm = document.getElementById("view-form");
+    const pageTitle = document.getElementById("page-title");
+    const pageSubtitle = document.getElementById("page-subtitle");
 
-    // STATE MANAGEMENT
-    let allData = []; 
+    // Buttons
+    const btnAdd = document.getElementById("btn-add-new");
+    const btnBack = document.getElementById("btn-back-list");
+    const btnCancel = document.getElementById("btnCancel");
+    const btnSave = document.getElementById("btnSave");
+    const btnResetFilter = document.getElementById("btnResetFilter");
 
-    // REFERENSI ELEMENT
-    const elTableBody = document.getElementById("table-body");
-    const elSearch = document.getElementById("searchInput");
-    const elBtnReset = document.getElementById("btnResetFilter");
+    // Form Inputs
+    const inputId = document.getElementById("entry-id");
+    const inputCode = document.getElementById("inputCode");
+    const inputName = document.getElementById("inputName");
+    const inputDesc = document.getElementById("inputDescription");
 
-    // 1. LOAD DATA AWAL
-    await initPage();
+    // Previews
+    const previewCodeTxt = document.getElementById("previewCodeTxt");
+    const previewNameTxt = document.getElementById("previewNameTxt");
 
-    // 2. EVENT LISTENER FILTER
-    elSearch.addEventListener("keyup", applyFilters);
+    // Filter
+    const searchInput = document.getElementById("searchInput");
+
+    // --- INITIALIZATION ---
+    await loadData();
+
+    // --- EVENT LISTENERS ---
     
-    // 3. TOMBOL RESET
-    elBtnReset.addEventListener("click", () => {
-        elSearch.value = "";
-        applyFilters(); 
-    });
+    // 1. Navigation SPA
+    if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
+    if(btnBack) btnBack.addEventListener("click", showTableMode);
+    if(btnCancel) btnCancel.addEventListener("click", showTableMode);
 
-    async function initPage() {
-        renderLoading();
+    // 2. Real-time Preview Form
+    if(inputCode && inputName) {
+        inputCode.addEventListener('input', updatePreview);
+        inputName.addEventListener('input', updatePreview);
+    }
+
+    // 3. Save Data
+    if(btnSave) btnSave.addEventListener("click", handleSaveData);
+
+    // 4. Search / Filter
+    if(searchInput) {
+        searchInput.addEventListener("keyup", applyFilter);
+        searchInput.addEventListener("change", applyFilter);
+    }
+    if(btnResetFilter) {
+        btnResetFilter.addEventListener("click", () => {
+            searchInput.value = "";
+            applyFilter();
+        });
+    }
+
+    // --- FUNCTIONS ---
+
+    async function loadData() {
+        const tbody = document.getElementById("table-body");
+        tbody.innerHTML = `<tr><td colspan="4" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
+        
         try {
-            // Panggil API Classification
-            const data = await api.classification.getAll();
-            
-            if (!data || data.length === 0) {
-                renderEmpty("Belum ada data klasifikasi.");
-                return;
-            }
-
-            // Simpan ke state global
-            allData = data;
-
-            // Urutkan berdasarkan Kode (A-Z)
-            allData.sort((a, b) => a.code.localeCompare(b.code));
-
-            // Tampilkan Data
-            renderTable(allData);
-
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            renderEmpty("Gagal memuat data dari server.", true);
+            allClassifications = await api.classification.getAll();
+            // Sort by Code asc
+            allClassifications.sort((a, b) => a.code.localeCompare(b.code));
+            renderTable(allClassifications);
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
         }
     }
 
-    // --- LOGIKA FILTER ---
-    function applyFilters() {
-        const searchTerm = elSearch.value.toLowerCase();
-
-        const filteredData = allData.filter(item => {
-            // Filter Text: Kode atau Nama
-            const codeMatch = item.code && item.code.toLowerCase().includes(searchTerm);
-            const nameMatch = item.name && item.name.toLowerCase().includes(searchTerm);
-            const descMatch = item.description && item.description.toLowerCase().includes(searchTerm);
-
-            return codeMatch || nameMatch || descMatch;
-        });
-
-        renderTable(filteredData);
-    }
-
-    // --- RENDER TABLE ---
     function renderTable(data) {
-        elTableBody.innerHTML = "";
+        const tbody = document.getElementById("table-body");
+        tbody.innerHTML = "";
 
-        if (data.length === 0) {
-            renderEmpty("Data tidak ditemukan.");
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
             return;
         }
 
         data.forEach(item => {
-            const row = document.createElement("tr");
-
-            // Menggunakan class 'code-badge' dari style.css untuk Kode
-            row.innerHTML = `
-                <td>
-                    <span class="code-badge">${item.code || '-'}</span>
-                </td>
-                <td style="font-weight: 500; color: var(--text-main);">
-                    ${item.name || '-'}
-                </td>
-                <td>
-                    <span class="desc-text">${item.description || '-'}</span>
-                </td>
-                <td style="text-align: center;">
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><span class="code-badge">${item.code}</span></td>
+                <td style="font-weight:500;">${item.name}</td>
+                <td style="color:var(--text-muted); font-size:13px;">${item.description || '-'}</td>
+                <td style="text-align:center;">
                     <div class="btn-action-group">
-                        <button class="btn-action-view btn-edit" onclick="editData('${item.id}', '${item.code}', '${item.name}')" title="Edit">
-                            ✏️
-                        </button>
-                        
-                        <button class="btn-action-view btn-delete" onclick="deleteData('${item.id}')" title="Hapus">
-                            🗑️
-                        </button>
+                        <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
+                        <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
                     </div>
                 </td>
             `;
-            elTableBody.appendChild(row);
+            tbody.appendChild(tr);
         });
     }
 
-    // --- HELPERS UTILS ---
-    
-    function renderLoading() {
-        elTableBody.innerHTML = `<tr><td colspan="4" class="loading-text">Sedang memuat data...</td></tr>`;
+    // --- VIEW SWITCHING LOGIC (SPA) ---
+
+    function showFormMode(editMode = false, data = null) {
+        isEditMode = editMode;
+        
+        // Hide Table, Show Form
+        viewTable.classList.add("hidden");
+        viewForm.classList.remove("hidden");
+        
+        // Adjust Header Buttons
+        btnAdd.classList.add("hidden");
+        btnBack.classList.remove("hidden");
+
+        // Set Texts
+        if(editMode) {
+            pageTitle.textContent = "Edit Klasifikasi";
+            pageSubtitle.textContent = "Perbarui data kode surat.";
+        } else {
+            pageTitle.textContent = "Tambah Klasifikasi";
+            pageSubtitle.textContent = "Buat referensi kode surat baru.";
+        }
+
+        // Reset Form
+        document.getElementById("form-entry").reset();
+        
+        if (editMode && data) {
+            currentEditId = data.id;
+            inputId.value = data.id;
+            inputCode.value = data.code;
+            inputName.value = data.name;
+            inputDesc.value = data.description || "";
+        } else {
+            currentEditId = null;
+        }
+        
+        // Update Preview Badge
+        updatePreview();
     }
 
-    function renderEmpty(message, isError = false) {
-        const color = isError ? 'red' : 'inherit';
-        elTableBody.innerHTML = `<tr><td colspan="4" class="loading-text" style="color:${color};">${message}</td></tr>`;
+    function showTableMode() {
+        viewForm.classList.add("hidden");
+        viewTable.classList.remove("hidden");
+        btnAdd.classList.remove("hidden");
+        btnBack.classList.add("hidden");
+
+        pageTitle.textContent = "Data Klasifikasi";
+        pageSubtitle.textContent = "Kelola kode referensi untuk pengarsipan surat.";
     }
 
-    // --- ACTION HANDLERS (Global Scope agar bisa diakses onclick HTML) ---
-    
-    window.deleteData = async function(id) {
-        if (confirm("Apakah Anda yakin ingin menghapus klasifikasi ini?")) {
+    function updatePreview() {
+        const c = inputCode.value.trim();
+        const n = inputName.value.trim();
+        previewCodeTxt.textContent = c || '000.0';
+        previewNameTxt.textContent = n || 'Nama Kategori';
+    }
+
+    // --- CRUD ACTIONS ---
+
+    async function handleSaveData(e) {
+        e.preventDefault();
+        
+        if (!inputCode.value.trim() || !inputName.value.trim()) {
+            alert("Harap lengkapi Kode dan Nama!");
+            return;
+        }
+
+        const payload = {
+            code: inputCode.value.trim(),
+            name: inputName.value.trim(),
+            description: inputDesc.value.trim() || null
+        };
+
+        const originalText = btnSave.textContent;
+        btnSave.textContent = "Menyimpan...";
+        btnSave.disabled = true;
+
+        try {
+            if (isEditMode) {
+                payload.id = currentEditId;
+                await api.classification.update(payload);
+                alert("Data berhasil diperbarui!");
+            } else {
+                await api.classification.create(payload);
+                alert("Data berhasil disimpan!");
+            }
+            showTableMode();
+            loadData();
+        } catch (err) {
+            console.error(err);
+            alert("Gagal: " + (err.message || "Error Server"));
+        } finally {
+            btnSave.textContent = originalText;
+            btnSave.disabled = false;
+        }
+    }
+
+    window.triggerEdit = (id) => {
+        const item = allClassifications.find(x => x.id === id);
+        if(item) showFormMode(true, item);
+    };
+
+    window.triggerDelete = async (id) => {
+        if(confirm("Yakin ingin menghapus klasifikasi ini?")) {
             try {
                 await api.classification.delete(id);
-                alert("Klasifikasi berhasil dihapus.");
-                initPage(); // Refresh tabel
-            } catch (error) {
-                alert("Gagal menghapus: " + error.message);
+                loadData();
+            } catch (err) {
+                alert("Gagal hapus: " + err.message);
             }
         }
     };
 
-    window.editData = function(id, code, name) {
-        // Contoh: Redirect ke halaman edit atau buka modal
-        // Karena form belum ada, kita bisa gunakan prompt sederhana untuk demo update
-        // Atau redirect: window.location.href = `/page/classification/edit?id=${id}`;
-        
-        // Versi Simple Prompt (Optional):
-        /*
-        const newName = prompt("Ubah Nama Klasifikasi:", name);
-        if(newName && newName !== name) {
-             api.classification.update({ id: id, name: newName })
-                .then(() => initPage())
-                .catch(err => alert(err.message));
-        }
-        */
-       alert("Fitur edit akan mengarahkan ke form edit (Logic Edit belum diimplementasikan di snippet ini). ID: " + id);
-    };
+    function applyFilter() {
+        const term = searchInput.value.toLowerCase();
+        const filtered = allClassifications.filter(item => 
+            item.code.toLowerCase().includes(term) || 
+            item.name.toLowerCase().includes(term)
+        );
+        renderTable(filtered);
+    }
 });

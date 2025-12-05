@@ -4,9 +4,13 @@
 const BASE_URL = "http://127.0.0.1:5000"; 
 
 // --- HELPER FUNCTION (JANGAN DIUBAH) ---
+/* static/js/api.js - Update bagian fetchAPI */
+
 async function fetchAPI(endpoint, method = 'GET', body = null) {
     const token = localStorage.getItem('access_token');
     const headers = {};
+    
+    // Pastikan token dikirim jika ada
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
@@ -28,23 +32,31 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
     try {
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
         
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Server Error: Respon bukan JSON");
-        }
-
-        const result = await response.json();
-
+        // --- BLOK PENANGANAN ERROR ---
         if (!response.ok) {
+            // JIKA ERROR 401 (UNAUTHORIZED)
             if (response.status === 401) {
-                console.warn("Sesi habis.");
-                // Opsional: Redirect ke login jika token expired saat request
-                // window.location.href = '/page/login'; 
+                console.warn("Sesi habis atau Token invalid. Mengalihkan ke login...");
+                
+                // 1. Hapus token yang basi
+                localStorage.removeItem('access_token');
+                
+                // 2. Paksa user ke halaman login
+                window.location.href = '/page/login'; 
+                
+                // 3. Hentikan eksekusi agar tidak lanjut ke error handling bawah
+                return; 
             }
-            throw new Error(result.message || result.error || 'Terjadi kesalahan pada server');
-        }
 
-        return result;
+            // Jika error lain (500, 404, dll), coba baca pesan error dari JSON
+            const result = await response.json().catch(() => ({}));
+            throw new Error(result.message || result.error || `Server Error (${response.status})`);
+        }
+        // -----------------------------
+
+        // Jika Sukses
+        return await response.json();
+
     } catch (error) {
         console.error(`API Error [${endpoint}]:`, error);
         throw error;
@@ -166,3 +178,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
+
+const logoutBtn = document.getElementById("btn-logout");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            api.auth.logout();
+        });
+    }

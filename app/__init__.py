@@ -89,5 +89,25 @@ def create_app():
     @app.route('/form_diploma')
     def form_diploma():
         return redirect(url_for('view.form_diploma'))
+    
+    @app.route('/classification_add')
+    def classification_add():
+        return redirect(url_for('view.classification_add'))
+
+    @app.route('/classification_edit')
+    def classification_edit():
+        return redirect(url_for('view.classification_edit_page'))
+
+    @app.route('/form_incoming_letter_edit')
+    def form_incoming_letter_edit():
+        return redirect(url_for('view.form_incoming_letter_edit_page'))
+
+    @app.route('/form_outgoing_letter_edit')
+    def form_outgoing_letter_edit():
+        return redirect(url_for('view.form_outgoing_letter_edit_page'))
+
+    @app.route('/form_diploma_edit')
+    def form_diploma_edit():
+        return redirect(url_for('view.form_diploma_edit_page'))
 
     return app

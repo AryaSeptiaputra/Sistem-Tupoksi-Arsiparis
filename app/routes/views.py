@@ -53,3 +53,27 @@ def user_profile():
 @view_bp.route('/form_diploma', methods=['GET'])
 def form_diploma():
     return render_template('form_diploma.html')
+
+@view_bp.route('/classification_add', methods=['GET'])
+def classification_add():
+    return render_template('classification_add.html')
+
+@view_bp.route('/classification/edit', methods=['GET'])
+def classification_edit_page():
+    cls_id = request.args.get('id')
+    return render_template('classification_edit.html')
+
+@view_bp.route('/form_incoming_letter/edit', methods=['GET'])
+def form_incoming_letter_edit_page():
+    cls_id = request.args.get('id')
+    return render_template('form_incoming_letter.html')
+
+@view_bp.route('/form_outgoing_letter/edit', methods=['GET'])
+def form_outgoing_letter_edit_page():
+    cls_id = request.args.get('id')
+    return render_template('form_outgoing_letter.html')
+
+@view_bp.route('/form_diploma/edit', methods=['GET'])
+def form_diploma_edit_page():
+    cls_id = request.args.get('id')
+    return render_template('form_diploma.html')

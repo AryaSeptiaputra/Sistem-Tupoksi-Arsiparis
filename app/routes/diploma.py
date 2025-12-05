@@ -210,8 +210,6 @@ def delete_diploma_route():
     finally:
         db_session.close()
 
-# ... import dan kode atas biarkan sama ...
-
 @diploma_bp.route('/get_all', methods=['GET'])
 def get_all_diplomas_route():
     """Retrieves all diploma records."""

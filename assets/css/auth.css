@@ -1,0 +1,92 @@
+/* auth.css - Khusus Halaman Login */
+
+body.login-page {
+    background: radial-gradient(circle at top left, #fef3f0 0, #f3f6ff 40%, #eef4ff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row; 
+    height: 100vh;
+    overflow: hidden;
+}
+
+.auth-wrapper {
+    width: 100%; max-width: 1080px; background: var(--card-bg);
+    border-radius: 32px; box-shadow: var(--auth-shadow);
+    display: grid; grid-template-columns: 1.1fr 1fr; overflow: hidden;
+}
+
+.auth-visual {
+    background: linear-gradient(135deg, #fef3f0, #e0f2ff); padding: 40px 50px;
+    display: flex; flex-direction: column; justify-content: center; gap: 24px;
+}
+
+.illustration-box {
+    width: 100%; aspect-ratio: 4 / 3; border-radius: 24px; overflow: hidden;
+    background: radial-gradient(circle at 20% 0, #ffd1b2, #fef5f1 40%, #e4f1ff 100%);
+    position: relative;
+}
+
+.floating-items {
+    position: absolute; inset: 15%; display: flex; flex-wrap: wrap;
+    gap: 14px; align-items: center; justify-content: center;
+}
+
+.float-pill {
+    padding: 10px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1); font-size: 13px; font-weight: 500; color: #374151;
+}
+
+.float-icon {
+    width: 54px; height: 54px; border-radius: 18px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.15); font-size: 26px;
+}
+
+.auth-form {
+    padding: 46px 48px; display: flex; flex-direction: column; justify-content: center; gap: 26px;
+}
+
+.auth-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.auth-icon {
+    width: 60px; height: 60px; border-radius: 14px; background: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 6px;
+    font-size: 22px; color: #0d6efd;
+}
+.auth-icon img.school-logo { width: 100%; height: 100%; object-fit: contain; }
+
+.auth-title { font-size: 20px; font-weight: 600; color: var(--text-main); }
+.auth-subtitle { font-size: 13px; color: var(--text-muted); }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.form-group label { font-size: 13px; font-weight: 500; color: #111827; }
+.input-control { position: relative; }
+.input-control input {
+    width: 100%; padding: 12px 14px; padding-right: 42px;
+    border-radius: 999px; border: 1px solid #e5e7eb; outline: none;
+    font-size: 13px; transition: 0.2s ease; background: #f9fafb;
+}
+.input-control input:focus {
+    border-color: var(--primary); background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 138, 92, 0.12);
+}
+.toggle-password {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 18px; color: #9ca3af; cursor: pointer;
+}
+
+.btn-login {
+    width: 100%; border: none; outline: none; margin-top: 6px; padding: 12px 18px;
+    border-radius: 999px; background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+    box-shadow: 0 16px 30px rgba(248, 113, 72, 0.35); transition: 0.15s ease;
+}
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 18px 34px rgba(248, 113, 72, 0.45); }
+.school-footer { margin-top: 14px; font-size: 11px; color: #9ca3af; text-align: center; }
+
+@media (max-width: 900px) {
+    .auth-wrapper { grid-template-columns: 1fr; max-width: 520px; }
+    .auth-visual { display: none; }
+    .auth-form { padding: 32px 24px 26px; }
+}

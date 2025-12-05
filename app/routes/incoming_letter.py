@@ -132,35 +132,73 @@ def update_incoming_letter_route():
             * 400: Missing 'id'.
             * 404: Letter not found.
     """
-    data = request.json
-    letter_id = data.get('id')
-    
-    if not letter_id:
-        return jsonify({"error": "ID is required"}), 400
-
-    db_session: Session = db.SessionLocal()
     try:
-        updated_letter = update_incoming_letter(db_session, letter_id, data)
+        # 1. Coba baca data (Support JSON atau Form Data)
+        data = request.get_json(silent=True)
+        if not data:
+            data = request.form.to_dict()
         
-        if not updated_letter:
-            return jsonify({"error": "Letter not found"}), 404
+        letter_id = data.get('id')
+        if not letter_id:
+            return jsonify({"error": "ID surat wajib ada"}), 400
 
-        current_user = get_current_user_obj(db_session)
-        if current_user:
-            updated_fields = list(data.keys())
-            if 'id' in updated_fields: updated_fields.remove('id')
-            fields_str = ", ".join(updated_fields)
+        # 2. Konversi Tipe Data (Penting!)
+        # Karena FormData mengirim angka sebagai string, kita harus ubah manual
+        try:
+            if 'classification_id' in data and data['classification_id']:
+                data['classification_id'] = int(data['classification_id'])
+        except ValueError:
+             return jsonify({"error": "Classification ID harus berupa angka"}), 400
+
+        # 3. Handle File Upload (Jika user mengganti file saat edit)
+        file = request.files.get('file')
+        if file:
+            try:
+                UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'incoming_letters')
+                if not os.path.exists(UPLOAD_FOLDER):
+                    os.makedirs(UPLOAD_FOLDER)
+
+                filename = secure_filename(file.filename)
+                full_path = os.path.join(UPLOAD_FOLDER, filename)
+                file.save(full_path)
+                
+                # Masukkan path baru ke data untuk diupdate di DB
+                data['attachment_path'] = os.path.join('storage', 'documents', 'incoming_letters', filename)
+            except Exception as e:
+                return jsonify({"error": f"Gagal upload file baru: {str(e)}"}), 500
+
+        # 4. Proses Update ke Database
+        db_session: Session = db.SessionLocal()
+        try:
+            updated_letter = update_incoming_letter(db_session, letter_id, data)
             
-            action = f"Pengguna '{current_user.username}' mengupdate data ({fields_str}) pada surat masuk nomor: '{updated_letter.number}'."
-            create_log(db_session, current_user.id, action)
+            if not updated_letter:
+                return jsonify({"error": "Surat tidak ditemukan"}), 404
 
-        return jsonify(updated_letter.to_dict()), 200
+            # Log Aktivitas
+            current_user = get_current_user_obj(db_session)
+            if current_user:
+                # Filter field yang diupdate untuk log
+                updated_fields = [k for k in data.keys() if k not in ['id', 'user_id']]
+                fields_str = ", ".join(updated_fields)
+                
+                action = f"Pengguna '{current_user.username}' mengupdate data ({fields_str}) pada surat masuk: '{updated_letter.number}'."
+                create_log(db_session, current_user.id, action)
 
-    except ValueError as e:
-        db_session.rollback()
-        return jsonify({"error": str(e)}), 400
-    finally:
-        db_session.close()
+            return jsonify(updated_letter.to_dict()), 200
+
+        except IntegrityError:
+            db_session.rollback()
+            return jsonify({"error": "Nomor surat bentrok dengan data lain."}), 409
+        except Exception as e:
+            db_session.rollback()
+            return jsonify({"error": str(e)}), 400
+        finally:
+            db_session.close()
+
+    except Exception as e:
+        print(f"SYSTEM ERROR: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 @incoming_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
