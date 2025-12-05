@@ -1,7 +1,7 @@
 import os
 
 from werkzeug.utils import secure_filename
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError

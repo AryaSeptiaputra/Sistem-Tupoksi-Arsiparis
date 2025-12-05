@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.services.diploma import (
     create_diploma, 
@@ -17,14 +18,6 @@ from app.services.log import create_log
 from app import db
 
 diploma_bp = Blueprint('diploma', __name__)
-
-@diploma_bp.route('/view', methods=['GET'])
-def diploma_page():
-    """
-    Menampilkan halaman manajemen Ijazah (Frontend).
-    URL: http://localhost:5000/diploma/view
-    """
-    return render_template('diploma.html')
 
 def get_current_user_obj(db_session: Session):
     """Helper function to retrieve the currently logged-in user object.
@@ -66,17 +59,22 @@ def create_diploma_route():
             * 401: User authentication failed.
             * 500: Internal Server Error or File Save Error.
     """
+    # 1. Terima Data (Support Form Data)
     data = request.form.to_dict()
     
+    # Konversi boolean string 'true'/'false'
     if 'is_collected' in data:
         if isinstance(data['is_collected'], str):
             data['is_collected'] = data['is_collected'].lower() == 'true'
 
+    # Validasi Field Wajib
     required_fields = ['number', 'student_name', 'major', 'academic_year']
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"{field} is required"}), 400
     
+    # 2. Handle File Upload
+    # Path: storage/documents/diplomas
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'diplomas')
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
@@ -90,10 +88,12 @@ def create_diploma_route():
             full_path = os.path.join(UPLOAD_FOLDER, filename)
             file.save(full_path)
             
+            # Simpan path relatif ke DB
             data['attachment_path'] = os.path.join('storage', 'documents', 'diplomas', filename)
         except Exception as e:
             return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
 
+    # 3. Simpan ke DB
     db_session: Session = db.SessionLocal()
     try:
         current_user = get_current_user_obj(db_session)
@@ -112,17 +112,19 @@ def create_diploma_route():
 
         return jsonify(new_diploma.to_dict()), 201
 
-    except Exception as e:
+    except IntegrityError:
         db_session.rollback()
-
         if full_path and os.path.exists(full_path):
             os.remove(full_path)
-            
+        return jsonify({"error": "Nomor Seri/NISN sudah ada."}), 409
+    except Exception as e:
+        db_session.rollback()
+        if full_path and os.path.exists(full_path):
+            os.remove(full_path)
         print(f"Error Create Diploma: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
-
 @diploma_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_diploma_route():
@@ -145,12 +147,43 @@ def update_diploma_route():
             * 400: Missing 'id' or validation error.
             * 404: Diploma not found.
     """
-    data = request.json
-    diploma_id = data.get('id')
+    # 1. Coba baca sebagai JSON (silent=True)
+    data = request.get_json(silent=True)
     
-    if not diploma_id:
+    # 2. Jika gagal/kosong, baca sebagai Form Data (Fallback)
+    if not data:
+        data = request.form.to_dict()
+
+    if not data or 'id' not in data:
         return jsonify({"error": "ID is required"}), 400
 
+    diploma_id = data.get('id')
+
+    # 3. Handle File Baru (Jika ada upload saat edit)
+    file = request.files.get('file')
+    if file:
+        try:
+            UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'diplomas')
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+            
+            filename = secure_filename(file.filename)
+            full_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(full_path)
+            
+            data['attachment_path'] = os.path.join('storage', 'documents', 'diplomas', filename)
+        except Exception as e:
+            return jsonify({"error": f"Gagal upload file baru: {str(e)}"}), 500
+
+    # 4. Normalisasi Data (String -> Bool/None)
+    if 'is_collected' in data:
+        val = str(data['is_collected']).lower()
+        data['is_collected'] = val == 'true'
+    
+    if 'collected_at' in data and (data['collected_at'] == '' or data['collected_at'] == 'null'):
+        data['collected_at'] = None
+
+    # 5. Update DB
     db_session: Session = db.SessionLocal()
     try:
         updated_diploma = update_diploma(db_session, diploma_id, data)
@@ -168,7 +201,10 @@ def update_diploma_route():
 
         return jsonify(updated_diploma.to_dict()), 200
 
-    except ValueError as e:
+    except IntegrityError:
+        db_session.rollback()
+        return jsonify({"error": "Nomor Seri bentrok dengan data lain."}), 409
+    except Exception as e:
         db_session.rollback()
         return jsonify({"error": str(e)}), 400
     finally:

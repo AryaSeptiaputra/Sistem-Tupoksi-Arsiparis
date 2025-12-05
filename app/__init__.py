@@ -31,6 +31,7 @@ def create_app():
     from .routes.log import log_bp
     from .routes.backup import backup_bp
     from .routes.views import view_bp
+    from .routes.storage import storage_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
@@ -41,6 +42,7 @@ def create_app():
     app.register_blueprint(log_bp, url_prefix="/log")   
     app.register_blueprint(backup_bp, url_prefix="/backup")
     app.register_blueprint(view_bp, url_prefix="/page")
+    app.register_blueprint(storage_bp, url_prefix='/storage')
 
     @app.route('/')
     def index():

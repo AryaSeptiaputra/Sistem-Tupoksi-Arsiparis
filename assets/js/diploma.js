@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         el.addEventListener("click", () => window.location.href = el.dataset.route);
     });
 
-    // Cek Token Login
     const token = localStorage.getItem("access_token");
     if (!token) { window.location.href = "/page/login"; return; }
 
@@ -18,32 +17,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     const viewTable = document.getElementById("view-table");
     const viewForm = document.getElementById("view-form");
     
-    // Buttons
+    // PREVIEW FULLSCREEN
+    const viewPdfFullscreen = document.getElementById("view-pdf-fullscreen");
+    const fullscreenPdfViewer = document.getElementById("fullscreen-pdf-viewer");
+    const btnClosePreviewMode = document.getElementById("btn-close-preview-mode");
+
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
     const btnSave = document.getElementById("btn-save-data");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
-    // Form Inputs
     const inputId = document.getElementById("entry-id");
     const inputName = document.getElementById("student_name");
-    const inputSerial = document.getElementById("serial_number"); // ID HTML tetap 'serial_number'
+    const inputSerial = document.getElementById("serial_number");
     const inputMajor = document.getElementById("major");
     const inputYear = document.getElementById("academic_year");
     
-    // Status Logic Inputs
     const inputIsTaken = document.getElementById("is_taken_checkbox");
     const wrapperDateTaken = document.getElementById("date-taken-wrapper");
     const inputDateTaken = document.getElementById("date_taken");
 
-    // File Upload Inputs
     const inputFile = document.getElementById("fileInput");
     const uploadBox = document.getElementById("upload-box");
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
 
-    // Filters Inputs
     const elSearch = document.getElementById("searchInput");
     const elFilterMajor = document.getElementById("filterMajor");
     const elFilterYear = document.getElementById("filterYear");
@@ -54,16 +53,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- EVENT LISTENERS ---
     
-    // 1. Navigasi Mode
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
 
-    // 2. Logic Checkbox "Sudah Diambil"
+    // Listener Tutup Preview
+    if (btnClosePreviewMode) {
+        btnClosePreviewMode.addEventListener("click", () => {
+            if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+            if (fullscreenPdfViewer) fullscreenPdfViewer.src = ""; 
+            showTableMode();
+        });
+    }
+
     if(inputIsTaken) {
         inputIsTaken.addEventListener("change", (e) => {
             if(e.target.checked) {
                 wrapperDateTaken.classList.remove("hidden");
-                // Default ke hari ini jika tanggal kosong
                 if(!inputDateTaken.value) inputDateTaken.valueAsDate = new Date();
             } else {
                 wrapperDateTaken.classList.add("hidden");
@@ -72,7 +77,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // 3. File Preview
     if(inputFile) {
         inputFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
@@ -83,11 +87,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
     if(btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
-
-    // 4. Save Action
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
-    // 5. Filters
     [elSearch, elFilterMajor, elFilterYear, elFilterStatus].forEach(el => {
         if(el) {
             el.addEventListener("change", applyFilters);
@@ -129,20 +130,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // --- [ADAPTASI PYTHON MODEL] ---
-            // 1. Status ada di dalam object 'status' (nested)
             const statusObj = item.status || {}; 
             const isCollected = statusObj.is_collected === true;
-            
-            // 2. Ambil tanggal dari dalam statusObj
             const rawDate = statusObj.collected_at;
             const dateTaken = rawDate ? new Date(rawDate).toLocaleDateString("id-ID") : "-";
             
-            // 3. Badge Logic
             const badgeClass = isCollected ? 'badge-success' : 'badge-warning';
             const statusText = statusObj.status_text || (isCollected ? 'Sudah Diambil' : 'Belum Diambil');
-
-            // 4. File Path key dari backend adalah 'attachment_path'
             const hasFile = !!item.attachment_path; 
 
             tr.innerHTML = `
@@ -155,7 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td style="text-align:center;">
                     <div class="btn-action-group">
                         <button class="btn-action-view" title="Lihat File" 
-                            onclick="window.openFile('${item.attachment_path || ''}')" 
+                            onclick="window.openFile(${item.id})" 
                             ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
                         <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
                         <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
@@ -171,13 +165,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
         
-        // Toggle UI
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
+        
+        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
-        // Set Title & Reset
         document.getElementById("form-title").textContent = editMode ? "✏️ Edit Data Ijazah" : "🎓 Input Data Baru";
         document.getElementById("form-entry").reset();
         resetFilePreview();
@@ -187,14 +182,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             currentEditId = data.id;
             inputId.value = data.id;
             
-            // Isi Form standar
             inputName.value = data.student_name;
-            inputSerial.value = data.number; // Backend key: number
+            inputSerial.value = data.number;
             inputMajor.value = data.major;
             inputYear.value = data.academic_year;
 
-            // --- [ADAPTASI PYTHON MODEL] ---
-            // Baca status dari nested object 'status'
             const statusObj = data.status || {};
             
             if (statusObj.is_collected === true) {
@@ -202,15 +194,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                 wrapperDateTaken.classList.remove("hidden");
                 
                 if(statusObj.collected_at) {
-                    // Format tanggal ISO ke YYYY-MM-DD untuk input type=date
                     inputDateTaken.value = statusObj.collected_at.split('T')[0];
                 }
             }
 
-            // Preview File (attachment_path)
+            // Logic Preview di Form Edit
             if (data.attachment_path) {
-                const cleanPath = data.attachment_path.replace(/\\/g, "/");
-                showPreview("/" + cleanPath); 
+                const fileName = data.attachment_path.split(/[\\/]/).pop();
+                // Pastikan path ini sesuai folder penyimpanan
+                const cleanPath = `/storage/documents/diplomas/${fileName}`;
+                showPreview(cleanPath); 
             }
         } else {
             currentEditId = null;
@@ -219,6 +212,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function showTableMode() {
         viewForm.classList.add("hidden");
+        
+        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+
         viewTable.classList.remove("hidden");
         btnAdd.classList.remove("hidden");
         btnBack.classList.add("hidden");
@@ -243,29 +239,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
         
-        // Validasi Sederhana
         if (!inputName.value || !inputSerial.value || !inputMajor.value) {
             alert("Harap lengkapi Nama, No. Seri, dan Jurusan!");
             return;
         }
 
         const formData = new FormData();
-        
-        // --- KEY YANG DIKIRIM KE BACKEND ---
-        formData.append('number', inputSerial.value); // Backend minta 'number'
+        formData.append('number', inputSerial.value); 
         formData.append('student_name', inputName.value);
         formData.append('major', inputMajor.value);
         formData.append('academic_year', inputYear.value);
-        
-        // Kirim status sebagai string 'true'/'false' agar aman dibaca Backend
         formData.append('is_collected', inputIsTaken.checked ? 'true' : 'false');
         
-        // Kirim tanggal jika dicentang
         if(inputIsTaken.checked && inputDateTaken.value) {
-            formData.append('collected_at', inputDateTaken.value); // Backend model pakai 'collected_at'
+            formData.append('collected_at', inputDateTaken.value);
         }
         
-        // Kirim File fisik
         if (inputFile.files[0]) {
             formData.append('file', inputFile.files[0]);
         }
@@ -298,7 +287,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- GLOBAL ACTIONS ---
 
     window.triggerEdit = (id) => {
-        // Cari data di array lokal
         const item = allDiplomas.find(d => d.id === id);
         if(item) showFormMode(true, item);
     };
@@ -314,11 +302,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    window.openFile = (path) => {
-        if (!path) return;
-        const cleanPath = path.replace(/\\/g, "/");
-        const url = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
-        window.open(url, "_blank");
+    // --- FULLSCREEN PREVIEW LOGIC ---
+    window.openFile = (id) => {
+        const item = allDiplomas.find(d => d.id === id);
+        
+        if (!item || !item.attachment_path) {
+            alert("File tidak tersedia.");
+            return;
+        }
+
+        const fileName = item.attachment_path.split(/[\\/]/).pop();
+        const finalUrl = `/storage/documents/diplomas/${fileName}`;
+        
+        viewTable.classList.add("hidden");
+        viewForm.classList.add("hidden");
+        btnAdd.classList.add("hidden");
+
+        if(viewPdfFullscreen) {
+            viewPdfFullscreen.classList.remove("hidden");
+            viewPdfFullscreen.style.display = "flex";
+            
+            if(fullscreenPdfViewer) {
+                console.log("Membuka Preview Ijazah:", finalUrl);
+                fullscreenPdfViewer.src = finalUrl;
+            }
+        }
     };
 
     // --- FILTER ---
@@ -326,22 +334,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const term = elSearch.value.toLowerCase();
         const mjr = elFilterMajor.value;
         const yr = elFilterYear.value;
-        const sts = elFilterStatus.value; // 'taken', 'pending', ''
+        const sts = elFilterStatus.value; 
 
         const filtered = allDiplomas.filter(item => {
-            // Text Search
             const txtMatch = (item.student_name || "").toLowerCase().includes(term) || 
                            (item.number || "").toLowerCase().includes(term);
-            
-            // Dropdown Filters
             const mjrMatch = mjr === "" || item.major === mjr;
             const yrMatch = yr === "" || item.academic_year === yr;
-            
-            // --- [ADAPTASI PYTHON MODEL] ---
-            // Cek status dari nested object
             const statusObj = item.status || {};
             const isCollected = statusObj.is_collected === true;
-
             let stsMatch = true;
             if (sts === "taken") stsMatch = isCollected;
             if (sts === "pending") stsMatch = !isCollected;

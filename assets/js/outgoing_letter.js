@@ -24,6 +24,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const viewTable = document.getElementById("view-table");
     const viewForm = document.getElementById("view-form");
     
+    // [BARU] REFERENSI MODE PREVIEW FULLSCREEN
+    const viewPdfFullscreen = document.getElementById("view-pdf-fullscreen");
+    const fullscreenPdfViewer = document.getElementById("fullscreen-pdf-viewer");
+    const btnClosePreviewMode = document.getElementById("btn-close-preview-mode");
+
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
     const btnSave = document.getElementById("btn-save-data");
@@ -58,6 +63,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
     
+    // [BARU] EVENT LISTENER TUTUP PREVIEW
+    if (btnClosePreviewMode) {
+        btnClosePreviewMode.addEventListener("click", () => {
+            if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+            if (fullscreenPdfViewer) fullscreenPdfViewer.src = ""; 
+            showTableMode();
+        });
+    }
+
     if(inputFile) {
         inputFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
@@ -154,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td style="text-align:center;">
                     <div class="btn-action-group">
                         <button class="btn-action-view" title="Lihat PDF" 
-                            onclick="window.openFile('${item.file_path || ''}')" 
+                            onclick="window.openFile(${item.id})" 
                             ${!hasFile ? 'disabled style="background:#eee; cursor:default"' : ''}>📄</button>
                         <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
                         <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
@@ -170,6 +184,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
+        
+        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
@@ -194,9 +211,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
 
+            // Gunakan logika yang sama untuk preview di form edit
             if (data.file_path) {
-                const cleanPath = data.file_path.replace(/\\/g, "/");
-                showPreview("/" + cleanPath); 
+                const fileName = data.file_path.split(/[\\/]/).pop();
+                // [PENTING] Ganti ke folder outgoing_letters
+                const finalUrl = `/storage/documents/outgoing_letters/${fileName}`;
+                showPreview(finalUrl); 
             }
         } else {
             currentEditId = null;
@@ -205,6 +225,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function showTableMode() {
         viewForm.classList.add("hidden");
+        
+        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+        
         viewTable.classList.remove("hidden");
         btnAdd.classList.remove("hidden");
         btnBack.classList.add("hidden");
@@ -287,11 +310,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    window.openFile = (path) => {
-        if (!path) return;
-        const cleanPath = path.replace(/\\/g, "/");
-        const url = cleanPath.startsWith("/") ? cleanPath : "/" + cleanPath;
-        window.open(url, "_blank");
+    // --- [BARU] LOGIKA BUKA FILE DENGAN ID ---
+    window.openFile = (id) => {
+        // 1. Cari data berdasarkan ID
+        const item = allLetters.find(l => l.id === id);
+        
+        if (!item || !item.file_path) {
+            alert("File tidak tersedia.");
+            return;
+        }
+
+        // 2. Ambil nama file (Buang path folder dari DB)
+        const fileName = item.file_path.split(/[\\/]/).pop();
+        
+        // 3. Rakit URL Manual (Folder outgoing_letters)
+        const finalUrl = `/storage/documents/outgoing_letters/${fileName}`;
+        
+        // 4. UI: Sembunyikan Tabel, Tampilkan Fullscreen Preview
+        viewTable.classList.add("hidden");
+        viewForm.classList.add("hidden");
+        btnAdd.classList.add("hidden");
+
+        if(viewPdfFullscreen) {
+            viewPdfFullscreen.classList.remove("hidden");
+            viewPdfFullscreen.style.display = "flex";
+            
+            if(fullscreenPdfViewer) {
+                console.log("Membuka Preview:", finalUrl);
+                fullscreenPdfViewer.src = finalUrl;
+            }
+        }
     };
 
     // --- FILTER ---
