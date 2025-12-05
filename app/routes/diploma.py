@@ -1,286 +1,139 @@
 import os
-from werkzeug.utils import secure_filename
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from app.services.diploma import (
-    create_diploma, 
-    update_diploma, 
-    delete_diploma, 
-    get_all_diplomas, 
+    create_diploma, update_diploma, 
+    delete_diploma, get_all_diplomas, 
     get_diplomas_by_keys
 )
-
 from app.services.user import get_users_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.file_helper import handle_file_upload, delete_physical_file
 
 diploma_bp = Blueprint('diploma', __name__)
 
-def get_current_user_obj(db_session: Session):
-    """Helper function to retrieve the currently logged-in user object.
-
-    Uses the JWT identity (NUPTK/ID) from the request context to fetch
-    the full User object from the database using the service with a filter.
-
-    Args:
-        db_session (Session): The active database session.
-
-    Returns:
-        User | None: The User object if found, otherwise None.
-    """
-    current_identity = get_jwt_identity()
-    users = get_users_by_keys(db_session, {'nuptk': current_identity})
+def get_current_user_obj(db_session):
+    current = get_jwt_identity()
+    users = get_users_by_keys(db_session, {'nuptk': current})
     return users[0] if users else None
 
 @diploma_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_diploma_route():
-    """Creates a new diploma (Ijazah) record with an optional file attachment.
-
-    Requires a valid JWT access token. Accepts multipart/form-data to handle
-    text fields and an optional file upload (scan of the diploma).
-    
-    Args:
-        No explicit arguments. Expects Multipart/Form-Data payload:
-        number (str): The serial number of the diploma (must be unique).
-        student_name (str): The full name of the student.
-        major (str): The vocational major (Kompetensi Keahlian), e.g., 'TKJ'.
-        academic_year (str): The graduation year, e.g., '2024/2025'.
-        is_collected (str|bool): 'true' if the diploma is physically collected.
-        file (FileStorage, optional): The scanned document file.
-
-    Returns:
-        tuple[Response, int]:
-            * 201: JSON of the created diploma including attachment path.
-            * 400: Missing required fields or invalid data.
-            * 401: User authentication failed.
-            * 500: Internal Server Error or File Save Error.
-    """
-    # 1. Terima Data (Support Form Data)
     data = request.form.to_dict()
-    
-    # Konversi boolean string 'true'/'false'
     if 'is_collected' in data:
-        if isinstance(data['is_collected'], str):
-            data['is_collected'] = data['is_collected'].lower() == 'true'
+        data['is_collected'] = str(data['is_collected']).lower() == 'true'
 
-    # Validasi Field Wajib
-    required_fields = ['number', 'student_name', 'major', 'academic_year']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"{field} is required"}), 400
+    required = ['number', 'student_name', 'major', 'academic_year']
+    for f in required:
+        if not data.get(f): return jsonify({"error": f"{f} required"}), 400
     
-    # 2. Handle File Upload
-    # Path: storage/documents/diplomas
-    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'diplomas')
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-
+    # --- OPTIMIZED UPLOAD ---
     file = request.files.get('file')
-    full_path = None 
-    
+    path, full_path = None, None
     if file:
         try:
-            filename = secure_filename(file.filename)
-            full_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(full_path)
-            
-            # Simpan path relatif ke DB
-            data['attachment_path'] = os.path.join('storage', 'documents', 'diplomas', filename)
-        except Exception as e:
-            return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+            path, full_path = handle_file_upload(file, 'diplomas')
+            data['attachment_path'] = path
+        except Exception as e: return jsonify({"error": str(e)}), 500
 
-    # 3. Simpan ke DB
     db_session: Session = db.SessionLocal()
     try:
         current_user = get_current_user_obj(db_session)
         if not current_user:
-            if full_path and os.path.exists(full_path):
-                os.remove(full_path)
-            return jsonify({"error": "User authentication failed"}), 401
+            if full_path and os.path.exists(full_path): os.remove(full_path)
+            return jsonify({"error": "Auth failed"}), 401
 
         new_diploma = create_diploma(db_session, data, user_id=current_user.id)
-        
-        try:
-            action = f"Pengguna '{current_user.username}' menambahkan ijazah No: '{new_diploma.number}' atas nama '{new_diploma.student_name}'."
-            create_log(db_session, current_user.id, action)
-        except Exception:
-            pass
-
+        create_log(db_session, current_user.id, f"Tambah Ijazah: {new_diploma.student_name}")
         return jsonify(new_diploma.to_dict()), 201
 
-    except IntegrityError:
-        db_session.rollback()
-        if full_path and os.path.exists(full_path):
-            os.remove(full_path)
-        return jsonify({"error": "Nomor Seri/NISN sudah ada."}), 409
     except Exception as e:
         db_session.rollback()
-        if full_path and os.path.exists(full_path):
-            os.remove(full_path)
-        print(f"Error Create Diploma: {e}")
+        if full_path and os.path.exists(full_path): os.remove(full_path)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
+
 @diploma_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_diploma_route():
-    """Updates an existing diploma record.
+    data = request.get_json(silent=True) or request.form.to_dict()
+    if not data.get('id'): return jsonify({"error": "ID required"}), 400
 
-    Requires a valid JWT access token. Updates specific fields provided in
-    the JSON payload and logs the update activity.
-
-    Args:
-        No explicit arguments. Expects JSON payload:
-        id (int): The ID of the diploma to update (Required).
-        student_name (str, optional): Updated name.
-        major (str, optional): Updated major.
-        is_collected (bool, optional): Update collection status.
-        ... (Any other field from create_diploma_route).
-
-    Returns:
-        tuple[Response, int]:
-            * 200: JSON of the updated diploma.
-            * 400: Missing 'id' or validation error.
-            * 404: Diploma not found.
-    """
-    # 1. Coba baca sebagai JSON (silent=True)
-    data = request.get_json(silent=True)
-    
-    # 2. Jika gagal/kosong, baca sebagai Form Data (Fallback)
-    if not data:
-        data = request.form.to_dict()
-
-    if not data or 'id' not in data:
-        return jsonify({"error": "ID is required"}), 400
-
-    diploma_id = data.get('id')
-
-    # 3. Handle File Baru (Jika ada upload saat edit)
-    file = request.files.get('file')
-    if file:
-        try:
-            UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage', 'documents', 'diplomas')
-            if not os.path.exists(UPLOAD_FOLDER):
-                os.makedirs(UPLOAD_FOLDER)
-            
-            filename = secure_filename(file.filename)
-            full_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(full_path)
-            
-            data['attachment_path'] = os.path.join('storage', 'documents', 'diplomas', filename)
-        except Exception as e:
-            return jsonify({"error": f"Gagal upload file baru: {str(e)}"}), 500
-
-    # 4. Normalisasi Data (String -> Bool/None)
     if 'is_collected' in data:
-        val = str(data['is_collected']).lower()
-        data['is_collected'] = val == 'true'
-    
-    if 'collected_at' in data and (data['collected_at'] == '' or data['collected_at'] == 'null'):
+        data['is_collected'] = str(data['is_collected']).lower() == 'true'
+    if 'collected_at' in data and data['collected_at'] in ['', 'null']:
         data['collected_at'] = None
 
-    # 5. Update DB
     db_session: Session = db.SessionLocal()
     try:
-        updated_diploma = update_diploma(db_session, diploma_id, data)
-        
-        if not updated_diploma:
-            return jsonify({"error": "Diploma not found"}), 404
+        existing = get_diplomas_by_keys(db_session, {'id': data['id']})
+        old_path = existing[0].attachment_path if existing else None
+
+        # --- OPTIMIZED UPLOAD ---
+        file = request.files.get('file')
+        if file:
+            try:
+                path, _ = handle_file_upload(file, 'diplomas')
+                data['attachment_path'] = path
+            except Exception as e: return jsonify({"error": str(e)}), 500
+
+        updated = update_diploma(db_session, data['id'], data)
+        if not updated: return jsonify({"error": "Not found"}), 404
+
+        if file and old_path and old_path != updated.attachment_path:
+            delete_physical_file(old_path)
 
         current_user = get_current_user_obj(db_session)
         if current_user:
-            updated_fields = list(data.keys())
-            if 'id' in updated_fields: updated_fields.remove('id')
-            fields_str = ", ".join(updated_fields)
-            action = f"Pengguna '{current_user.username}' mengupdate ({fields_str}) pada ijazah No: '{updated_diploma.number}'."
-            create_log(db_session, current_user.id, action)
+            create_log(db_session, current_user.id, f"Update Ijazah: {updated.student_name}")
 
-        return jsonify(updated_diploma.to_dict()), 200
-
-    except IntegrityError:
-        db_session.rollback()
-        return jsonify({"error": "Nomor Seri bentrok dengan data lain."}), 409
+        return jsonify(updated.to_dict()), 200
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
 
 @diploma_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_diploma_route():
-    """Deletes a diploma record.
-
-    Requires a valid JWT access token. Removes the record from the database
-    and logs the deletion activity.
-
-    Args:
-        No explicit arguments. Expects JSON payload:
-        id (int): The ID of the diploma to delete.
-
-    Returns:
-        tuple[Response, int]:
-            * 200: JSON data of the deleted diploma.
-            * 404: Diploma not found.
-    """
-    data = request.json
-    diploma_id = data.get('id')
-
+    data = request.json or {}
     db_session: Session = db.SessionLocal()
     try:
-        deleted_diploma = delete_diploma(db_session, diploma_id)
-        
-        if not deleted_diploma:
-            return jsonify({"error": "Diploma not found"}), 404
+        deleted = delete_diploma(db_session, data.get('id'))
+        if not deleted: return jsonify({"error": "Not found"}), 404
+
+        # --- FITUR DELETE FISIK ---
+        if deleted.attachment_path:
+            delete_physical_file(deleted.attachment_path)
 
         current_user = get_current_user_obj(db_session)
         if current_user:
-            action = f"Pengguna '{current_user.username}' menghapus ijazah No: '{deleted_diploma.number}' milik '{deleted_diploma.student_name}'."
-            create_log(db_session, current_user.id, action)
+            create_log(db_session, current_user.id, f"Hapus Ijazah: {deleted.student_name}")
 
-        return jsonify(deleted_diploma.to_dict()), 200
-    finally:
-        db_session.close()
-
-@diploma_bp.route('/get_all', methods=['GET'])
-def get_all_diplomas_route():
-    """Retrieves all diploma records."""
-    db_session: Session = db.SessionLocal()
-    try:
-        diplomas = get_all_diplomas(db_session)
-        # Gunakan list comprehension dan to_dict()
-        return jsonify([d.to_dict() for d in diplomas]), 200
+        return jsonify(deleted.to_dict()), 200
     except Exception as e:
-        # PERBAIKAN: Tangkap error agar mengembalikan JSON, bukan HTML
-        print(f"Error Get All Diplomas: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
 
+# (Route get_all dan get_by_keys tetap sama)
+@diploma_bp.route('/get_all', methods=['GET'])
+def get_all_diplomas_route():
+    db_session = db.SessionLocal()
+    try: return jsonify([d.to_dict() for d in get_all_diplomas(db_session)]), 200
+    finally: db_session.close()
+
 @diploma_bp.route('/get_by_keys', methods=['POST'])
 def get_diplomas_by_keys_route():
-    """Retrieves diploma records filtered by keys."""
-    data = request.json
-    # Fallback aman jika data null
-    filters = data.get('filters') if data else None
-
-    if not filters:
-         # Cek jika user mengirim dictionary langsung tanpa key 'filters'
-         filters = data if isinstance(data, dict) else {}
-
-    db_session: Session = db.SessionLocal()
-    try:
-        diplomas = get_diplomas_by_keys(db_session, filters)
-        return jsonify([d.to_dict() for d in diplomas]), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        # PERBAIKAN: Tangkap error umum juga
-        print(f"Error Filter Diplomas: {e}")
-        return jsonify({"error": "Internal Server Error"}), 500
-    finally:
-        db_session.close()
+    data = request.json or {}
+    filters = data.get('filters', data if isinstance(data, dict) else {})
+    db_session = db.SessionLocal()
+    try: return jsonify([d.to_dict() for d in get_diplomas_by_keys(db_session, filters)]), 200
+    except Exception as e: return jsonify({"error": str(e)}), 400
+    finally: db_session.close()

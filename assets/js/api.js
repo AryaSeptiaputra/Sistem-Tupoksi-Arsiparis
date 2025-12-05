@@ -147,7 +147,10 @@ const api = {
     // 8. BACKUP
     backup: {
         manual: () => fetchAPI('/backup/manual', 'POST'),
-        getLogs: () => fetchAPI('/backup/logs', 'GET')
+        getLogs: () => fetchAPI('/backup/logs', 'GET'),
+        
+        // TAMBAHAN BARU:
+        restore: (filename) => fetchAPI('/backup/restore', 'POST', { filename })
     }
 };
 

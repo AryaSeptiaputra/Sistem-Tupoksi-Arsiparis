@@ -63,7 +63,7 @@ def login():
         )
 
         try:
-            action = f"Pengguna {existing_user.username} melakukan login."
+            action = f"Pengguna  melakukan login."
             create_log(db_session, existing_user.id, action)
         except Exception as e:
             print(f"Login Log Error: {e}") 

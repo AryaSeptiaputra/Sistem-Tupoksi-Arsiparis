@@ -165,9 +165,12 @@ def delete_user_route():
         
         try:
             current_user_nuptk = get_jwt_identity()
-            admin_users = get_users_by_keys(db_session, 'nuptk', current_user_nuptk)
+            
+            admin_users = get_users_by_keys(db_session, {'nuptk': current_user_nuptk})
+            
             if admin_users:
-                create_log(db_session, admin_users[0].id, f"Menghapus user NUPTK: {deleted_user.nuptk}")
+                admin_user = admin_users[0] 
+                create_log(db_session, admin_user.id, f"Pengguna menghapus user NUPTK: {deleted_user.nuptk}")
         except Exception:
             pass
 

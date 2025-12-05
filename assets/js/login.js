@@ -1,14 +1,13 @@
-// login.js
+// static/js/login.js
 
-// Tunggu sampai halaman selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
     
     const loginForm = document.getElementById('login-form');
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // 1. Mencegah halaman refresh otomatis
-            await handleLogin(); // 2. Jalankan logika login
+            e.preventDefault(); 
+            await handleLogin(); 
         });
     }
 });
@@ -17,35 +16,43 @@ async function handleLogin() {
     const nuptkInput = document.getElementById('nuptk').value; 
     const passInput = document.getElementById('password').value;
     const btnLogin = document.querySelector('.btn-login');
+    const originalText = btnLogin.textContent;
 
     try {
-        // UI: Loading state
-        btnLogin.textContent = "Loading...";
+        // 1. Ubah tombol jadi Loading
+        btnLogin.textContent = "Memproses...";
         btnLogin.disabled = true;
 
-        // Panggil fungsi API
-        // api.js akan otomatis menyimpan token jika login berhasil
+        // 2. Panggil API Login
         const result = await api.auth.login(nuptkInput, passInput);
         
-        // FIX: Hapus localStorage.setItem manual di sini karena sudah dilakukan di api.js
-        
-        // Cek sukses
+        // 3. JIKA SUKSES:
         if (result && result.access_token) {
-            alert(result.message || "Login Berhasil!"); 
-            window.location.href = '/dashboard'; 
+            // Gunakan TOAST (Hijau) agar mulus
+            ui.toast("Login Berhasil! Mengalihkan...", "success"); 
+            
+            // Beri jeda sedikit agar user sempat baca toast sebelum pindah
+            setTimeout(() => {
+                window.location.href = '/page/dashboard'; 
+            }, 1000);
         } else {
-            // Jika api tidak return error tapi token kosong (edge case)
             throw new Error("Gagal mendapatkan token akses.");
         }
         
     } catch (error) {
         console.error("Login Error:", error);
-        // Tampilkan pesan error
-        const errorMsg = error.message || "Gagal login. Periksa NUPTK dan Password.";
-        alert(errorMsg);
+        
+        // 4. JIKA GAGAL: Gunakan CUSTOM MODAL (Merah)
+        // Menggantikan alert() biasa
+        await ui.alert(
+            "Gagal Masuk", 
+            error.message || "Periksa kembali NUPTK dan Password Anda.", 
+            "error"
+        );
+
     } finally {
-        // UI: Reset state
-        btnLogin.textContent = "Login";
+        // 5. Reset Tombol
+        btnLogin.textContent = originalText;
         btnLogin.disabled = false;
     }
 }

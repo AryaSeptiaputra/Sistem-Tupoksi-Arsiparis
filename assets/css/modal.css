@@ -1,0 +1,94 @@
+/* --- MODAL OVERLAY --- */
+.custom-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Latar belakang gelap transparan */
+    backdrop-filter: blur(2px); /* Efek blur modern */
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    opacity: 0; visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.custom-modal-overlay.active {
+    opacity: 1; visibility: visible;
+}
+
+/* --- MODAL BOX --- */
+.custom-modal-box {
+    background: white;
+    width: 400px;
+    max-width: 90%;
+    padding: 24px;
+    border-radius: 16px; /* Sesuai border-radius card Anda */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.custom-modal-overlay.active .custom-modal-box {
+    transform: scale(1);
+}
+
+/* --- ICON & TEXT --- */
+.modal-icon {
+    font-size: 48px; margin-bottom: 16px; display: block;
+}
+
+.modal-title {
+    font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 8px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.modal-message {
+    font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.5;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* --- BUTTONS --- */
+.modal-actions {
+    display: flex; justify-content: flex-end; gap: 12px;
+}
+
+/* Menggunakan style yang mirip dengan tombol di user.html */
+.btn-modal-cancel {
+    padding: 10px 20px; background: white; border: 1px solid #d1d5db;
+    border-radius: 8px; color: #374151; font-weight: 500; cursor: pointer;
+    font-family: inherit; transition: 0.2s;
+}
+.btn-modal-cancel:hover { background: #f3f4f6; }
+
+.btn-modal-confirm {
+    padding: 10px 20px; background: #06B6D4; /* Warna Primary Anda */
+    border: none; border-radius: 8px; color: white; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: 0.2s;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+.btn-modal-confirm:hover { background: #0891b2; transform: translateY(-1px); }
+.btn-modal-confirm.danger { background: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+.btn-modal-confirm.danger:hover { background: #dc2626; }
+
+/* --- TOAST NOTIFICATION (Pocok Kanan Atas) --- */
+.custom-toast-container {
+    position: fixed; top: 20px; right: 20px; z-index: 10000;
+    display: flex; flex-direction: column; gap: 10px;
+}
+
+.toast-box {
+    background: white; padding: 16px; border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid #06B6D4;
+    display: flex; align-items: center; gap: 12px;
+    min-width: 300px;
+    animation: slideIn 0.3s forwards;
+    font-family: 'Poppins', sans-serif;
+}
+.toast-box.success { border-left-color: #16a34a; }
+.toast-box.error { border-left-color: #ef4444; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
