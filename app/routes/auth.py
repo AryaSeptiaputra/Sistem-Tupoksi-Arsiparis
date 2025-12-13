@@ -1,6 +1,6 @@
-from flask import Blueprint, request, jsonify, render_template
-from flask_jwt_extended import create_access_token
+from flask import Blueprint, request, jsonify, session
 from sqlalchemy.orm import Session
+from flask_jwt_extended import create_access_token
 from app.services.auth import login_user
 from app.services.log import create_log
 from app import db
@@ -9,67 +9,64 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """
-    Authenticates a user and generates a JWT access token.
-
-    This endpoint processes the POST request for user login. It validates the
-    provided credentials (NUPTK and password) against the database using the
-    `login_user` service. If successful, it logs the activity and returns a
-    Bearer token.
-
-    Args:
-        No explicit function arguments. Expects a JSON payload containing:
-        nuptk (str): The user's Unique Identification Number (NUPTK).
-        password (str): The user's plaintext password.
-
-    Returns:
-        tuple[Response, int]: A tuple containing the JSON response and HTTP status code.
-            * 200: Login successful. JSON contains "message" and "access_token".
-            * 400: Bad Request. Missing "nuptk" or "password" in payload.
-            * 401: Unauthorized. Invalid NUPTK or password.
-            * 500: Internal Server Error. Database or logic failure.
-    """
     data = request.json
-    nuptk = data.get('nuptk')
+    # Frontend mengirim key 'nuptk', tapi di backend kita anggap sebagai 'identity_number'
+    identity_input = data.get('nuptk') 
     password = data.get('password')
 
-    if not nuptk or not password:
-        return jsonify({"message": "NUPTK dan password wajib diisi"}), 400
+    if not identity_input or not password:
+        return jsonify({"message": "NIP/NUPTK dan password wajib diisi"}), 400
 
     db_session: Session = db.SessionLocal()
     
     try:
-        existing_user = login_user(db_session, nuptk, password)
+        # Panggil Service Login
+        existing_user = login_user(db_session, identity_input, password)
 
         if not existing_user:
-            return jsonify({"message": "NUPTK atau kata sandi tidak valid"}), 401
+            return jsonify({"message": "NIP/NUPTK atau kata sandi salah"}), 401
 
-        # --- UPDATE START: Memasukkan semua atribut user ke claims ---
-        # Pastikan konversi tipe data (seperti Enum dan Datetime) ke string agar JSON serializable
+        # Pastikan data guru tersedia (safety check)
+        if not existing_user.teacher:
+             return jsonify({"message": "Akun User ditemukan tapi data Guru korup/hilang."}), 500
+
+        user_role = str(existing_user.role)
+
+        # ==================================================================
+        # 🔥 FLASK SESSION (SERVER SIDE)
+        # ==================================================================
+        session.permanent = True
+        session['user_id'] = existing_user.id
+        session['role'] = user_role
+        # Gunakan Nama Lengkap Guru sebagai display name
+        session['username'] = existing_user.teacher.full_name 
+        # ==================================================================
+
+        # --- JWT Claims ---
         additional_claims = {
             "id": existing_user.id,
-            "nuptk": existing_user.nuptk,
-            "username": existing_user.username,
-            "role": str(existing_user.role) if existing_user.role else "teacher", 
-            "status": str(existing_user.status) if existing_user.status else "inactive",
-            "created_at": existing_user.created_at.strftime("%Y-%m-%d %H:%M:%S") if existing_user.created_at else "-",
-            "updated_at": existing_user.updated_at.strftime("%Y-%m-%d %H:%M:%S") if existing_user.updated_at else "-"
+            "identity_number": existing_user.teacher.identity_number, # Pengganti NUPTK lama
+            "full_name": existing_user.teacher.full_name,             # Pengganti Username lama
+            "role": user_role,
+            "status": str(existing_user.status),
+            "created_at": existing_user.created_at.strftime("%Y-%m-%d")
         }
-        # --- UPDATE END ---
 
+        # Identity token menggunakan Identity Number (NIP/NUPTK)
         access_token = create_access_token(
-            identity=str(existing_user.nuptk),
+            identity=str(existing_user.teacher.identity_number),
             additional_claims=additional_claims
         )
 
+        # --- LOG AKTIVITAS ---
         try:
-            action = f"Pengguna  melakukan login."
-            create_log(db_session, existing_user.id, action)
+            action = f"Pengguna '{existing_user.teacher.full_name}' melakukan login."
+            create_log(db_session, existing_user.teacher.id, action)
         except Exception as e:
             print(f"Login Log Error: {e}") 
 
         return jsonify({
-            "message": f"Selamat Datang, {existing_user.username}!",
+            "message": f"Selamat Datang, {existing_user.teacher.full_name}!",
             "access_token": access_token
         }), 200
 

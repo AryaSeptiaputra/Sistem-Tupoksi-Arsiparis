@@ -1,27 +1,8 @@
-from sqlalchemy import Column, String, Text, DateTime, func, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, func, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class IncomingLetter(Base):
-    """
-    Represents an incoming letter document received by the organization.
-
-    This model stores details about letters sent from external parties to the
-    school/institution, including metadata and file storage references.
-
-    Attributes:
-        id (int): The primary key for the letter record.
-        number (str): The official reference number listed on the physical letter.
-        letter_date (datetime): The date written on the letter by the sender.
-        received_date (datetime): The date when the letter was actually received/recorded by the admin.
-        sender (str): The name of the agency, person, or organization sending the letter.
-        subject (str): The summary or title of the letter's content.
-        attachment_path (str, optional): Relative file path to the scanned document/PDF.
-        classification_id (int): Foreign key referencing the classification category.
-        user_id (int): Foreign key referencing the user who input this data.
-        created_at (datetime): Timestamp when the record was created in the system.
-        updated_at (datetime): Timestamp when the record was last updated.
-    """
     __tablename__ = "incoming_letter"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -32,31 +13,21 @@ class IncomingLetter(Base):
     subject = Column(String(255), nullable=False)
     attachment_path = Column(String(255), nullable=True)
     
+    # Relasi Klasifikasi
     classification_id = Column(Integer, ForeignKey('classification.id'), nullable=False, index=True)
     classification = relationship("Classification", backref="incoming_letters", lazy="joined")
 
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    user = relationship("User", backref="incoming_letters", lazy="joined")
+    # Relasi Lokasi
+    storage_location_id = Column(Integer, ForeignKey('storage_location.id'), nullable=True, index=True)
+    storage_location = relationship("StorageLocation", backref="incoming_letters", lazy="joined")
+
+    # Status Arsip (String)
+    archive_status = Column(String(20), default='active', nullable=False)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self):
-        """Convert incoming letter object to dictionary format with resolved relationships.
-        
-        Serializes the IncomingLetter instance into a JSON-compatible dictionary
-        for API responses. This method automatically resolves foreign key relationships
-        to provide human-readable classification codes and usernames instead of raw IDs.
-        
-        Returns:
-            dict: A dictionary containing the following keys:
-                - id (int): The unique identifier of the incoming letter
-                - number (str): The official letter reference number
-                - sender (str): The name of the sender organization/person
-                - subject (str): The letter's subject or title
-                - classification (str or None): The classification code (e.g., '001') if relationship exists
-                - input_by (str or None): The username of the user who created this record
-        """
         return {
             "id": self.id,
             "number": self.number,
@@ -65,8 +36,9 @@ class IncomingLetter(Base):
             "sender": self.sender,
             "subject": self.subject,
             "classification_code": self.classification.code if self.classification else None,
+            "classification_name": self.classification.name if self.classification else None,
+            "storage_location_name": self.storage_location.name if self.storage_location else "Belum Ditentukan",
+            "archive_status": self.archive_status,
             "file_path": self.attachment_path,
-            "input_by": self.user.username if self.user else None,
-            "created_at": self.created_at,
-            "updated_at": self.created_at
+            "created_at": self.created_at
         }

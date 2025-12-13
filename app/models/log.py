@@ -25,29 +25,28 @@ class Log(Base):
     user = relationship("User", backref="logs", lazy="joined")
 
     def to_dict(self):
-        """Convert log entry object to dictionary format with ISO-formatted timestamp.
-        
-        Serializes the Log instance into a JSON-compatible dictionary suitable
-        for audit trail reports and API responses. The timestamp is converted
-        to ISO 8601 format for standardized date-time representation.
-        
-        Returns:
-            dict: A dictionary containing the following keys:
-                - id (int): The unique identifier of the log entry
-                - user_id (int): The ID of the user who performed the action
-                - action (str): Description of the action performed (e.g., 'Deleted letter IN/001/2024')
-                - timestamp (str): ISO 8601 formatted datetime string (e.g., '2024-11-30T10:30:45.123456')
-        """
+        # 1. Inisialisasi default agar tidak kena UnboundLocalError
+        user_display_name = "Unknown User" 
+
         try:
-            if self.user and self.user.username:
-                username = self.user.username
-        except:
+            # 2. Cek apakah Log punya User, dan User punya Teacher
+            if self.user and self.user.teacher:
+                # Ambil nama lengkap dari tabel Teacher
+                user_display_name = self.user.teacher.full_name
+            
+            # Opsional: Jika User ada tapi Teacher terhapus (Edge case), pakai ID
+            elif self.user:
+                user_display_name = f"User #{self.user.id}"
+                
+        except Exception as e:
+            # Print error ke terminal untuk debugging tanpa bikin server crash
+            print(f"[Log Model Error] Failed to get user name: {e}")
             pass
 
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "username": username,
+            "username": user_display_name, # Kirim sebagai 'username' agar frontend tidak perlu diubah
             "action": self.action,
             "timestamp": self.timestamp.isoformat(),
         }

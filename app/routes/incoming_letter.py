@@ -24,12 +24,13 @@ def get_current_user_obj(db_session):
 @jwt_required()
 def create_incoming_letter_route():
     data = request.form.to_dict()
-    required_fields = ['number', 'letter_date', 'received_date', 'sender', 'subject', 'classification_id']
+    required_fields = ['number', 'letter_date', 'received_date', 'sender', 'classification_id']
+    
     for field in required_fields:
         if not data.get(field):
             return jsonify({"error": f"{field} is required"}), 400
             
-    # --- OPTIMIZED UPLOAD ---
+    # Handle File
     file = request.files.get('file')
     attachment_path, full_path = None, None
     if file:
@@ -38,6 +39,10 @@ def create_incoming_letter_route():
             data['attachment_path'] = attachment_path
         except Exception as e:
             return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+    
+    # Handle optional storage_location_id
+    if not data.get('storage_location_id'):
+        data['storage_location_id'] = None
     
     db_session: Session = db.SessionLocal()
     try:
@@ -60,21 +65,28 @@ def create_incoming_letter_route():
 @incoming_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_incoming_letter_route():
-    data = request.get_json(silent=True) or request.form.to_dict()
+    # Support both JSON and Form Data
+    data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     letter_id = data.get('id')
+    
     if not letter_id: return jsonify({"error": "ID wajib ada"}), 400
 
+    # Type Conversion
     if data.get('classification_id'):
         try: data['classification_id'] = int(data['classification_id'])
         except: return jsonify({"error": "Invalid classification_id"}), 400
+        
+    if data.get('storage_location_id'):
+        try: data['storage_location_id'] = int(data['storage_location_id'])
+        except: data['storage_location_id'] = None # Handle "Select..." value
 
     db_session: Session = db.SessionLocal()
     try:
-        # Cek file lama
         existing = get_incoming_letters_by_keys(db_session, {'id': letter_id})
-        old_path = existing[0].attachment_path if existing else None
+        if not existing: return jsonify({"error": "Letter not found"}), 404
+        old_path = existing[0].attachment_path
 
-        # --- OPTIMIZED UPLOAD ---
+        # Handle File Upload
         file = request.files.get('file')
         if file:
             try:
@@ -84,9 +96,8 @@ def update_incoming_letter_route():
                 return jsonify({"error": str(e)}), 500
 
         updated_letter = update_incoming_letter(db_session, letter_id, data)
-        if not updated_letter: return jsonify({"error": "Not found"}), 404
 
-        # Hapus file lama jika ada update file baru
+        # Cleanup old file
         if file and old_path and old_path != updated_letter.attachment_path:
             delete_physical_file(old_path)
 
@@ -112,7 +123,6 @@ def delete_incoming_letter_route():
         deleted_letter = delete_incoming_letter(db_session, letter_id)
         if not deleted_letter: return jsonify({"error": "Not found"}), 404
 
-        # --- FITUR DELETE FISIK ---
         if deleted_letter.attachment_path:
             delete_physical_file(deleted_letter.attachment_path)
 
@@ -126,7 +136,6 @@ def delete_incoming_letter_route():
     finally:
         db_session.close()
 
-# (Route get_all dan get_by_keys tetap sama)
 @incoming_letter_bp.route('/get_all', methods=['GET'])
 def get_all_incoming_letters_route():
     db_session = db.SessionLocal()
@@ -141,4 +150,4 @@ def get_incoming_by_keys_route():
     db_session = db.SessionLocal()
     try: return jsonify([l.to_dict() for l in get_incoming_letters_by_keys(db_session, filters)]), 200
     except Exception as e: return jsonify({"error": str(e)}), 400
-    finally: db_session.close() 
+    finally: db_session.close()

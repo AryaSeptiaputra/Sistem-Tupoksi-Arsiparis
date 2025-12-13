@@ -39,9 +39,9 @@
 
             <form id="login-form">
                 <div class="form-group">
-                    <label for="nuptk">NUPTK</label>
+                    <label for="nuptk">NIP / NUPTK / ID Pegawai</label>
                     <div class="input-control">
-                        <input type="text" id="nuptk" name="nuptk" placeholder="Masukkan NUPTK Anda" required />
+                        <input type="text" id="nuptk" name="nuptk" placeholder="Masukkan NIP atau NUPTK" required />
                     </div>
                 </div>
                 <div class="form-group">
@@ -56,10 +56,13 @@
             </form>
         </div>
     </div>
+    
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    
     <script>
+        // Toggle Password Visibility
         const pwdInput = document.getElementById('password');
         const toggle = document.getElementById('toggle-password');
         if (toggle && pwdInput) {

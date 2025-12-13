@@ -1,34 +1,35 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
+from app.models.teacher import Teacher
 from app.utils.hash import get_password_hash
 from app.utils.password import check_password, validate_password_change
 import datetime
 
 def create_user(db: Session, user_data: dict) -> User:
     """
-    Creates a new user and securely hashes their password.
-
-    This function validates the password strength before hashing it and 
-    storing the new user record.
-
-    Args:
-        db (Session): The database session.
-        user_data (dict): A dictionary containing user details. Must include:
-            'nuptk', 'username', 'password', 'role', and 'status'.
-
-    Returns:
-        User: The newly created user with the hashed password.
+    Creates a new user account linked to a Teacher.
     """
-    check_password(user_data['password'])
+    # 1. Validasi: Pastikan Teacher ID ada
+    teacher_id = user_data.get('teacher_id')
+    teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
+    if not teacher:
+        raise ValueError("Data Guru tidak ditemukan.")
 
+    # 2. Validasi: Pastikan Guru ini belum punya akun
+    existing_account = db.query(User).filter(User.teacher_id == teacher_id).first()
+    if existing_account:
+        raise ValueError(f"Guru atas nama '{teacher.full_name}' sudah memiliki akun.")
+
+    # 3. Cek Password Strength
+    check_password(user_data['password'])
     hashed_password = get_password_hash(user_data['password'])
 
+    # 4. Simpan (Role & Status sebagai String)
     new_user = User(
-        nuptk=user_data['nuptk'],
-        username=user_data['username'],
+        teacher_id=teacher_id,
         password=hashed_password,
-        role=user_data['role'],
-        status=user_data['status'],
+        role=user_data['role'],     # String: 'admin', 'headmaster', 'teacher'
+        status=user_data['status'], # String: 'active', 'inactive'
         created_at=datetime.datetime.now(),
         updated_at=datetime.datetime.now()
     )
@@ -40,18 +41,8 @@ def create_user(db: Session, user_data: dict) -> User:
 
 def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
     """
-    Updates user details and handles secure password changes.
-
-    If the 'password' key is present in `update_data`, this function validates
-    the password change logic and re-hashes the new password before saving.
-
-    Args:
-        db (Session): The database session.
-        user_id (int): The ID of the user to update.
-        update_data (dict): Fields to update. 
-
-    Returns:
-        User | None: The updated user record, or None if the user ID is not found.
+    Updates user details (Role, Status, Password).
+    Cannot update teacher_id (Account ownership is fixed).
     """
     existing_user = db.query(User).filter(User.id == user_id).first()
     
@@ -59,13 +50,16 @@ def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
         return None
 
     for key, value in update_data.items():
-        if key == 'id':
+        if key in ['id', 'teacher_id']: # Prevent changing ID or Owner
             continue
         
         if not hasattr(existing_user, key):
             continue
 
         if key == 'password':
+            # Jika password dikirim tapi kosong, abaikan
+            if not value: 
+                continue
             validate_password_change(existing_user.password, value)
             value = get_password_hash(value)
 
@@ -78,18 +72,7 @@ def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
     return existing_user
 
 def delete_user(db: Session, user_id: int) -> User | None:
-    """
-    Deletes a user account by ID.
-
-    Args:
-        db (Session): The database session.
-        user_id (int): The ID of the user to delete.
-
-    Returns:
-        User | None: The deleted user record, or None if the ID was not found.
-    """
     existing_user = db.query(User).filter(User.id == user_id).first()
-    
     if not existing_user:
         return None
 
@@ -98,41 +81,23 @@ def delete_user(db: Session, user_id: int) -> User | None:
     return existing_user
 
 def get_all_users(db: Session) -> list[User]:
-    """
-    Retrieves all registered users from the database.
-
-    Args:
-        db (Session): The database session.
-
-    Returns:
-        list[User]: A list of all users.
-    """
+    # Menggunakan join otomatis via relationship di Model
     return db.query(User).all()
 
 def get_users_by_keys(db: Session, filters: dict) -> list[User]:
-    """
-    Retrieves user records filtered by specific attributes.
-
-    Args:
-        db (Session): The database session.
-        filters (dict): A dictionary of key-value pairs to filter the query.
-            Keys must match valid column names in the User model (e.g., 
-            {"role": "admin", "status": "active"}).
-
-    Returns:
-        list[User]: A list of users that match the filter criteria.
-
-    Raises:
-        ValueError: If a provided filter key is not a valid column attribute
-            of the User model.
-    """
-    query = db.query(User)
+    query = db.query(User).join(Teacher)
     
     for key, value in filters.items():
-        if not hasattr(User, key):
-            raise ValueError(f"Invalid column '{key}' for User.")
-        
-        column_to_filter = getattr(User, key)
-        query = query.filter(column_to_filter.ilike(f"%{value}%"))
+        # Jika filter berdasarkan atribut Guru (misal cari nama/NIP)
+        if hasattr(Teacher, key):
+            column = getattr(Teacher, key)
+            query = query.filter(column.ilike(f"%{value}%"))
+        # Jika filter atribut User (role/status)
+        elif hasattr(User, key):
+            column = getattr(User, key)
+            query = query.filter(column.ilike(f"%{value}%"))
+        else:
+            # Skip invalid filter agar tidak error
+            continue
         
     return query.all()

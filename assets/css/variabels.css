@@ -10,7 +10,7 @@
     --border-color: #e5e7eb;
     --card-bg: #ffffff;
     --table-head-bg: #e2e8f0; 
-    --sidebar-width: 80px;
+    --sidebar-width: 250px;
     --auth-radius: 28px;
     --auth-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
 }

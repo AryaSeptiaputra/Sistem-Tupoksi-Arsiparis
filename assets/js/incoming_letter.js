@@ -1,22 +1,12 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // --- 0. PERBAIKAN NAVIGASI SIDEBAR ---
+    // --- 0. NAVIGASI ---
     document.querySelectorAll("[data-route]").forEach(el => {
-        el.addEventListener("click", () => {
-            window.location.href = el.dataset.route;
-        });
+        el.addEventListener("click", () => { window.location.href = el.dataset.route; });
     });
 
-    // --- 1. CEK SESI ---
-    if (typeof api.auth.checkSession === 'function') {
-        if (!api.auth.checkSession()) return;
-    } else {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            window.location.href = "/page/login";
-            return;
-        }
-    }
+    const token = localStorage.getItem("access_token");
+    if (!token) { window.location.href = "/page/login"; return; }
 
     // --- STATE VARIABLES ---
     let allLetters = [];
@@ -26,8 +16,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
     const viewForm = document.getElementById("view-form");
-
-    // REFERENSI MODE PREVIEW
     const viewPdfFullscreen = document.getElementById("view-pdf-fullscreen");
     const fullscreenPdfViewer = document.getElementById("fullscreen-pdf-viewer");
     const btnClosePreviewMode = document.getElementById("btn-close-preview-mode");
@@ -37,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btnSave = document.getElementById("btn-save-data");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
+    // Inputs Form
     const inputId = document.getElementById("entry-id");
     const inputNumber = document.getElementById("number");
     const inputSender = document.getElementById("sender");
@@ -44,60 +33,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputLetterDate = document.getElementById("letter_date");
     const inputReceivedDate = document.getElementById("received_date");
     const inputClassId = document.getElementById("classification_id");
+    
+    const inputStorageId = document.getElementById("storage_location_id");
+    const inputArchiveStatus = document.getElementById("archive_status");
+    const groupArchiveStatus = document.getElementById("group-archive-status");
+    
     const inputFile = document.getElementById("fileInput");
-
     const uploadBox = document.getElementById("upload-box");
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
 
+    // --- FILTER REFERENCES ---
     const elSearch = document.getElementById("searchInput");
+    const elDateType = document.getElementById("filterDateType");
     const elStartDate = document.getElementById("startDate");
     const elEndDate = document.getElementById("endDate");
     const elFilterClass = document.getElementById("filterClassification");
+    const elFilterStatus = document.getElementById("filterStatus");
 
     // --- INITIALIZATION ---
     await initPage();
 
     // --- EVENT LISTENERS ---
-
-    // Navigasi View (Tambah / Kembali)
     if (btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if (btnBack) btnBack.addEventListener("click", showTableMode);
-
-    // LISTENER TOMBOL TUTUP PREVIEW
+    
     if (btnClosePreviewMode) {
         btnClosePreviewMode.addEventListener("click", () => {
-            // Sembunyikan mode preview
-            if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-            // Stop loading PDF agar hemat memori
-            if (fullscreenPdfViewer) fullscreenPdfViewer.src = ""; 
-            // Kembali ke tabel
+            viewPdfFullscreen.classList.add("hidden");
+            fullscreenPdfViewer.src = ""; 
             showTableMode();
         });
     }
 
-    // File Upload Preview (Form Edit/Tambah)
     if (inputFile) {
         inputFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
-            if (file && file.type === "application/pdf") {
+            if (file) {
+                if (file.type !== "application/pdf") {
+                    alert("Harap pilih file PDF.");
+                    inputFile.value = "";
+                    return;
+                }
                 const url = URL.createObjectURL(file);
                 showPreview(url);
-            } else {
-                alert("Harap pilih file PDF.");
-                inputFile.value = ""; 
             }
         });
     }
 
     if (btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
-
-    // Simpan Data
     if (btnSave) btnSave.addEventListener("click", handleSaveData);
 
-    // Filtering
-    [elSearch, elStartDate, elEndDate, elFilterClass].forEach(el => {
+    // Apply filters listener
+    [elSearch, elDateType, elStartDate, elEndDate, elFilterClass, elFilterStatus].forEach(el => {
         if (el) {
             el.addEventListener("change", applyFilters);
             el.addEventListener("keyup", applyFilters);
@@ -106,7 +95,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (btnResetFilter) {
         btnResetFilter.addEventListener("click", () => {
-            elSearch.value = ""; elStartDate.value = ""; elEndDate.value = ""; elFilterClass.value = "";
+            elSearch.value = ""; 
+            elDateType.value = "received"; 
+            elStartDate.value = ""; elEndDate.value = ""; 
+            elFilterClass.value = ""; elFilterStatus.value = "";
             applyFilters();
         });
     }
@@ -114,9 +106,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- FUNCTIONS ---
 
     async function initPage() {
-        console.log("Memulai inisialisasi halaman...");
-        await loadClassifications();
-        await loadLetters();
+        const tbody = document.getElementById("table-body");
+        tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
+
+        await Promise.all([
+            loadClassifications(),
+            loadStorageLocations(),
+            loadLetters()
+        ]);
     }
 
     async function loadClassifications() {
@@ -126,26 +123,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (elFilterClass) elFilterClass.innerHTML = '<option value="">Semua Klasifikasi</option>';
 
             data.forEach(c => {
-                if (inputClassId) inputClassId.add(new Option(`${c.code} - ${c.name}`, c.id));
-                if (elFilterClass) elFilterClass.add(new Option(`${c.code} - ${c.name}`, c.code));
+                const text = `${c.code} - ${c.name}`;
+                if (inputClassId) inputClassId.add(new Option(text, c.id));
+                if (elFilterClass) elFilterClass.add(new Option(text, c.code));
             });
-        } catch (e) {
-            console.error("Gagal load klasifikasi:", e);
-        }
+        } catch (e) { console.error("Gagal load klasifikasi:", e); }
+    }
+
+    async function loadStorageLocations() {
+        try {
+            const data = await api.storageLocation.getAll();
+            if (inputStorageId) {
+                inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
+                data.forEach(loc => {
+                    inputStorageId.add(new Option(loc.name, loc.id));
+                });
+            }
+        } catch (e) { console.error("Gagal load lokasi:", e); }
     }
 
     async function loadLetters() {
-        const tbody = document.getElementById("table-body");
-        if (!tbody) return;
-        tbody.innerHTML = `<tr><td colspan="8" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
-
         try {
             allLetters = await api.incomingLetter.getAll();
             allLetters.sort((a, b) => new Date(b.received_date) - new Date(a.received_date));
             renderTable(allLetters);
         } catch (e) {
-            console.error("Gagal load surat:", e);
-            tbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center; padding:20px;">Gagal memuat data: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
         }
     }
 
@@ -154,31 +157,65 @@ document.addEventListener("DOMContentLoaded", async () => {
         tbody.innerHTML = "";
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
             return;
         }
 
+        const user = api.auth.getUserData(); 
+        const isAdmin = user && user.role === 'admin';
+
         data.forEach(item => {
+            // [FIX] DEFINISIKAN TR DI SINI
             const tr = document.createElement("tr");
-            const dateL = item.letter_date ? new Date(item.letter_date).toLocaleDateString("id-ID") : "-";
-            const dateR = item.received_date ? new Date(item.received_date).toLocaleDateString("id-ID") : "-";
+
+            // [FIX] FORMAT TANGGAL
+            const dateLet = item.letter_date ? new Date(item.letter_date).toLocaleDateString("id-ID") : "-";
+            const dateRec = item.received_date ? new Date(item.received_date).toLocaleDateString("id-ID") : "-";
+
+            // [FIX] Status Pill Logic
+            let statusPill = `<span class="status-pill st-active">Aktif</span>`;
+            if (item.archive_status === 'inactive') statusPill = `<span class="status-pill st-inactive">Inaktif</span>`;
+            else if (item.archive_status === 'destroyed') statusPill = `<span class="status-pill st-destroyed">Musnah</span>`;
+
+            const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
             const hasFile = !!item.file_path;
 
+            // [FIX] ACTION BUTTONS
+            let actionButtons = `
+                <button class="btn-action-view" title="Lihat PDF" 
+                    onclick="window.openFile(${item.id})" 
+                    ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
+            `;
+
+            if (isAdmin) {
+                actionButtons += `
+                    <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
+                    <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+                `;
+            }
+
             tr.innerHTML = `
-                <td style="font-family:monospace; font-weight:600;">${item.number}</td>
-                <td>${dateL}</td>
-                <td style="color:var(--primary); font-weight:500;">${dateR}</td>
-                <td>${item.sender}</td>
-                <td>${item.subject}</td>
-                <td><span class="code-badge">${item.classification_code || '-'}</span></td>
-                <td style="font-size:12px;">👤 ${item.input_by || 'System'}</td>
+                <td>
+                    <div class="text-main" style="font-family:monospace; color:var(--primary);">${item.number}</div>
+                    <div class="text-sub"><span class="date-badge">Srt:</span> ${dateLet}</div>
+                </td>
+                <td>
+                    <div class="text-main" style="font-size:14px;">${dateRec}</div>
+                </td>
+                <td>
+                    <div class="text-main">${item.sender}</div>
+                    <div class="text-desc" title="${item.subject}">${item.subject}</div>
+                </td>
+                <td>
+                    <span class="code-badge" style="font-size:13px;">${item.classification_code || '-'}</span>
+                </td>
+                <td>
+                    <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
+                    ${statusPill}
+                </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
-                        <button class="btn-action-view" title="Lihat PDF" 
-                            onclick="window.openFile(${item.id})" 
-                            ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
-                        <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
-                        <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+                        ${actionButtons}
                     </div>
                 </td>
             `;
@@ -186,19 +223,52 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- FORM LOGIC (CREATE & UPDATE) ---
+    // --- FILTER LOGIC ---
+
+    function applyFilters() {
+        const term = elSearch.value.toLowerCase();
+        const cls = elFilterClass.value;
+        const status = elFilterStatus.value;
+        const dateType = elDateType.value; // 'received' atau 'letter'
+
+        const start = elStartDate.value ? new Date(elStartDate.value) : null;
+        const end = elEndDate.value ? new Date(elEndDate.value) : null;
+        if (end) end.setHours(23, 59, 59);
+
+        const filtered = allLetters.filter(item => {
+            const txtMatch = (item.number || "").toLowerCase().includes(term) ||
+                (item.sender || "").toLowerCase().includes(term) ||
+                (item.subject || "").toLowerCase().includes(term);
+            
+            const clsMatch = cls === "" || item.classification_code === cls;
+            const statusMatch = status === "" || item.archive_status === status;
+
+            let dateMatch = true;
+            let targetDateStr = (dateType === 'letter') ? item.letter_date : item.received_date;
+
+            if (targetDateStr) {
+                const d = new Date(targetDateStr);
+                if (start && d < start) dateMatch = false;
+                if (end && d > end) dateMatch = false;
+            } else {
+                if (start || end) dateMatch = false; 
+            }
+
+            return txtMatch && clsMatch && statusMatch && dateMatch;
+        });
+
+        renderTable(filtered);
+    }
+
+    // --- FORM LOGIC ---
 
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
-
-        // Reset Tampilan
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
-        
         if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-
-        btnAdd.classList.add("hidden");
-        btnBack.classList.remove("hidden");
+        if(btnAdd) btnAdd.classList.add("hidden");
+        if(btnBack) btnBack.classList.remove("hidden");
 
         document.getElementById("form-title").textContent = editMode ? "✏️ Edit Surat Masuk" : "📝 Tambah Surat Masuk";
         document.getElementById("form-entry").reset();
@@ -212,16 +282,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputSubject.value = data.subject;
             if (data.letter_date) inputLetterDate.value = data.letter_date.split('T')[0];
             if (data.received_date) inputReceivedDate.value = data.received_date.split('T')[0];
-
-            for (let i = 0; i < inputClassId.options.length; i++) {
-                if (data.classification_code && inputClassId.options[i].text.startsWith(data.classification_code)) {
-                    inputClassId.selectedIndex = i;
-                    break;
-                }
+            
+            if(data.classification_id) inputClassId.value = data.classification_id;
+            if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
+            
+            if (groupArchiveStatus) {
+                groupArchiveStatus.classList.remove("hidden");
+                if(data.archive_status) inputArchiveStatus.value = data.archive_status;
             }
 
-            // Preview File Lama (Di dalam Form Edit)
-            // Menggunakan logika rekonstruksi URL manual yang sama
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
                 const finalUrl = `/storage/documents/incoming_letters/${fileName}`;
@@ -229,17 +298,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } else {
             currentEditId = null;
+            if (groupArchiveStatus) groupArchiveStatus.classList.add("hidden");
         }
     }
 
     function showTableMode() {
         viewForm.classList.add("hidden");
-        
         if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-        
         viewTable.classList.remove("hidden");
-        btnAdd.classList.remove("hidden");
-        btnBack.classList.add("hidden");
+        if(btnAdd) btnAdd.classList.remove("hidden");
+        if(btnBack) btnBack.classList.add("hidden");
         resetFilePreview();
     }
 
@@ -270,6 +338,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('letter_date', inputLetterDate.value);
         formData.append('received_date', inputReceivedDate.value);
         formData.append('classification_id', inputClassId.value);
+        
+        if (inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
+        if (isEditMode && inputArchiveStatus.value) formData.append('archive_status', inputArchiveStatus.value);
+        
         if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
 
         const btn = e.target;
@@ -297,8 +369,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // --- GLOBAL ACTIONS ---
-
+    // --- GLOBAL HELPERS ---
     window.triggerEdit = (id) => {
         const item = allLetters.find(l => l.id === id);
         if (item) showFormMode(true, item);
@@ -309,70 +380,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             try {
                 await api.incomingLetter.delete(id);
                 loadLetters();
-            } catch (err) {
-                alert("Gagal hapus: " + err.message);
-            }
+            } catch (err) { alert("Gagal hapus: " + err.message); }
         }
     };
 
-    // --- [PERBAIKAN UTAMA] ---
-    // Menerima ID (angka), bukan path. Data path diambil aman dari memori.
     window.openFile = (id) => {
-        // 1. Cari data surat berdasarkan ID
         const item = allLetters.find(l => l.id === id);
-        
-        if (!item || !item.file_path) {
-            alert("File tidak tersedia atau data tidak ditemukan.");
-            return;
-        }
-
-        // 2. Ambil nama file saja (Split backslash atau slash)
-        // Data di 'item.file_path' masih utuh karena tidak lewat HTML attribute
+        if (!item || !item.file_path) { alert("File tidak tersedia."); return; }
         const fileName = item.file_path.split(/[\\/]/).pop();
-        
-        // 3. Rakit URL Manual (Menjamin path benar)
         const finalUrl = `/storage/documents/incoming_letters/${fileName}`;
         
-        // 4. Tampilkan Preview Fullscreen
         viewTable.classList.add("hidden");
         viewForm.classList.add("hidden");
-        btnAdd.classList.add("hidden");
-
-        if(viewPdfFullscreen) {
-            viewPdfFullscreen.classList.remove("hidden");
-            viewPdfFullscreen.style.display = "flex";
-            
-            if(fullscreenPdfViewer) {
-                console.log("Membuka Preview ID:", id, "URL:", finalUrl);
-                fullscreenPdfViewer.src = finalUrl;
-            }
-        } else {
-            console.error("Elemen view-pdf-fullscreen tidak ditemukan.");
-        }
+        if(btnAdd) btnAdd.classList.add("hidden");
+        
+        viewPdfFullscreen.classList.remove("hidden");
+        viewPdfFullscreen.style.display = "flex";
+        fullscreenPdfViewer.src = finalUrl;
     };
-
-    // --- FILTER LOGIC ---
-    function applyFilters() {
-        const term = elSearch.value.toLowerCase();
-        const start = elStartDate.value ? new Date(elStartDate.value) : null;
-        const end = elEndDate.value ? new Date(elEndDate.value) : null;
-        if (end) end.setHours(23, 59, 59);
-        const cls = elFilterClass.value;
-
-        const filtered = allLetters.filter(item => {
-            const txtMatch = (item.number || "").toLowerCase().includes(term) ||
-                (item.sender || "").toLowerCase().includes(term) ||
-                (item.subject || "").toLowerCase().includes(term);
-            const clsMatch = cls === "" || item.classification_code === cls;
-
-            let dateMatch = true;
-            if (item.received_date) {
-                const d = new Date(item.received_date);
-                if (start && d < start) dateMatch = false;
-                if (end && d > end) dateMatch = false;
-            }
-            return txtMatch && clsMatch && dateMatch;
-        });
-        renderTable(filtered);
-    }
 });

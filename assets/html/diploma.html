@@ -1,48 +1,231 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Arsip - Data Ijazah</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-    
+
     <style>
-        /* --- CSS Split View & Preview --- */
-        .layout-split { display: grid; grid-template-columns: 400px 1fr; gap: 24px; height: calc(100vh - 180px); min-height: 0; }
-        .card-form { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-        .form-scroll-area { flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 16px; }
-        .form-scroll-area::-webkit-scrollbar { width: 6px; }
-        .form-scroll-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-        
-        .card-preview { background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column; }
-        .upload-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #d1d5db; border-radius: 14px; margin: 16px; background: #f9fafb; transition: 0.2s; }
-        .upload-state:hover { background: #f0f9ff; border-color: var(--primary); }
-        .preview-state { display: none; height: 100%; width: 100%; background: #525659; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .btn-remove-file { position: absolute; top: 16px; right: 16px; background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10; display: flex; align-items: center; gap: 6px; }
-        
-        .hidden { display: none !important; }
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-warning { background: #fef9c3; color: #854d0e; }
+        /* --- LAYOUT UTAMA --- */
+        .layout-split {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 24px;
+            height: calc(100vh - 180px);
+            min-height: 0;
+        }
+
+        .card-form {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .form-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-bottom: 16px;
+        }
+
+        .card-preview {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.03);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UPLOAD & PREVIEW --- */
+        .upload-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #d1d5db;
+            border-radius: 14px;
+            margin: 16px;
+            background: #f9fafb;
+            transition: 0.2s;
+        }
+
+        .upload-state:hover {
+            background: #f0f9ff;
+            border-color: var(--primary);
+        }
+
+        .preview-state {
+            display: none;
+            height: 100%;
+            width: 100%;
+            background: #525659;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .btn-remove-file {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Badges & Pills */
+        .status-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .st-success {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        /* Hijau */
+        .st-warning {
+            background: #fef9c3;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+
+        /* Kuning */
+
+        .major-badge {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            background: #eff6ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 
 <body>
     <aside class="sidebar">
-        <div class="logo">S7</div>
-        <a class="nav-item" data-route="/page/dashboard" title="Dashboard">🏠</a>
-        <a class="nav-item" data-route="/page/incoming_letter" title="Surat Masuk">📥</a>
-        <a class="nav-item" data-route="/page/outgoing_letter" title="Surat Keluar">📤</a>
-        <a class="nav-item active" data-route="/page/diploma" title="Data Ijazah">🎓</a>
-        <a class="nav-item" data-route="/page/classification" title="Klasifikasi">🏷️</a>
-        <a class="nav-item" data-route="/page/user" title="Pengguna">👥</a>
-        <a class="nav-item" data-route="/page/log" title="Log Aktivitas">📜</a>
-        <a class="nav-item" data-route="/page/backup" title="Backup Database">💾</a>
-        <div style="margin-top:auto;"><a class="nav-item btn-logout-sidebar" id="btn-logout">🚪</a></div>
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='img/smkn7.png') }}" alt="Logo SMKN 7" class="sidebar-logo-img">
+            <div class="logo-text">
+                <span class="school-name">SMKN 7</span>
+                <span class="city-name">Bandung</span>
+            </div>
+        </div>
+
+        <a href="{{ url_for('view.dashboard_page') }}" data-route="{{ url_for('view.dashboard_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.dashboard_page')) %}active{% endif %}">
+            <i class='bx bxs-dashboard'></i> Dashboard
+        </a>
+
+        <a href="{{ url_for('view.incoming_letter_page') }}" data-route="{{ url_for('view.incoming_letter_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.incoming_letter_page')) %}active{% endif %}">
+            <i class='bx bxs-envelope'></i> Surat Masuk
+        </a>
+
+        <a href="{{ url_for('view.outgoing_letter_page') }}" data-route="{{ url_for('view.outgoing_letter_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.outgoing_letter_page')) %}active{% endif %}">
+            <i class='bx bxs-paper-plane'></i> Surat Keluar
+        </a>
+
+        {% if session.get('role') in ['admin', 'headmaster'] %}
+        <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
+            <i class='bx bxs-certification'></i> Data Ijazah
+        </a>
+
+        <a href="{{ url_for('view.finance_archive') }}" data-route="{{ url_for('view.finance_archive') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.finance_archive')) %}active{% endif %}">
+            <i class='bx bxs-wallet'></i> Arsip Keuangan
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('view.employee_archive') }}" data-route="{{ url_for('view.employee_archive') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.employee_archive')) %}active{% endif %}">
+            <i class='bx bxs-user-badge'></i> Arsip Pegawai
+        </a>
+
+        {% if session.get('role') == 'admin' %}
+        <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
+
+        <a href="{{ url_for('view.classification_page') }}" data-route="{{ url_for('view.classification_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.classification_page')) %}active{% endif %}">
+            <i class='bx bxs-folder-open'></i> Klasifikasi
+        </a>
+
+        <a href="{{ url_for('view.storage_location') }}" data-route="{{ url_for('view.storage_location') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.storage_location')) %}active{% endif %}">
+            <i class='bx bxs-cabinet'></i> Lokasi Simpan
+        </a>
+
+        <a href="{{ url_for('view.disposal') }}" data-route="{{ url_for('view.disposal') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.disposal')) %}active{% endif %}">
+            <i class='bx bxs-trash'></i> Penyusutan Arsip
+        </a>
+
+        <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
+
+        <a href="{{ url_for('view.user_page') }}" data-route="{{ url_for('view.user_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.user_page')) %}active{% endif %}">
+            <i class='bx bxs-group'></i> Pengguna
+        </a>
+
+        <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
+            <i class='bx bx-history'></i> Log Aktivitas
+        </a>
+
+        <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Backup Database
+        </a>
+        {% endif %}
+
+        <div style="margin-top: auto;">
+            <a class="nav-item btn-logout-sidebar" id="btn-logout">
+                <i class='bx bx-log-out'></i> Keluar
+            </a>
+        </div>
     </aside>
 
     <main class="main-content">
@@ -52,17 +235,19 @@
                 <p>Kelola pendataan dan arsip digital ijazah lulusan.</p>
             </div>
             <div class="header-tools">
+                {% if session.get('role') == 'admin' %}
                 <button class="btn-add" id="btn-add-new" title="Tambah Data Baru">+</button>
-                <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">
-                    ↩ Kembali
-                </button>
+                {% endif %}
+                <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">↩
+                    Kembali</button>
                 <div class="user-avatar" id="header-avatar">?</div>
             </div>
         </div>
 
         <section id="view-table" class="content-card">
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari Nama Siswa, NISN, atau No. Seri..." id="searchInput">
+                <input type="text" class="search-input" placeholder="Cari Nama Siswa, NISN, atau No. Seri..."
+                    id="searchInput">
             </div>
 
             <div class="filter-row">
@@ -70,8 +255,10 @@
                     <option value="">Semua Jurusan</option>
                     <option value="Kimia Industri">Kimia Industri</option>
                     <option value="Teknik Penyempurnaan Tekstil">Teknik Penyempurnaan Tekstil</option>
-                    <option value="Analisis Kimia ">Analisis Kimia</option>
+                    <option value="Analisis Kimia">Analisis Kimia</option>
                     <option value="Farmasi">Farmasi</option>
+                    <option value="RPL">RPL</option>
+                    <option value="TKJ">TKJ</option>
                 </select>
 
                 <select id="filterYear" class="filter-select">
@@ -86,7 +273,6 @@
                     <option value="taken">Sudah Diambil</option>
                     <option value="pending">Belum Diambil</option>
                 </select>
-
                 <button id="btnResetFilter" class="filter-btn">🔄 Reset</button>
             </div>
 
@@ -94,36 +280,36 @@
                 <table id="diplomaTable">
                     <thead>
                         <tr>
-                            <th>No. Seri / NISN</th>
-                            <th>Nama Siswa</th>
-                            <th>Jurusan</th>
-                            <th>Thn Ajaran</th>
-                            <th>Status</th>
-                            <th>Tgl Ambil</th>
-                            <th style="text-align:center;">Aksi</th>
+                            <th style="width: 25%;">Siswa & NISN</th>
+                            <th style="width: 20%;">Jurusan & Tahun</th>
+                            <th style="width: 25%;">Lokasi & Status</th>
+                            <th style="width: 15%;">Tanggal Ambil</th>
+                            <th style="width: 15%; text-align:center;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body">
-                        </tbody>
+                    <tbody id="table-body"></tbody>
                 </table>
             </div>
         </section>
 
         <div id="view-form" class="layout-split hidden">
             <section class="card-form">
-                <h3 id="form-title" style="font-size:16px; font-weight:600; margin-bottom:16px;">🎓 Input Data Siswa</h3>
-                
+                <h3 id="form-title" style="font-size:16px; font-weight:600; margin-bottom:16px;">🎓 Input Data Siswa
+                </h3>
+
                 <form id="form-entry" class="form-scroll-area">
                     <input type="hidden" id="entry-id">
-                    
+
                     <div class="form-group">
                         <label>Nama Lengkap Siswa</label>
-                        <div class="input-control"><input id="student_name" required type="text" placeholder="Nama sesuai ijazah"></div>
+                        <div class="input-control"><input id="student_name" required type="text"
+                                placeholder="Nama sesuai ijazah"></div>
                     </div>
 
                     <div class="form-group">
                         <label>Nomor Seri Ijazah / NISN</label>
-                        <div class="input-control"><input id="serial_number" required type="text" placeholder="Contoh: DN-01/Mk/12345"></div>
+                        <div class="input-control"><input id="serial_number" required type="text"
+                                placeholder="Contoh: DN-01/Mk/12345"></div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -135,22 +321,36 @@
                                 <option value="TKJ">Teknik Komputer Jaringan</option>
                                 <option value="AKL">Akuntansi</option>
                                 <option value="OTKP">Perkantoran</option>
+                                <option value="Kimia Industri">Kimia Industri</option>
+                                <option value="Teknik Penyempurnaan Tekstil">Teknik Penyempurnaan Tekstil</option>
+                                <option value="Analisis Kimia">Analisis Kimia</option>
+                                <option value="Farmasi">Farmasi</option>
                             </select>
                         </div>
-                        
                         <div class="form-group">
                             <label>Tahun Ajaran</label>
                             <div class="input-control">
-                                <input id="academic_year" required type="text" placeholder="Contoh: 2024/2025" style="width:100%">
+                                <input id="academic_year" required type="text" placeholder="Contoh: 2024/2025"
+                                    style="width:100%">
                             </div>
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label>Lokasi Simpan Fisik</label>
+                        <select id="storage_location_id" class="filter-select" style="width:100%">
+                            <option value="">-- Pilih Lokasi --</option>
+                        </select>
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">Lemari tempat ijazah
+                            disimpan sebelum diambil.</p>
+                    </div>
+
                     <div style="margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; font-size:13px;">
+                        <label
+                            style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; font-size:13px;">
                             <input type="checkbox" id="is_taken_checkbox"> Ijazah Sudah Diambil?
                         </label>
-                        
+
                         <div id="date-taken-wrapper" class="hidden" style="margin-top: 10px;">
                             <label style="font-size:12px;">Tanggal Pengambilan</label>
                             <input type="date" id="date_taken" class="filter-select" style="width:100%">
@@ -159,7 +359,9 @@
                 </form>
 
                 <div style="padding-top:16px; border-top:1px solid #f3f4f6;">
-                    <button id="btn-save-data" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Simpan Data</button>
+                    <button id="btn-save-data"
+                        style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Simpan
+                        Data</button>
                 </div>
             </section>
 
@@ -168,12 +370,12 @@
                     <div style="font-size:48px; margin-bottom:12px;">📄</div>
                     <h3 style="font-size:14px; font-weight:600;">Upload Scan Ijazah</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">PDF / Gambar (Max 5MB)</p>
-                    
-                    <label style="padding:8px 16px; background:var(--primary); color:white; border-radius:99px; font-size:12px; cursor:pointer;">
-                        Pilih File <input type="file" id="fileInput" accept="application/pdf, image/*" style="display:none;">
+                    <label
+                        style="padding:8px 16px; background:var(--primary); color:white; border-radius:99px; font-size:12px; cursor:pointer;">
+                        Pilih File <input type="file" id="fileInput" accept="application/pdf, image/*"
+                            style="display:none;">
                     </label>
                 </div>
-                
                 <div id="preview-box" class="preview-state">
                     <button class="btn-remove-file" id="btn-cancel-upload"><span>✖</span> Ganti File</button>
                     <iframe id="pdf-viewer" src=""></iframe>
@@ -181,12 +383,14 @@
             </section>
         </div>
 
-        <section id="view-pdf-fullscreen" class="content-card hidden" style="height: calc(100vh - 140px); display: flex; flex-direction: column; padding: 0;">
-            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <section id="view-pdf-fullscreen" class="content-card hidden"
+            style="height: calc(100vh - 140px); display: flex; flex-direction: column; padding: 0;">
+            <div
+                style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin:0; font-size: 16px;">📄 Pratinjau Dokumen</h3>
-                <button id="btn-close-preview-mode" style="background: #e5e7eb; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                    ✖ Tutup Preview
-                </button>
+                <button id="btn-close-preview-mode"
+                    style="background: #e5e7eb; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">✖
+                    Tutup</button>
             </div>
             <div style="flex: 1; background: #525659; position: relative;">
                 <iframe id="fullscreen-pdf-viewer" style="width: 100%; height: 100%; border: none;"></iframe>
@@ -198,4 +402,5 @@
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/diploma.js') }}"></script>
 </body>
+
 </html>

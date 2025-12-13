@@ -41,3 +41,23 @@ def backup():
 @view_bp.route('/user_profile', methods=['GET'])
 def user_profile():
     return render_template('user_profile.html')
+
+@view_bp.route('/storage_location', methods=['GET'])
+def storage_location():
+    return render_template('storage_location.html')
+
+@view_bp.route('/finance_archive', methods=['GET'])
+def finance_archive():
+    return render_template('finance_archive.html')
+
+@view_bp.route('/employee_archive', methods=['GET'])
+def employee_archive():
+    return render_template('employee_archive.html')
+
+@view_bp.route('/disposal', methods=['GET'])
+def disposal():
+    return render_template('disposal.html')
+
+@view_bp.route('/teacher', methods=['GET'])
+def teacher():
+    return render_template('teacher.html')

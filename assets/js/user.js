@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
     
-    // --- NAVIGASI & AUTH ---
+    // --- NAVIGASI ---
     document.querySelectorAll("[data-route]").forEach(el => {
         el.addEventListener("click", () => window.location.href = el.dataset.route);
     });
@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- VARIABLES ---
     let allUsers = [];
+    let allTeachers = []; // Store master guru
     let isEditMode = false;
     let currentEditId = null;
 
@@ -19,15 +20,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pageTitle = document.getElementById("page-title");
     
     // Inputs
-    const inputId = document.getElementById("entry-id");
-    const inputNuptk = document.getElementById("inputNuptk");
-    const inputUsername = document.getElementById("inputUsername");
+    const inputTeacherId = document.getElementById("inputTeacherId"); // Dropdown Guru
     const inputPass = document.getElementById("inputPassword");
     const inputConfPass = document.getElementById("inputConfirmPassword");
     const inputRole = document.getElementById("inputRole");
     const inputStatusToggle = document.getElementById("inputStatusToggle");
     const statusLabelText = document.getElementById("statusLabelText");
-    const displayStatusBadge = document.getElementById("displayStatusBadge");
 
     // Buttons
     const btnAdd = document.getElementById("btn-add-new");
@@ -43,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- INITIALIZATION ---
     await loadData();
+    await loadTeachers(); // Load data guru untuk dropdown
 
     // --- EVENTS ---
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
@@ -50,19 +49,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(btnCancel) btnCancel.addEventListener("click", showTableMode);
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
-    // Toggle Label Change
     if(inputStatusToggle) {
         inputStatusToggle.addEventListener("change", (e) => {
-            const isActive = e.target.checked;
-            statusLabelText.textContent = isActive ? "Aktif" : "Nonaktif";
-            statusLabelText.style.color = isActive ? "#1f2937" : "#ef4444";
-            
-            // Update Info Panel badge realtime
-            updateInfoPanelStatus(isActive);
+            statusLabelText.textContent = e.target.checked ? "Aktif" : "Nonaktif";
+            statusLabelText.style.color = e.target.checked ? "#1f2937" : "#ef4444";
         });
     }
 
-    // Filter Events
     [searchInput, filterRole, filterStatus].forEach(el => {
         if(el) {
             el.addEventListener("keyup", applyFilters);
@@ -81,14 +74,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadData() {
         const tbody = document.getElementById("table-body");
-        tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
-
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
         try {
             allUsers = await api.user.getAll();
             renderTable(allUsers);
         } catch (e) {
             console.error(e);
             tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+        }
+    }
+
+    async function loadTeachers() {
+        try {
+            allTeachers = await api.teacher.getAll();
+        } catch (e) {
+            console.error("Gagal load teacher", e);
         }
     }
 
@@ -104,24 +104,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(user => {
             const tr = document.createElement("tr");
             
-            // Status Logic (Handle berbagai kemungkinan format dari backend)
-            const isActive = user.is_active || user.status === 'active' || user.status === true;
-            
+            // Handle Status String
+            const isActive = user.status === 'active';
             const statusBadge = isActive 
                 ? `<span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:600;">Active</span>`
                 : `<span style="background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:600;">Inactive</span>`;
 
-            // Role Badge logic
-            let roleClass = "";
+            // Handle Role String
+            let roleClass = "background:#DCFCE7; color:#16A34A;"; // default teacher
             if (user.role === 'headmaster') roleClass = "background:#F3E8FF; color:#9333EA;";
             else if (user.role === 'admin') roleClass = "background:#DBEAFE; color:#2563EB;";
-            else roleClass = "background:#DCFCE7; color:#16A34A;";
             
             const dateCreated = user.created_at ? new Date(user.created_at).toLocaleDateString("id-ID") : "-";
 
+            // Tampilkan NIP (identity_number) sebagai username login
             tr.innerHTML = `
-                <td style="font-family:monospace; font-weight:600;">${user.nuptk}</td>
-                <td>${user.username}</td>
+                <td style="font-family:monospace; font-weight:600;">${user.identity_number || '-'}</td>
+                <td>${user.full_name || 'Unknown'}</td>
                 <td><span style="padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; text-transform:capitalize; ${roleClass}">${user.role}</span></td>
                 <td>${statusBadge}</td>
                 <td style="font-size:13px; color:#6b7280;">${dateCreated}</td>
@@ -136,6 +135,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    function populateTeacherDropdown(selectedTeacherId = null) {
+        inputTeacherId.innerHTML = '<option value="">-- Pilih Guru --</option>';
+        
+        // Filter guru:
+        // 1. Jika Edit Mode: Tampilkan Guru yang sedang diedit (biar namanya muncul)
+        // 2. Jika Add Mode: Tampilkan HANYA guru yang BELUM punya akun di list allUsers
+        
+        allTeachers.forEach(t => {
+            const hasAccount = allUsers.some(u => u.identity_number === t.identity_number);
+            
+            // Jika Edit Mode, kita izinkan ID guru yang sedang diedit muncul
+            if (isEditMode && t.id == selectedTeacherId) {
+                const opt = document.createElement("option");
+                opt.value = t.id;
+                opt.textContent = `${t.identity_number} - ${t.full_name}`;
+                opt.selected = true;
+                inputTeacherId.appendChild(opt);
+            } 
+            // Jika Add Mode, hanya tampilkan yang belum punya akun
+            else if (!hasAccount) {
+                const opt = document.createElement("option");
+                opt.value = t.id;
+                opt.textContent = `${t.identity_number} - ${t.full_name}`;
+                inputTeacherId.appendChild(opt);
+            }
+        });
+
+        if(inputTeacherId.options.length === 1 && !isEditMode){
+             const opt = document.createElement("option");
+             opt.disabled = true;
+             opt.textContent = "Semua guru sudah memiliki akun.";
+             inputTeacherId.appendChild(opt);
+        }
+    }
+
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
         
@@ -144,37 +178,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
-        // Reset inputs
         document.getElementById("form-entry").reset();
         
+        // Populate Dropdown
+        const teacherId = data ? data.teacher_id : null; // Note: pastikan API get_all return teacher_id jika butuh, tp kita bisa cari via NIP
+        
+        // Kita butuh ID Guru untuk dropdown. Karena API user.get_all mungkin tidak return teacher_id scr eksplisit (hanya identity_number), 
+        // kita cari ID teacher dari allTeachers berdasarkan identity_number
+        let realTeacherId = null;
+        if(data && data.identity_number) {
+            const t = allTeachers.find(x => x.identity_number === data.identity_number);
+            if(t) realTeacherId = t.id;
+        }
+
+        populateTeacherDropdown(realTeacherId);
+
         if(editMode && data) {
-            pageTitle.textContent = "Edit User";
+            pageTitle.textContent = "Edit Akun User";
             currentEditId = data.id;
-            inputId.value = data.id;
             
-            inputNuptk.value = data.nuptk;
-            inputNuptk.readOnly = true; // NUPTK tidak boleh diubah saat edit
+            // Disable dropdown guru saat edit (tidak boleh ganti pemilik akun)
+            inputTeacherId.value = realTeacherId;
+            inputTeacherId.disabled = true; 
             
-            inputUsername.value = data.username;
             inputRole.value = data.role;
-            
-            // Baca status dari data yang ada
-            const isActive = data.is_active || data.status === 'active' || data.status === true;
+            const isActive = data.status === 'active';
             inputStatusToggle.checked = isActive;
-            
-            // Trigger visual update for toggle
             statusLabelText.textContent = isActive ? "Aktif" : "Nonaktif";
-            updateInfoPanelStatus(isActive);
             
         } else {
-            pageTitle.textContent = "Tambah User Baru";
+            pageTitle.textContent = "Buat Akun Baru";
             currentEditId = null;
-            inputNuptk.readOnly = false;
+            inputTeacherId.disabled = false;
             
-            // Default Active
             inputStatusToggle.checked = true;
             statusLabelText.textContent = "Aktif";
-            updateInfoPanelStatus(true);
         }
     }
 
@@ -186,31 +224,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         pageTitle.textContent = "Data Pengguna";
     }
 
-    function updateInfoPanelStatus(isActive) {
-        if(isActive) {
-            displayStatusBadge.innerHTML = `<span style="width:8px; height:8px; background:#16a34a; border-radius:50%;"></span> Aktif`;
-            displayStatusBadge.style.color = "#16a34a";
-        } else {
-            displayStatusBadge.innerHTML = `<span style="width:8px; height:8px; background:#ef4444; border-radius:50%;"></span> Nonaktif`;
-            displayStatusBadge.style.color = "#ef4444";
-        }
-    }
-
     async function handleSaveData(e) {
         e.preventDefault();
 
         // Validasi
-        if(!inputNuptk.value || !inputUsername.value || !inputRole.value) {
-            alert("Harap lengkapi NUPTK, Username, dan Role!");
+        if(!inputTeacherId.value || !inputRole.value) {
+            alert("Harap pilih Guru dan Role!");
             return;
         }
 
-        // Cek Password
         const pass = inputPass.value;
         const conf = inputConfPass.value;
         
         if(!isEditMode && !pass) {
-            alert("Password wajib diisi untuk user baru!");
+            alert("Password wajib diisi untuk akun baru!");
             return;
         }
         if(pass && pass !== conf) {
@@ -219,17 +246,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const payload = {
-            nuptk: inputNuptk.value,
-            username: inputUsername.value,
+            teacher_id: inputTeacherId.value, // Kirim ID Guru
             role: inputRole.value,
-            
-            // --- PERBAIKAN DI SINI ---
-            // Backend mewajibkan key 'status' dengan nilai string 'active'/'inactive'
-            // Sebelumnya dikirim sebagai 'is_active' (boolean) yang menyebabkan error 400
-            status: inputStatusToggle.checked ? 'active' : 'inactive' 
+            status: inputStatusToggle.checked ? 'active' : 'inactive' // Kirim String
         };
         
-        // Kirim password hanya jika diisi
         if(pass) payload.password = pass;
 
         const btn = e.target;
@@ -241,10 +262,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(isEditMode) {
                 payload.id = currentEditId;
                 await api.user.update(payload); 
-                alert("User berhasil diperbarui!");
+                alert("Akun berhasil diperbarui!");
             } else {
                 await api.user.create(payload);
-                alert("User berhasil dibuat!");
+                alert("Akun berhasil dibuat!");
             }
             showTableMode();
             loadData();
@@ -264,7 +285,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Yakin ingin menghapus user ini?")) {
+        if(confirm("Hapus akun ini? Guru pemilik akun tidak akan terhapus, hanya akses loginnya.")) {
             try {
                 await api.user.delete(id);
                 loadData();
@@ -281,17 +302,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         const status = filterStatus.value;
 
         const filtered = allUsers.filter(u => {
-            const txtMatch = (u.username||"").toLowerCase().includes(term) || (u.nuptk||"").includes(term);
+            const txtMatch = (u.full_name||"").toLowerCase().includes(term) || (u.identity_number||"").includes(term);
             const roleMatch = role === "" || u.role === role;
-            
-            let statusMatch = true;
-            const uActive = u.is_active || u.status === 'active' || u.status === true;
-            if(status === 'active') statusMatch = uActive;
-            if(status === 'inactive') statusMatch = !uActive;
+            const statusMatch = status === "" || u.status === status;
 
             return txtMatch && roleMatch && statusMatch;
         });
         
         renderTable(filtered);
     }
-}); 
+});

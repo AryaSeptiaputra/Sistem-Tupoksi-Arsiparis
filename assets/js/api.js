@@ -1,7 +1,8 @@
 /**
  * api.js - Service Wrapper untuk komunikasi dengan Backend Flask
  */
-const BASE_URL = "http://127.0.0.1:5000"; 
+// Kosongkan agar otomatis mengikuti domain tempat aplikasi dibuka
+const BASE_URL = "";
 
 // --- HELPER FUNCTION ---
 
@@ -9,14 +10,14 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
     const token = localStorage.getItem('access_token');
     const headers = {};
     
-    // Pastikan token dikirim jika ada
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
     const config = {
         method: method,
-        headers: headers
+        headers: headers,
+        credentials: 'include' // <--- ⚠️ TAMBAHKAN BARIS INI (Wajib!)
     };
 
     if (body) {
@@ -102,6 +103,14 @@ const api = {
         getByKeys: (filters) => fetchAPI('/user/get_by_keys', 'POST', { filters })
     },
 
+    teacher: {
+        create: (data) => fetchAPI('/teacher/create', 'POST', data),
+        update: (data) => fetchAPI('/teacher/update', 'POST', data),
+        delete: (id) => fetchAPI('/teacher/delete', 'POST', { id }),
+        getAll: () => fetchAPI('/teacher/get_all', 'GET'),
+        getByKeys: (filters) => fetchAPI('/teacher/get_by_keys', 'POST', { filters })
+    },
+
     // 3. CLASSIFICATION
     classification: {
         create: (data) => fetchAPI('/classification/create', 'POST', data),
@@ -151,6 +160,33 @@ const api = {
         
         // TAMBAHAN BARU:
         restore: (filename) => fetchAPI('/backup/restore', 'POST', { filename })
+    },
+
+    // 9. STORAGE LOCATION (Lokasi Simpan)
+    storageLocation: {
+        create: (data) => fetchAPI('/storage_location/create', 'POST', data),
+        update: (data) => fetchAPI('/storage_location/update', 'POST', data),
+        delete: (id) => fetchAPI('/storage_location/delete', 'POST', { id }),
+        getAll: () => fetchAPI('/storage_location/get_all', 'GET')
+    },
+
+    financeArchive: {
+        create: (formData) => fetchAPI('/finance_archive/create', 'POST', formData),
+        update: (data) => fetchAPI('/finance_archive/update', 'POST', data),
+        delete: (id) => fetchAPI('/finance_archive/delete', 'POST', { id }),
+        getAll: () => fetchAPI('/finance_archive/get_all', 'GET')
+    },
+
+    employeeArchive: {
+        create: (formData) => fetchAPI('/employee_archive/create', 'POST', formData),
+        update: (data) => fetchAPI('/employee_archive/update', 'POST', data),
+        delete: (id) => fetchAPI('/employee_archive/delete', 'POST', { id }),
+        getAll: () => fetchAPI('/employee_archive/get_all', 'GET')
+    },
+
+    disposal: {
+        check: () => fetchAPI('/disposal/check', 'GET'),
+        execute: (items) => fetchAPI('/disposal/execute', 'POST', { items }) 
     }
 };
 

@@ -2,20 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.incoming_letter import IncomingLetter
 import datetime
 
-def create_incoming_letter(db: Session, letter_data: dict, user_id: int) -> IncomingLetter:
-    """
-    Creates a new incoming letter record in the database.
-
-    Args:
-        db (Session): The database session.
-        letter_data (dict): A dictionary containing letter details. Expected keys:
-            'number', 'letter_date', 'received_date', 'sender', 'subject',
-            'classification_id', and optionally 'attachment_path'.
-        user_id (int): The ID of the user creating the record.
-
-    Returns:
-        IncomingLetter: The newly created incoming letter record.
-    """
+# [UBAH] Hapus user_id dari parameter
+def create_incoming_letter(db: Session, letter_data: dict) -> IncomingLetter:
     new_letter = IncomingLetter(
         number=letter_data['number'],
         letter_date=letter_data['letter_date'], 
@@ -24,7 +12,11 @@ def create_incoming_letter(db: Session, letter_data: dict, user_id: int) -> Inco
         subject=letter_data['subject'],
         attachment_path=letter_data.get('attachment_path'),
         classification_id=letter_data['classification_id'],
-        user_id=user_id,
+        storage_location_id=letter_data.get('storage_location_id'),
+        
+        # Default status string
+        archive_status=letter_data.get('archive_status', 'active'),
+        
         created_at=datetime.datetime.now(),
         updated_at=datetime.datetime.now()
     )
@@ -35,28 +27,21 @@ def create_incoming_letter(db: Session, letter_data: dict, user_id: int) -> Inco
     return new_letter
 
 def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> IncomingLetter | None:
-    """
-    Updates an existing incoming letter record.
-
-    Args:
-        db (Session): The database session.
-        letter_id (int): The ID of the letter to update.
-        update_data (dict): A dictionary of fields to update. Keys 'id' and 
-            'user_id' will be ignored if present.
-
-    Returns:
-        IncomingLetter | None: The updated record, or None if the letter ID 
-            was not found.
-    """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
         return None
 
     for key, value in update_data.items():
-        if key == 'id' or key == 'user_id': 
+        # Skip field system
+        if key in ['id', 'created_at']: 
             continue
+        
         if hasattr(existing_letter, key):
-            setattr(existing_letter, key, value)
+            # Handle empty storage location
+            if key == 'storage_location_id' and (value == "" or value is None):
+                setattr(existing_letter, key, None)
+            else:
+                setattr(existing_letter, key, value)
             
     existing_letter.updated_at = datetime.datetime.now()
     
@@ -65,16 +50,6 @@ def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> In
     return existing_letter
 
 def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None:
-    """
-    Deletes an incoming letter record by its ID.
-
-    Args:
-        db (Session): The database session.
-        letter_id (int): The ID of the letter to delete.
-
-    Returns:
-        IncomingLetter | None: The deleted record, or None if the ID was not found.
-    """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
         return None
@@ -84,40 +59,19 @@ def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None
     return existing_letter
 
 def get_all_incoming_letters(db: Session) -> list[IncomingLetter]:
-    """
-    Retrieves all incoming letter records from the database.
-
-    Args:
-        db (Session): The database session.
-
-    Returns:
-        list[IncomingLetter]: A list of all incoming letters.
-    """
     return db.query(IncomingLetter).all()
 
 def get_incoming_letters_by_keys(db: Session, filters: dict) -> list[IncomingLetter]:
-    """
-    Retrieves incoming letters filtered by specific column values.
-
-    Args:
-        db (Session): The database session.
-        filters (dict): Key-value pairs to filter the query. Keys must match 
-            valid column names in the IncomingLetter model.
-
-    Returns:
-        list[IncomingLetter]: A list of incoming letters matching the filters.
-
-    Raises:
-        ValueError: If a key in the filters dictionary does not exist as a 
-            column in the model.
-    """
     query = db.query(IncomingLetter)
     
     for key, value in filters.items():
         if not hasattr(IncomingLetter, key):
-            raise ValueError(f"Invalid column '{key}' for IncomingLetter.")
+            continue 
         
         column_to_filter = getattr(IncomingLetter, key)
-        query = query.filter(column_to_filter.ilike(f"%{value}%"))
+        if key.endswith('_id') or key == 'archive_status':
+            query = query.filter(column_to_filter == value)
+        else:
+            query = query.filter(column_to_filter.ilike(f"%{value}%"))
         
     return query.all()

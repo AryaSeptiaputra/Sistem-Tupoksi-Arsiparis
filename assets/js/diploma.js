@@ -16,8 +16,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
     const viewForm = document.getElementById("view-form");
-    
-    // PREVIEW FULLSCREEN
     const viewPdfFullscreen = document.getElementById("view-pdf-fullscreen");
     const fullscreenPdfViewer = document.getElementById("fullscreen-pdf-viewer");
     const btnClosePreviewMode = document.getElementById("btn-close-preview-mode");
@@ -33,6 +31,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputMajor = document.getElementById("major");
     const inputYear = document.getElementById("academic_year");
     
+    const inputStorageId = document.getElementById("storage_location_id");
+    
     const inputIsTaken = document.getElementById("is_taken_checkbox");
     const wrapperDateTaken = document.getElementById("date-taken-wrapper");
     const inputDateTaken = document.getElementById("date_taken");
@@ -43,20 +43,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
 
+    // Filters
     const elSearch = document.getElementById("searchInput");
     const elFilterMajor = document.getElementById("filterMajor");
     const elFilterYear = document.getElementById("filterYear");
     const elFilterStatus = document.getElementById("filterStatus");
 
     // --- INITIALIZATION ---
-    await loadData();
+    await initPage();
 
     // --- EVENT LISTENERS ---
     
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
 
-    // Listener Tutup Preview
     if (btnClosePreviewMode) {
         btnClosePreviewMode.addEventListener("click", () => {
             if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
@@ -105,16 +105,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- CORE FUNCTIONS ---
 
-    async function loadData() {
+    async function initPage() {
         const tbody = document.getElementById("table-body");
-        tbody.innerHTML = `<tr><td colspan="7" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
-        
+        tbody.innerHTML = `<tr><td colspan="5" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
+
+        await Promise.all([
+            loadStorageLocations(), 
+            loadData()
+        ]);
+    }
+
+    async function loadStorageLocations() {
+        try {
+            const data = await api.storageLocation.getAll();
+            if(inputStorageId) {
+                inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
+                data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
+            }
+        } catch (e) { console.error("Gagal load lokasi", e); }
+    }
+
+    async function loadData() {
         try {
             allDiplomas = await api.diploma.getAll();
             renderTable(allDiplomas);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
         }
     }
 
@@ -123,36 +140,68 @@ document.addEventListener("DOMContentLoaded", async () => {
         tbody.innerHTML = "";
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
             return;
         }
+
+        const user = api.auth.getUserData();
+        const isAdmin = user && user.role === 'admin';
 
         data.forEach(item => {
             const tr = document.createElement("tr");
             
+            // Status Logic
             const statusObj = item.status || {}; 
             const isCollected = statusObj.is_collected === true;
             const rawDate = statusObj.collected_at;
-            const dateTaken = rawDate ? new Date(rawDate).toLocaleDateString("id-ID") : "-";
+            const dateTaken = rawDate ? new Date(rawDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-";
             
-            const badgeClass = isCollected ? 'badge-success' : 'badge-warning';
-            const statusText = statusObj.status_text || (isCollected ? 'Sudah Diambil' : 'Belum Diambil');
-            const hasFile = !!item.attachment_path; 
+            // Menggunakan class Pill Baru
+            let statusPill = isCollected 
+                ? `<span class="status-pill st-success">Sudah Diambil</span>` 
+                : `<span class="status-pill st-warning">Belum Diambil</span>`;
 
+            const hasFile = !!item.attachment_path;
+            const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
+
+            // GENERATE TOMBOL AKSI
+            let actionButtons = `
+                <button class="btn-action-view" title="Lihat File" 
+                    onclick="window.openFile(${item.id})" 
+                    ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
+            `;
+
+            if (isAdmin) {
+                actionButtons += `
+                    <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
+                    <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+                `;
+            }
+
+            // --- RENDER DENGAN STRUKTUR BARU (GABUNGAN KOLOM) ---
             tr.innerHTML = `
-                <td style="font-family:monospace; font-weight:600;">${item.number || '-'}</td>
-                <td>${item.student_name}</td>
-                <td>${item.major || '-'}</td>
-                <td>${item.academic_year || '-'}</td>
-                <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                <td style="font-size:13px; color:var(--text-muted);">${dateTaken}</td>
+                <td>
+                    <div class="text-main">${item.student_name}</div>
+                    <div class="text-sub">No. Seri: ${item.number || '-'}</div>
+                </td>
+                
+                <td>
+                    <span class="major-badge">${item.major || '-'}</span>
+                    <div class="text-sub" style="margin-top:4px;">Tahun: ${item.academic_year || '-'}</div>
+                </td>
+                
+                <td>
+                    <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
+                    ${statusPill}
+                </td>
+                
+                <td>
+                    <div class="text-main" style="font-size:14px;">${dateTaken}</div>
+                </td>
+                
                 <td style="text-align:center;">
                     <div class="btn-action-group">
-                        <button class="btn-action-view" title="Lihat File" 
-                            onclick="window.openFile(${item.id})" 
-                            ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
-                        <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
-                        <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+                        ${actionButtons}
                     </div>
                 </td>
             `;
@@ -160,18 +209,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- FORM MANAGEMENT ---
+    // --- FORM MANAGEMENT (Sama seperti sebelumnya) ---
 
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
-        
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
-        
         if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
 
-        btnAdd.classList.add("hidden");
-        btnBack.classList.remove("hidden");
+        if(btnAdd) btnAdd.classList.add("hidden");
+        if(btnBack) btnBack.classList.remove("hidden");
 
         document.getElementById("form-title").textContent = editMode ? "✏️ Edit Data Ijazah" : "🎓 Input Data Baru";
         document.getElementById("form-entry").reset();
@@ -181,27 +228,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (editMode && data) {
             currentEditId = data.id;
             inputId.value = data.id;
-            
             inputName.value = data.student_name;
             inputSerial.value = data.number;
             inputMajor.value = data.major;
             inputYear.value = data.academic_year;
+            
+            if (data.storage_location_id) inputStorageId.value = data.storage_location_id;
 
             const statusObj = data.status || {};
-            
             if (statusObj.is_collected === true) {
                 inputIsTaken.checked = true;
                 wrapperDateTaken.classList.remove("hidden");
-                
                 if(statusObj.collected_at) {
                     inputDateTaken.value = statusObj.collected_at.split('T')[0];
                 }
             }
 
-            // Logic Preview di Form Edit
             if (data.attachment_path) {
                 const fileName = data.attachment_path.split(/[\\/]/).pop();
-                // Pastikan path ini sesuai folder penyimpanan
                 const cleanPath = `/storage/documents/diplomas/${fileName}`;
                 showPreview(cleanPath); 
             }
@@ -212,12 +256,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function showTableMode() {
         viewForm.classList.add("hidden");
-        
         if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-
         viewTable.classList.remove("hidden");
-        btnAdd.classList.remove("hidden");
-        btnBack.classList.add("hidden");
+        if(btnAdd) btnAdd.classList.remove("hidden");
+        if(btnBack) btnBack.classList.add("hidden");
         resetFilePreview();
     }
 
@@ -234,8 +276,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         uploadBox.style.display = 'flex';
     }
 
-    // --- SAVE DATA (CREATE/UPDATE) ---
-
     async function handleSaveData(e) {
         e.preventDefault();
         
@@ -250,6 +290,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('major', inputMajor.value);
         formData.append('academic_year', inputYear.value);
         formData.append('is_collected', inputIsTaken.checked ? 'true' : 'false');
+        
+        if(inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
         
         if(inputIsTaken.checked && inputDateTaken.value) {
             formData.append('collected_at', inputDateTaken.value);
@@ -285,7 +327,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // --- GLOBAL ACTIONS ---
-
     window.triggerEdit = (id) => {
         const item = allDiplomas.find(d => d.id === id);
         if(item) showFormMode(true, item);
@@ -293,43 +334,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.triggerDelete = async (id) => {
         if(confirm("Yakin ingin menghapus data ijazah ini?")) {
-            try {
-                await api.diploma.delete(id);
-                loadData();
-            } catch (e) {
-                alert("Gagal hapus: " + e.message);
-            }
+            try { await api.diploma.delete(id); loadData(); } 
+            catch (e) { alert("Gagal hapus: " + e.message); }
         }
     };
 
-    // --- FULLSCREEN PREVIEW LOGIC ---
     window.openFile = (id) => {
         const item = allDiplomas.find(d => d.id === id);
-        
-        if (!item || !item.attachment_path) {
-            alert("File tidak tersedia.");
-            return;
-        }
-
+        if (!item || !item.attachment_path) { alert("File tidak tersedia."); return; }
         const fileName = item.attachment_path.split(/[\\/]/).pop();
         const finalUrl = `/storage/documents/diplomas/${fileName}`;
         
-        viewTable.classList.add("hidden");
-        viewForm.classList.add("hidden");
-        btnAdd.classList.add("hidden");
-
+        viewTable.classList.add("hidden"); viewForm.classList.add("hidden"); 
+        if(btnAdd) btnAdd.classList.add("hidden");
+        
         if(viewPdfFullscreen) {
             viewPdfFullscreen.classList.remove("hidden");
             viewPdfFullscreen.style.display = "flex";
-            
-            if(fullscreenPdfViewer) {
-                console.log("Membuka Preview Ijazah:", finalUrl);
-                fullscreenPdfViewer.src = finalUrl;
-            }
+            if(fullscreenPdfViewer) fullscreenPdfViewer.src = finalUrl;
         }
     };
 
-    // --- FILTER ---
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const mjr = elFilterMajor.value;
