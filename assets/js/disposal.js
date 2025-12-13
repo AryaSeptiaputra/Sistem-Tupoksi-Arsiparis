@@ -1,66 +1,54 @@
-document.addEventListener("DOMContentLoaded", async () => {
-
-    // --- NAVIGASI ---
-    document.querySelectorAll("[data-route]").forEach(el => {
-        el.addEventListener("click", () => window.location.href = el.dataset.route);
-    });
-
-    const token = localStorage.getItem("access_token");
-    if (!token) { window.location.href = "/page/login"; return; }
-
-    // --- REFERENCES ---
-    const tableBody = document.getElementById("table-body");
-    const checkAll = document.getElementById("checkAll");
-    const btnExecute = document.getElementById("btnExecute");
-    const countBadge = document.getElementById("count-badge");
-
+// assets/js/disposal.js
+{
     let disposalList = [];
-    let selectedItems = new Set(); // Menggunakan Set untuk menyimpan ID unik
+    let selectedItems = new Set(); // Menyimpan string JSON {id, source}
 
     // --- INIT ---
-    await loadDisposalData();
+    const initDisposalPage = async () => {
+        console.log("Disposal Page Loaded");
 
-    // --- LISTENERS ---
-    
-    // 1. Check All Toggle
-    if(checkAll) {
-        checkAll.addEventListener("change", (e) => {
-            const checkboxes = document.querySelectorAll(".item-check");
-            checkboxes.forEach(cb => {
-                cb.checked = e.target.checked;
-                toggleSelection(cb.dataset.id, cb.dataset.source, e.target.checked);
-            });
-            updateButtonState();
-        });
-    }
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            if(window.navigateTo) window.navigateTo("/login");
+            return;
+        }
 
-    // 2. Execute Button
-    if(btnExecute) {
-        btnExecute.addEventListener("click", handleExecution);
-    }
+        await loadDisposalData();
+        setupEventListeners();
+    };
 
-    // --- FUNCTIONS ---
+    // --- DATA ---
+    const loadDisposalData = async () => {
+        const tbody = document.getElementById("table-body");
+        if(!tbody) return;
 
-    async function loadDisposalData() {
-        tableBody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memindai database...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memindai database...</td></tr>`;
         
         try {
+            // API ini akan mengecek semua tabel (surat masuk/keluar/keuangan)
+            // dan mengambil item yang expired
             const data = await api.disposal.check();
             disposalList = data;
             renderTable(disposalList);
         } catch (e) {
             console.error(e);
-            tableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
         }
-    }
+    };
 
-    function renderTable(data) {
-        tableBody.innerHTML = "";
-        selectedItems.clear();
+    const renderTable = (data) => {
+        const tbody = document.getElementById("table-body");
+        const countBadge = document.getElementById("count-badge");
+        const checkAll = document.getElementById("checkAll");
+        
+        if(!tbody) return;
+
+        tbody.innerHTML = "";
+        selectedItems.clear(); // Reset pilihan saat refresh
         updateButtonState();
 
         if (!data || data.length === 0) {
-            tableBody.innerHTML = `
+            tbody.innerHTML = `
                 <tr>
                     <td colspan="6" style="text-align:center; padding:40px;">
                         <div style="font-size:40px;">✅</div>
@@ -68,78 +56,119 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <p style="color:#6b7280; font-size:13px;">Tidak ada arsip yang perlu dimusnahkan saat ini.</p>
                     </td>
                 </tr>`;
-            countBadge.textContent = "0 Item";
+            if(countBadge) countBadge.textContent = "0 Item";
             if(checkAll) checkAll.disabled = true;
             return;
         }
 
-        if(checkAll) checkAll.disabled = false;
-        countBadge.textContent = `${data.length} Item Kadaluwarsa`;
+        if(checkAll) {
+            checkAll.disabled = false;
+            checkAll.checked = false; // Reset header check
+        }
+        if(countBadge) countBadge.textContent = `${data.length} Item Kadaluwarsa`;
 
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // Badge Source
-            let badgeClass = 'src-in';
+            // Badge Sumber Data
+            let badgeStyle = 'background: #dbeafe; color: #1e40af;'; // Default In
             let badgeLabel = 'Surat Masuk';
-            if(item.table_source === 'outgoing_letter') { badgeClass = 'src-out'; badgeLabel = 'Surat Keluar'; }
-            if(item.table_source === 'finance_archive') { badgeClass = 'src-fin'; badgeLabel = 'Keuangan'; }
+            
+            if(item.table_source === 'outgoing_letter') { 
+                badgeStyle = 'background: #fce7f3; color: #be185d;'; 
+                badgeLabel = 'Surat Keluar'; 
+            }
+            if(item.table_source === 'finance_archive') { 
+                badgeStyle = 'background: #ffedd5; color: #9a3412;'; 
+                badgeLabel = 'Keuangan'; 
+            }
 
-            // Key unik untuk seleksi: "id|source" (karena ID bisa sama antar tabel)
-            const uniqueKey = `${item.id}|${item.table_source}`;
+            // Key unik: "id|source"
+            // Kita simpan sebagai JSON string di value checkbox
+            const uniqueVal = JSON.stringify({ id: item.id, table_source: item.table_source });
 
             tr.innerHTML = `
                 <td style="text-align:center;">
-                    <input type="checkbox" class="item-check" data-id="${item.id}" data-source="${item.table_source}" value="${uniqueKey}">
+                    <input type="checkbox" class="item-check" value='${uniqueVal}'>
                 </td>
-                <td><span class="badge-source ${badgeClass}">${badgeLabel}</span></td>
+                <td><span style="font-size:10px; padding:2px 8px; border-radius:4px; font-weight:700; text-transform:uppercase; ${badgeStyle}">${badgeLabel}</span></td>
                 <td>
-                    <div style="font-weight:600; color:var(--text-main); font-size:14px;">${item.number || '-'}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">${item.title}</div>
+                    <div style="font-weight:600; color:#1f2937; font-size:14px;">${item.number || '-'}</div>
+                    <div style="font-size:12px; color:#6b7280;">${item.title}</div>
                 </td>
                 <td style="font-family:monospace; font-size:13px;">${item.doc_year}</td>
                 <td style="font-family:monospace; font-size:13px; color:#ef4444; font-weight:600;">${item.expiry_year}</td>
-                <td><span class="code-badge">${item.classification}</span></td>
+                <td><span class="code-badge" style="background:#e0f2fe; color:#0284c7; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600;">${item.classification}</span></td>
             `;
-            tableBody.appendChild(tr);
+            tbody.appendChild(tr);
         });
 
-        // Pasang listener individual checkbox setelah render
+        // Pasang listener ke checkbox individu SETELAH render
         document.querySelectorAll(".item-check").forEach(cb => {
             cb.addEventListener("change", (e) => {
-                toggleSelection(e.target.dataset.id, e.target.dataset.source, e.target.checked);
-                updateButtonState();
+                toggleSelection(e.target.value, e.target.checked);
             });
         });
-    }
+    };
 
-    function toggleSelection(id, source, isChecked) {
-        // Objek item yang akan dikirim ke backend
-        // Kita simpan string JSON agar mudah di Set, nanti diparse saat kirim
-        const itemObj = JSON.stringify({ id: parseInt(id), table_source: source });
-        
+    const toggleSelection = (jsonString, isChecked) => {
         if (isChecked) {
-            selectedItems.add(itemObj);
+            selectedItems.add(jsonString);
         } else {
-            selectedItems.delete(itemObj);
+            selectedItems.delete(jsonString);
         }
-    }
+        updateButtonState();
+    };
 
-    function updateButtonState() {
+    const updateButtonState = () => {
+        const btnExecute = document.getElementById("btnExecute");
         const count = selectedItems.size;
+        
+        if(!btnExecute) return;
+
         if (count > 0) {
             btnExecute.disabled = false;
             btnExecute.innerHTML = `🔥 Musnahkan (${count} Arsip)`;
+            btnExecute.style.backgroundColor = "#ef4444";
+            btnExecute.style.cursor = "pointer";
         } else {
             btnExecute.disabled = true;
             btnExecute.innerHTML = `🔥 Musnahkan Arsip Terpilih`;
+            btnExecute.style.backgroundColor = "#fca5a5";
+            btnExecute.style.cursor = "not-allowed";
         }
-    }
+    };
 
-    async function handleExecution() {
+    // --- EVENT LISTENERS ---
+    const setupEventListeners = () => {
+        const checkAll = document.getElementById("checkAll");
+        const btnExecute = document.getElementById("btnExecute");
+
+        // 1. Check All
+        if(checkAll) {
+            checkAll.addEventListener("change", (e) => {
+                const isChecked = e.target.checked;
+                const checkboxes = document.querySelectorAll(".item-check");
+                
+                checkboxes.forEach(cb => {
+                    cb.checked = isChecked;
+                    toggleSelection(cb.value, isChecked);
+                });
+            });
+        }
+
+        // 2. Execute Button
+        if(btnExecute) {
+            btnExecute.addEventListener("click", handleExecution);
+        }
+    };
+
+    const handleExecution = async () => {
         const count = selectedItems.size;
         if (count === 0) return;
 
+        // Custom Confirm (Bisa pakai ui.confirm atau prompt bawaan)
+        // Kita pakai prompt bawaan agar user harus mengetik (Safety)
         const confirmMsg = `PERINGATAN KERAS!\n\n` +
             `Anda akan memusnahkan ${count} arsip secara permanen.\n` +
             `- File digital (Scan) akan DIHAPUS dari server.\n` +
@@ -150,25 +179,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         const userInput = prompt(confirmMsg);
 
         if (userInput === "SETUJU") {
+            const btnExecute = document.getElementById("btnExecute");
             const originalBtnText = btnExecute.innerHTML;
             btnExecute.innerHTML = "Memproses...";
             btnExecute.disabled = true;
 
             try {
-                // Convert Set of JSON strings back to Array of Objects
+                // Convert Set of JSON strings -> Array of Objects
                 const itemsPayload = Array.from(selectedItems).map(str => JSON.parse(str));
                 
                 const response = await api.disposal.execute(itemsPayload);
                 
                 alert(`Sukses! ${response.count} arsip telah dimusnahkan.`);
-                loadDisposalData(); // Refresh table
+                
+                // Refresh data
+                await loadDisposalData(); 
             } catch (e) {
                 alert("Gagal eksekusi: " + e.message);
                 btnExecute.innerHTML = originalBtnText;
                 btnExecute.disabled = false;
             }
-        } else {
-            alert("Pemusnahan dibatalkan.");
+        } else if (userInput !== null) {
+            alert("Pemusnahan dibatalkan (Kata kunci salah).");
         }
-    }
-});
+    };
+
+    // START
+    initDisposalPage();
+}
