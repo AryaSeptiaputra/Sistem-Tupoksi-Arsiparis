@@ -401,4 +401,4 @@
 
     // START
     initFinancePage();
-}
+}   
