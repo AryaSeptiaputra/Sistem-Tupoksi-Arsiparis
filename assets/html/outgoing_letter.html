@@ -255,6 +255,7 @@
         </a>
 
         {% if session.get('role') in ['admin', 'headmaster'] %}
+
         <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
             <i class='bx bxs-certification'></i> Data Ijazah
@@ -273,6 +274,11 @@
 
         {% if session.get('role') == 'admin' %}
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
+
+        <a href="{{ url_for('view.teacher') }}" data-route="{{ url_for('view.teacher') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.teacher')) %}active{% endif %}">
+            <i class='bx bxs-id-card'></i> Guru
+        </a>
 
         <a href="{{ url_for('view.classification_page') }}" data-route="{{ url_for('view.classification_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.classification_page')) %}active{% endif %}">

@@ -116,3 +116,214 @@
 .btn-restore { background: #f59e0b; border: none; }
 .btn-download:hover { background: #2563eb; }
 .btn-restore:hover { background: #d97706; }
+
+
+/* --- TAMBAHAN UNTUK DASHBOARD TABS --- */
+
+/* ========================================= */
+/* FIX: TAB STATIS & FULL WIDTH (RATA KIRI-KANAN) */
+/* ========================================= */
+
+/* 1. Container Tab */
+.dashboard-tabs {
+    display: flex;
+    width: 100%;        /* Memaksa lebar penuh */
+    gap: 6px;           /* Jarak antar tab diperkecil agar muat */
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    
+    /* PENTING: Matikan scroll */
+    overflow-x: visible; 
+    flex-wrap: nowrap;   /* Paksa tetap satu baris */
+}
+
+/* 2. Tombol Tab */
+.tab-btn {
+    /* PENTING: flex: 1 membuat semua tab berbagi ukuran yang sama rata */
+    flex: 1; 
+    
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Teks rata tengah */
+    
+    background: transparent;
+    border: 1px solid transparent; /* Persiapan border saat hover */
+    
+    /* Kurangi padding kiri-kanan agar teks tidak terpotong */
+    padding: 10px 4px; 
+    
+    font-family: inherit;
+    font-size: 13px; /* Ukuran font sedikit diperkecil agar muat 7 tab */
+    font-weight: 500;
+    color: var(--text-muted);
+    
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    
+    /* Pastikan teks tidak turun baris */
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-btn:hover {
+    background-color: #f3f4f6;
+    color: var(--text-main);
+}
+
+/* 3. Tombol Tab (Saat Aktif) */
+.tab-btn.active {
+    background-color: #fff7ed; /* Orange muda */
+    color: var(--primary);     /* Orange utama */
+    font-weight: 700;
+    border-color: #ffccbc;     /* Tambah border tipis agar lebih tegas */
+}
+
+/* 4. Area Konten Tab (Scrollable) */
+.tab-content-wrapper {
+    flex: 1;           
+    overflow-y: auto;  
+    overflow-x: hidden;
+    padding-right: 6px; 
+    min-height: 0;
+    padding-bottom: 20px; 
+    
+    /* Sembunyikan scrollbar agar bersih */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.tab-content-wrapper::-webkit-scrollbar { display: none; }
+
+/* 5. Logika Show/Hide Konten Tab */
+.tab-pane {
+    display: none; /* Sembunyikan yang tidak aktif */
+    animation: fadeIn 0.3s ease-out;
+}
+
+.tab-pane.active {
+    display: block; /* Munculkan yang aktif */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 6. Grid Layout untuk Grafik (Chart) */
+.chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* Grafik kiri lebih lebar (2:1) */
+    gap: 24px;
+    margin-top: 24px;
+    margin-bottom: 30px;
+}
+
+/* Card Grafik */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.03);
+    border: 1px solid #f3f4f6;
+    height: 100%; /* Agar tingginya sama */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-header { margin-bottom: 16px; }
+.chart-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0; }
+.chart-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* Responsif di Layar Kecil */
+@media (max-width: 992px) {
+    .chart-grid { grid-template-columns: 1fr; } /* Jadi 1 kolom ke bawah */
+}
+
+/* Helper Spacing */
+.mt-4 { margin-top: 24px; }
+.mb-3 { margin-bottom: 12px; }
+
+/* ============================= */
+/* SCORE CARD GRID (WAJIB ADA)   */
+/* ============================= */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+/* ============================= */
+/* STAT CARD (SCORE CARD)        */
+/* ============================= */
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+    border: 1px solid #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 110px;
+}
+
+/* Label kecil */
+.stat-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Angka utama */
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.1;
+}
+
+/* Deskripsi */
+.stat-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+
+/* ============================= */
+/* BORDER VARIANT                */
+/* ============================= */
+
+.border-blue {
+    border-left: 5px solid #3b82f6;
+}
+
+.border-green {
+    border-left: 5px solid #10b981;
+}
+
+.border-red {
+    border-left: 5px solid #ef4444;
+}
+
+/* ============================= */
+/* ALERT MODE (URGENT)           */
+/* ============================= */
+
+.stat-card.alert-mode {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+}
+
+.stat-card.alert-mode .stat-label {
+    color: #991b1b;
+}
+
+.stat-card.alert-mode .stat-value {
+    color: #7f1d1d;
+}
