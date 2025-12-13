@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Arsip Digital SMKN 7</title>
+    
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/modal.css">
+
+    <style>
+        /* Fix kecil agar transisi halaman lebih mulus */
+        #app-content {
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+        }
+        #app-content.fading {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    
+    <aside class="sidebar" id="main-sidebar">
+        <div class="sidebar-header">
+            <img src="assets/img/smkn7.png" alt="Logo SMKN 7" class="sidebar-logo-img">
+            <div class="logo-text">
+                <span class="school-name">SMKN 7</span>
+                <span class="city-name">Bandung</span>
+            </div>
+        </div>
+
+        <a href="/dashboard" class="nav-item" data-link>
+            <i class='bx bxs-dashboard'></i> Dashboard
+        </a>
+        <a href="/incoming_letter" class="nav-item" data-link>
+            <i class='bx bxs-envelope'></i> Surat Masuk
+        </a>
+        <a href="/outgoing_letter" class="nav-item" data-link>
+            <i class='bx bxs-paper-plane'></i> Surat Keluar
+        </a>
+        
+        <div id="admin-menu">
+            <a href="/diploma" class="nav-item" data-link>
+                <i class='bx bxs-certification'></i> Data Ijazah
+            </a>
+            <a href="/finance_archive" class="nav-item" data-link>
+                <i class='bx bxs-wallet'></i> Arsip Keuangan
+            </a>
+            <a href="/employee_archive" class="nav-item" data-link>
+                <i class='bx bxs-user-badge'></i> Arsip Pegawai
+            </a>
+            
+            <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
+            
+            <a href="/teacher" class="nav-item" data-link>
+                <i class='bx bxs-id-card'></i> Data Guru
+            </a>
+            <a href="/classification" class="nav-item" data-link>
+                <i class='bx bxs-folder-open'></i> Klasifikasi
+            </a>
+            <a href="/storage_location" class="nav-item" data-link>
+                <i class='bx bxs-cabinet'></i> Lokasi Simpan
+            </a>
+            <a href="/disposal" class="nav-item" data-link>
+                <i class='bx bxs-trash'></i> Penyusutan
+            </a>
+
+            <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
+            
+            <a href="/user" class="nav-item" data-link>
+                <i class='bx bxs-group'></i> Pengguna
+            </a>
+            <a href="/log" class="nav-item" data-link>
+                <i class='bx bx-history'></i> Log Aktivitas
+            </a>
+            <a href="/backup" class="nav-item" data-link>
+                <i class='bx bxs-data'></i> Backup DB
+            </a>
+        </div>
+
+        <div style="margin-top: auto;">
+            <a href="/login" class="nav-item btn-logout-sidebar" id="btn-logout" data-link>
+                <i class='bx bx-log-out'></i> Keluar
+            </a>
+        </div>
+    </aside>
+
+    <div id="app-content" class="main-content" style="padding: 0; overflow: hidden;">
+        </div>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/router.js"></script> 
+</body>
+</html>
