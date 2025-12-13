@@ -1,379 +1,85 @@
-<!DOCTYPE html>
-<html lang="id">
+<div class="header-page">
+    <div class="header-title">
+        <h1 id="page-title">Lokasi Penyimpanan</h1>
+        <p id="page-subtitle">Kelola daftar lemari, rak, atau boks arsip fisik.</p>
+    </div>
+    <div class="header-tools">
+        <button class="btn-add" id="btn-add-new" title="Tambah Lokasi">+</button>
+        <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">
+            ↩ Kembali
+        </button>
+    </div>
+</div>
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistem Arsip - Lokasi Penyimpanan</title>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+<section id="view-table" class="content-card">
+    <div class="filter-row" style="justify-content: space-between;">
+        <div class="search-container" style="margin-bottom: 0; width: 400px;">
+            <input type="text" class="search-input" placeholder="Cari Lemari atau Rak..." id="searchInput">
+        </div>
+        <button id="btnResetFilter" class="btn-export">🔄 Reset</button>
+    </div>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+    <div class="table-responsive">
+        <table id="storageTable">
+            <thead>
+                <tr>
+                    <th width="5%">No</th>
+                    <th width="30%">Nama Lokasi</th>
+                    <th>Keterangan / Isi</th>
+                    <th width="15%" style="text-align: center;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
+</section>
 
-    <style>
-        /* --- CSS KHUSUS HALAMAN INI --- */
+<div id="view-form" class="layout-split hidden">
+    <section class="card-form-styled">
+        <form id="form-entry">
+            <input type="hidden" id="entry-id">
 
-        /* Utility: Sembunyikan elemen */
-        .hidden {
-            display: none !important;
-        }
-
-        /* 1. LAYOUT SPLIT (Kiri Form, Kanan Panel) */
-        .layout-split {
-            display: flex;
-            gap: 24px;
-            align-items: flex-start;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* 2. STYLE FORM CARD (Sebelah Kiri) */
-        .card-form-styled {
-            flex: 2;
-            /* Mengambil porsi lebih lebar */
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            border: 1px solid #f3f4f6;
-        }
-
-        .local-form-group {
-            margin-bottom: 20px;
-        }
-
-        .local-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 8px;
-        }
-
-        .local-label span {
-            color: #ef4444;
-        }
-
-        .local-input,
-        .local-textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 14px;
-            background: #f9fafb;
-            transition: 0.2s;
-        }
-
-        .local-input:focus,
-        .local-textarea:focus {
-            background: white;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255, 138, 92, 0.15);
-            outline: none;
-        }
-
-        .local-helper {
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 6px;
-        }
-
-        /* 3. TOMBOL FORM */
-        .form-footer {
-            display: flex;
-            gap: 12px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #f3f4f6;
-        }
-
-        .btn-local-save {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            flex: 1;
-            transition: 0.2s;
-        }
-
-        .btn-local-save:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-local-cancel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            color: #4b5563;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-local-cancel:hover {
-            background: #f3f4f6;
-        }
-
-        /* 4. PANEL KANAN (TIPS & PREVIEW) */
-        .right-panel-stack {
-            flex: 1;
-            /* Porsi lebih kecil */
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .guide-box,
-        .preview-box {
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid #f3f4f6;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-        }
-
-        .guide-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 12px;
-        }
-
-        .guide-list {
-            padding-left: 20px;
-            font-size: 13px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-
-        .guide-list li {
-            margin-bottom: 6px;
-        }
-
-        /* PREVIEW LABEL STICKER */
-        .sticker-preview {
-            border: 3px solid #1f2937;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-            background: #fff;
-            position: relative;
-        }
-
-        /* Efek lubang gantungan di sticker */
-        .sticker-preview::before {
-            content: '';
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 12px;
-            height: 12px;
-            background: #e5e7eb;
-            border-radius: 50%;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <img src="{{ url_for('static', filename='img/smkn7.png') }}" alt="Logo SMKN 7" class="sidebar-logo-img">
-            <div class="logo-text">
-                <span class="school-name">SMKN 7</span>
-                <span class="city-name">Bandung</span>
+            <div class="local-form-group">
+                <label class="local-label">Nama Lokasi <span>*</span></label>
+                <input type="text" id="inputName" class="local-input" required
+                    placeholder="Contoh: Lemari A - Rak 1" maxlength="30">
+                <p class="local-helper">Maksimal 30 karakter. Gunakan nama singkat & jelas.</p>
             </div>
+
+            <div class="local-form-group">
+                <label class="local-label">Keterangan / Isi (Opsional)</label>
+                <textarea id="inputDescription" class="local-textarea" rows="4"
+                    placeholder="Contoh: Berisi Arsip Keuangan Tahun 2020-2022"></textarea>
+            </div>
+        </form>
+
+        <div class="form-footer">
+            <button class="btn-local-cancel" id="btnCancel">Batal</button>
+            <button class="btn-local-save" id="btnSave">Simpan Lokasi</button>
+        </div>
+    </section>
+
+    <aside class="right-panel-stack">
+        <div class="preview-box">
+            <h4 class="guide-title">Preview Label Fisik</h4>
+            <div class="sticker-preview">
+                <h2 id="previewLabelTxt"
+                    style="margin:10px 0 5px 0; font-weight:800; font-size:22px; text-transform:uppercase; color:#111;">
+                    LEMARI A</h2>
+                <p id="previewDescTxt" style="margin:0; font-size:12px; color:#555;">Keterangan isi arsip...</p>
+            </div>
+            <p class="local-helper" style="text-align:center; margin-top:8px;">(Ilustrasi label untuk ditempel)
+            </p>
         </div>
 
-        <a href="{{ url_for('view.dashboard_page') }}" data-route="{{ url_for('view.dashboard_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.dashboard_page')) %}active{% endif %}">
-            <i class='bx bxs-dashboard'></i> Dashboard
-        </a>
-
-        <a href="{{ url_for('view.incoming_letter_page') }}" data-route="{{ url_for('view.incoming_letter_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.incoming_letter_page')) %}active{% endif %}">
-            <i class='bx bxs-envelope'></i> Surat Masuk
-        </a>
-
-        <a href="{{ url_for('view.outgoing_letter_page') }}" data-route="{{ url_for('view.outgoing_letter_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.outgoing_letter_page')) %}active{% endif %}">
-            <i class='bx bxs-paper-plane'></i> Surat Keluar
-        </a>
-
-        {% if session.get('role') in ['admin', 'headmaster'] %}
-        <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
-            <i class='bx bxs-certification'></i> Data Ijazah
-        </a>
-
-        <a href="{{ url_for('view.finance_archive') }}" data-route="{{ url_for('view.finance_archive') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.finance_archive')) %}active{% endif %}">
-            <i class='bx bxs-wallet'></i> Arsip Keuangan
-        </a>
-        {% endif %}
-
-        <a href="{{ url_for('view.employee_archive') }}" data-route="{{ url_for('view.employee_archive') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.employee_archive')) %}active{% endif %}">
-            <i class='bx bxs-user-badge'></i> Arsip Pegawai
-        </a>
-
-        {% if session.get('role') == 'admin' %}
-        <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
-
-        <a href="{{ url_for('view.classification_page') }}" data-route="{{ url_for('view.classification_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.classification_page')) %}active{% endif %}">
-            <i class='bx bxs-folder-open'></i> Klasifikasi
-        </a>
-
-        <a href="{{ url_for('view.storage_location') }}" data-route="{{ url_for('view.storage_location') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.storage_location')) %}active{% endif %}">
-            <i class='bx bxs-cabinet'></i> Lokasi Simpan
-        </a>
-
-        <a href="{{ url_for('view.disposal') }}" data-route="{{ url_for('view.disposal') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.disposal')) %}active{% endif %}">
-            <i class='bx bxs-trash'></i> Penyusutan Arsip
-        </a>
-
-        <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
-
-        <a href="{{ url_for('view.user_page') }}" data-route="{{ url_for('view.user_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.user_page')) %}active{% endif %}">
-            <i class='bx bxs-group'></i> Pengguna
-        </a>
-
-        <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
-            <i class='bx bx-history'></i> Log Aktivitas
-        </a>
-
-        <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
-            <i class='bx bxs-data'></i> Backup Database
-        </a>
-        {% endif %}
-
-        <div style="margin-top: auto;">
-            <a class="nav-item btn-logout-sidebar" id="btn-logout">
-                <i class='bx bx-log-out'></i> Keluar
-            </a>
+        <div class="guide-box">
+            <h4 class="guide-title">Tips Penyimpanan Fisik</h4>
+            <ul class="guide-list">
+                <li>Beri label nomor/huruf besar agar mudah terlihat dari jauh.</li>
+                <li>Pisahkan lemari untuk arsip <b>Aktif</b> dan <b>Inaktif</b>.</li>
+                <li>Gunakan Boks Arsip untuk dokumen lama agar tidak rusak karena debu.</li>
+            </ul>
         </div>
     </aside>
-
-    <main class="main-content">
-        <div class="header-page">
-            <div class="header-title">
-                <h1 id="page-title">Lokasi Penyimpanan</h1>
-                <p id="page-subtitle">Kelola daftar lemari, rak, atau boks arsip fisik.</p>
-            </div>
-            <div class="header-tools">
-                <button class="btn-add" id="btn-add-new" title="Tambah Lokasi">+</button>
-                <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">
-                    ↩ Kembali
-                </button>
-                <div class="user-avatar" id="header-avatar">?</div>
-            </div>
-        </div>
-
-        <section id="view-table" class="content-card">
-            <div class="filter-row" style="justify-content: space-between;">
-                <div class="search-container" style="margin-bottom: 0; width: 400px;">
-                    <input type="text" class="search-input" placeholder="Cari Lemari atau Rak..." id="searchInput">
-                </div>
-                <button id="btnResetFilter" class="btn-export">🔄 Reset</button>
-            </div>
-
-            <div class="table-responsive">
-                <table id="storageTable">
-                    <thead>
-                        <tr>
-                            <th width="5%">No</th>
-                            <th width="30%">Nama Lokasi</th>
-                            <th>Keterangan / Isi</th>
-                            <th width="15%" style="text-align: center;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <div id="view-form" class="layout-split hidden">
-            <section class="card-form-styled">
-                <form id="form-entry">
-                    <input type="hidden" id="entry-id">
-
-                    <div class="local-form-group">
-                        <label class="local-label">Nama Lokasi <span>*</span></label>
-                        <input type="text" id="inputName" class="local-input" required
-                            placeholder="Contoh: Lemari A - Rak 1" maxlength="30"
-                            oninput="document.getElementById('previewLabelTxt').innerText = this.value || 'NAMA LOKASI'">
-                        <p class="local-helper">Maksimal 30 karakter. Gunakan nama singkat & jelas.</p>
-                    </div>
-
-                    <div class="local-form-group">
-                        <label class="local-label">Keterangan / Isi (Opsional)</label>
-                        <textarea id="inputDescription" class="local-textarea" rows="4"
-                            placeholder="Contoh: Berisi Arsip Keuangan Tahun 2020-2022"
-                            oninput="document.getElementById('previewDescTxt').innerText = this.value || 'Keterangan isi arsip...'"></textarea>
-                    </div>
-                </form>
-
-                <div class="form-footer">
-                    <button class="btn-local-cancel" id="btnCancel">Batal</button>
-                    <button class="btn-local-save" id="btnSave">Simpan Lokasi</button>
-                </div>
-            </section>
-
-            <aside class="right-panel-stack">
-                <div class="preview-box">
-                    <h4 class="guide-title">Preview Label Fisik</h4>
-                    <div class="sticker-preview">
-                        <h2 id="previewLabelTxt"
-                            style="margin:10px 0 5px 0; font-weight:800; font-size:22px; text-transform:uppercase; color:#111;">
-                            LEMARI A</h2>
-                        <p id="previewDescTxt" style="margin:0; font-size:12px; color:#555;">Keterangan isi arsip...</p>
-                    </div>
-                    <p class="local-helper" style="text-align:center; margin-top:8px;">(Ilustrasi label untuk ditempel)
-                    </p>
-                </div>
-
-                <div class="guide-box">
-                    <h4 class="guide-title">Tips Penyimpanan Fisik</h4>
-                    <ul class="guide-list">
-                        <li>Beri label nomor/huruf besar agar mudah terlihat dari jauh.</li>
-                        <li>Pisahkan lemari untuk arsip <b>Aktif</b> dan <b>Inaktif</b>.</li>
-                        <li>Gunakan Boks Arsip untuk dokumen lama agar tidak rusak karena debu.</li>
-                    </ul>
-                </div>
-            </aside>
-        </div>
-    </main>
-
-    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/storage_location.js') }}"></script>
-</body>
-
-</html>
+</div>
