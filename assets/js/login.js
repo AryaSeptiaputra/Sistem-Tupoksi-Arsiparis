@@ -1,58 +1,64 @@
-// static/js/login.js
+// assets/js/login.js
+{
+    const initLoginPage = () => {
+        // --- 1. DOM REFERENCES ---
+        const loginForm = document.getElementById('login-form');
+        const pwdInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('toggle-password');
+        const btnSubmit = document.getElementById('btn-login-submit');
 
-document.addEventListener('DOMContentLoaded', () => {
-    
-    const loginForm = document.getElementById('login-form');
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            await handleLogin(); 
-        });
-    }
-});
-
-async function handleLogin() {
-    const nuptkInput = document.getElementById('nuptk').value; 
-    const passInput = document.getElementById('password').value;
-    const btnLogin = document.querySelector('.btn-login');
-    const originalText = btnLogin.textContent;
-
-    try {
-        // 1. Ubah tombol jadi Loading
-        btnLogin.textContent = "Memproses...";
-        btnLogin.disabled = true;
-
-        // 2. Panggil API Login
-        const result = await api.auth.login(nuptkInput, passInput);
-        
-        // 3. JIKA SUKSES:
-        if (result && result.access_token) {
-            // Gunakan TOAST (Hijau) agar mulus
-            ui.toast("Login Berhasil! Mengalihkan...", "success"); 
-            
-            // Beri jeda sedikit agar user sempat baca toast sebelum pindah
-            setTimeout(() => {
-                window.location.href = '/page/dashboard'; 
-            }, 1000);
-        } else {
-            throw new Error("Gagal mendapatkan token akses.");
+        // --- 2. EVENT LISTENER: TOGGLE PASSWORD ---
+        if (toggleBtn && pwdInput) {
+            toggleBtn.addEventListener('click', () => {
+                const isPwd = pwdInput.type === 'password';
+                pwdInput.type = isPwd ? 'text' : 'password';
+                toggleBtn.textContent = isPwd ? '🙈' : '👁️'; // Ubah icon
+            });
         }
-        
-    } catch (error) {
-        console.error("Login Error:", error);
-        
-        // 4. JIKA GAGAL: Gunakan CUSTOM MODAL (Merah)
-        // Menggantikan alert() biasa
-        await ui.alert(
-            "Gagal Masuk", 
-            error.message || "Periksa kembali NUPTK dan Password Anda.", 
-            "error"
-        );
 
-    } finally {
-        // 5. Reset Tombol
-        btnLogin.textContent = originalText;
-        btnLogin.disabled = false;
-    }
+        // --- 3. EVENT LISTENER: SUBMIT ---
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Ambil value
+                const nuptk = document.getElementById('nuptk').value;
+                const password = pwdInput.value;
+
+                // UI Loading
+                const originalText = btnSubmit.textContent;
+                btnSubmit.textContent = "Memproses...";
+                btnSubmit.disabled = true;
+
+                try {
+                    // Panggil API (api.js global)
+                    const result = await api.auth.login(nuptk, password);
+                    
+                    if (result && result.access_token) {
+                        // Login Sukses -> Pindah ke Dashboard
+                        // Gunakan window.navigateTo dari router.js
+                        if(window.navigateTo) {
+                            window.navigateTo('/dashboard');
+                        } else {
+                            // Fallback jika router belum load
+                            window.location.href = '/'; 
+                        }
+                    } else {
+                        alert("Login gagal: Token tidak diterima.");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    // Tampilkan pesan error (bisa pakai ui.alert jika mau lebih bagus)
+                    alert("Login Gagal: " + (error.message || "Periksa NIP dan Password Anda"));
+                } finally {
+                    // Reset UI
+                    btnSubmit.textContent = originalText;
+                    btnSubmit.disabled = false;
+                }
+            });
+        }
+    };
+
+    // Jalankan inisialisasi
+    initLoginPage();
 }
