@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Buttons
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
-    const btnCancel = document.getElementById("btnCancel");
+    // [HAPUS] btnCancel
     const btnSave = document.getElementById("btnSave");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
@@ -31,10 +31,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputCode = document.getElementById("inputCode");
     const inputName = document.getElementById("inputName");
     const inputDesc = document.getElementById("inputDescription");
-    // NEW: Retention Inputs
     const inputRetActive = document.getElementById("inputRetActive");
     const inputRetInactive = document.getElementById("inputRetInactive");
-    const inputFinalAction = document.getElementById("inputFinalAction");
+    const inputFinalAction = document.getElementById("inputFinalAction"); // Dynamic
 
     // Previews
     const previewCodeTxt = document.getElementById("previewCodeTxt");
@@ -44,25 +43,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     const searchInput = document.getElementById("searchInput");
 
     // --- INITIALIZATION ---
-    await loadData();
+    await initPage();
 
     // --- EVENT LISTENERS ---
     
-    // 1. Navigation SPA
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
-    if(btnCancel) btnCancel.addEventListener("click", showTableMode);
+    // [HAPUS] Event listener btnCancel
 
-    // 2. Real-time Preview Form
     if(inputCode && inputName) {
         inputCode.addEventListener('input', updatePreview);
         inputName.addEventListener('input', updatePreview);
     }
 
-    // 3. Save Data
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
-    // 4. Search / Filter
     if(searchInput) {
         searchInput.addEventListener("keyup", applyFilter);
         searchInput.addEventListener("change", applyFilter);
@@ -71,23 +66,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnResetFilter.addEventListener("click", () => {
             searchInput.value = "";
             applyFilter();
+            ui.toast("Filter direset", "info");
         });
     }
 
     // --- FUNCTIONS ---
 
-    async function loadData() {
+    async function initPage() {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="4" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
         
+        await Promise.all([
+            loadReferences(), // [BARU]
+            loadData()
+        ]);
+    }
+
+    // [BARU] Load Referensi Final Action
+    async function loadReferences() {
+        try {
+            const response = await api.reference.getByCategory('final_action');
+            const data = response.data || [];
+
+            if(inputFinalAction) {
+                inputFinalAction.innerHTML = '';
+                data.forEach(item => {
+                    inputFinalAction.add(new Option(item.name, item.code));
+                });
+            }
+        } catch (e) {
+            console.error("Gagal load references:", e);
+        }
+    }
+
+    async function loadData() {
         try {
             allClassifications = await api.classification.getAll();
-            // Sort by Code asc
             allClassifications.sort((a, b) => a.code.localeCompare(b.code));
             renderTable(allClassifications);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
         }
     }
 
@@ -103,28 +122,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
 
-            // Logic Badge Warna berdasarkan String
+            // Logic Badge Warna berdasarkan String Code
             let actionBadgeClass = '';
-            let actionLabel = '';
+            let actionLabel = item.final_action ? item.final_action.toUpperCase() : '-';
             
-            // Backend mengirim string: 'permanent', 'assess', 'destroy'
+            // Mapping Style Manual (Label bisa juga di-mapping jika ingin lebih cantik dari sekedar uppercase code)
             switch(item.final_action) {
                 case 'permanent':
                     actionBadgeClass = 'background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe;'; 
-                    actionLabel = 'PERMANEN';
                     break;
                 case 'assess':
                     actionBadgeClass = 'background:#fef3c7; color:#92400e; border:1px solid #fde68a;'; 
-                    actionLabel = 'DINILAI KEMBALI';
                     break;
                 case 'destroy':
                     actionBadgeClass = 'background:#fee2e2; color:#991b1b; border:1px solid #fecaca;'; 
-                    actionLabel = 'MUSNAH';
                     break;
                 default:
-                    // Fallback untuk string tak dikenal
                     actionBadgeClass = 'background:#f3f4f6; color:#374151; border:1px solid #e5e7eb;';
-                    actionLabel = item.final_action.toUpperCase();
             }
 
             tr.innerHTML = `
@@ -159,15 +173,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
         
-        // Hide Table, Show Form
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
-        
-        // Adjust Header Buttons
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
-        // Set Texts
         if(editMode) {
             pageTitle.textContent = "Edit Klasifikasi";
             pageSubtitle.textContent = "Perbarui data kode surat dan jadwal retensi.";
@@ -176,7 +186,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             pageSubtitle.textContent = "Buat referensi kode surat baru.";
         }
 
-        // Reset Form
         document.getElementById("form-entry").reset();
         
         if (editMode && data) {
@@ -185,19 +194,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputCode.value = data.code;
             inputName.value = data.name;
             inputDesc.value = data.description || "";
-            // Set Retention Data
             inputRetActive.value = data.retention_active_period || 1;
             inputRetInactive.value = data.retention_inactive_period || 2;
-            inputFinalAction.value = data.final_action || 'destroy';
+            
+            // Pastikan value dropdown sesuai code yang diload dari referensi
+            if(data.final_action) inputFinalAction.value = data.final_action;
         } else {
             currentEditId = null;
-            // Default Values
             inputRetActive.value = 1;
             inputRetInactive.value = 2;
-            inputFinalAction.value = 'destroy';
+            // Default select usually takes the first option
         }
         
-        // Update Preview Badge
         updatePreview();
     }
 
@@ -224,7 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         
         if (!inputCode.value.trim() || !inputName.value.trim()) {
-            alert("Harap lengkapi Kode dan Nama!");
+            ui.alert("Data Belum Lengkap", "Harap lengkapi Kode dan Nama!", "warning");
             return;
         }
 
@@ -232,7 +240,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             code: inputCode.value.trim(),
             name: inputName.value.trim(),
             description: inputDesc.value.trim() || null,
-            // New Payload Data
             retention_active_period: parseInt(inputRetActive.value) || 0,
             retention_inactive_period: parseInt(inputRetInactive.value) || 0,
             final_action: inputFinalAction.value
@@ -246,16 +253,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 payload.id = currentEditId;
                 await api.classification.update(payload);
-                alert("Data berhasil diperbarui!");
+                ui.toast("Data berhasil diperbarui!", "success");
             } else {
                 await api.classification.create(payload);
-                alert("Data berhasil disimpan!");
+                ui.toast("Data berhasil disimpan!", "success");
             }
             showTableMode();
             loadData();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Error Server"));
+            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
         } finally {
             btnSave.textContent = originalText;
             btnSave.disabled = false;
@@ -268,12 +275,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Yakin ingin menghapus klasifikasi ini?")) {
+        const isConfirmed = await ui.confirm("Hapus Klasifikasi?", "Yakin ingin menghapus klasifikasi ini?", true);
+        if(isConfirmed) {
             try {
                 await api.classification.delete(id);
+                ui.toast("Data dihapus", "success");
                 loadData();
             } catch (err) {
-                alert("Gagal hapus: " + err.message);
+                ui.alert("Gagal Hapus", err.message, "error");
             }
         }
     };

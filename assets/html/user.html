@@ -71,20 +71,26 @@
             padding-top: 24px;
             border-top: 1px solid #f3f4f6;
             display: flex;
-            justify-content: flex-end;
+            justify-content: center; /* Diubah dari flex-end ke center */
             gap: 12px;
             background: white;
             flex-shrink: 0;
         }
 
         .btn-save {
-            padding: 10px 24px;
-            background: #06B6D4;
+            width: 100%; /* Diubah menjadi full width seperti Teacher */
+            padding: 12px 24px;
+            background: var(--primary); /* Menggunakan warna tema (Surat Masuk) */
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             color: white;
             cursor: pointer;
             font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-save:hover {
+            opacity: 0.9;
         }
 
         .hidden {
@@ -223,6 +229,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -339,8 +350,6 @@
                 </form>
 
                 <div class="form-footer">
-                    <button class="btn-cancel" id="btnCancel"
-                        style="padding: 10px 24px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; font-weight: 500;">Batal</button>
                     <button class="btn-save" id="btnSave">Simpan</button>
                 </div>
             </section>

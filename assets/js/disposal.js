@@ -140,16 +140,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         const count = selectedItems.size;
         if (count === 0) return;
 
-        const confirmMsg = `PERINGATAN KERAS!\n\n` +
-            `Anda akan memusnahkan ${count} arsip secara permanen.\n` +
-            `- File digital (Scan) akan DIHAPUS dari server.\n` +
-            `- Status data akan diubah menjadi 'Musnah'.\n\n` +
-            `Tindakan ini TIDAK BISA DIBATALKAN.\n` +
-            `Ketik "SETUJU" untuk melanjutkan:`;
+        // [UPDATE] Gunakan ui.prompt untuk keamanan ekstra
+        const userConfirmation = await ui.prompt(
+            "Konfirmasi Pemusnahan", 
+            `PERINGATAN KERAS!<br>
+            Anda akan memusnahkan <b>${count} arsip</b> secara permanen.<br>
+            - File digital (Scan) akan DIHAPUS.<br>
+            - Status data diubah menjadi 'Musnah'.<br><br>
+            Ketik <b>SETUJU</b> untuk melanjutkan:`,
+            "Batal" // Button cancel text
+        );
 
-        const userInput = prompt(confirmMsg);
-
-        if (userInput === "SETUJU") {
+        if (userConfirmation === "SETUJU") {
             const originalBtnText = btnExecute.innerHTML;
             btnExecute.innerHTML = "Memproses...";
             btnExecute.disabled = true;
@@ -160,15 +162,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                 
                 const response = await api.disposal.execute(itemsPayload);
                 
-                alert(`Sukses! ${response.count} arsip telah dimusnahkan.`);
+                // [UPDATE] ui.alert
+                ui.alert("Pemusnahan Berhasil", `Sukses! ${response.count} arsip telah dimusnahkan.`, "success");
                 loadDisposalData(); // Refresh table
             } catch (e) {
-                alert("Gagal eksekusi: " + e.message);
+                ui.alert("Gagal Eksekusi", e.message, "error");
                 btnExecute.innerHTML = originalBtnText;
                 btnExecute.disabled = false;
             }
-        } else {
-            alert("Pemusnahan dibatalkan.");
+        } else if (userConfirmation !== null) {
+            // Jika user menekan OK tapi ketikannya salah (bukan null/cancel)
+            ui.toast("Konfirmasi salah. Pemusnahan dibatalkan.", "warning");
         }
     }
 });

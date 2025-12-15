@@ -10,7 +10,10 @@ from .core.database import engine, Base
 # Import logic scheduler yang baru dibuat
 from .services.retention_scheduler import check_and_deactivate_archives # <--- [BARU 2] Import Fungsi Logic
 
-from .models import diploma, user, classification, log, incoming_letter, outgoing_letter, backup, storage_location, finance_archive, employee_archive, teacher
+from .models import (diploma, user, classification,
+                     log, incoming_letter, outgoing_letter,
+                     backup, storage_location, finance_archive,
+                     employee_archive, teacher, master_reference)
 
 from app.core import database as db
 
@@ -79,6 +82,7 @@ def create_app():
     from .routes.employee_archive import employee_archive_bp
     from .routes.disposal import disposal_bp 
     from .routes.teacher import teacher_bp
+    from .routes.master_reference import reference_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
@@ -95,6 +99,7 @@ def create_app():
     app.register_blueprint(employee_archive_bp, url_prefix="/employee_archive")
     app.register_blueprint(disposal_bp, url_prefix="/disposal")
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
+    app.register_blueprint(reference_bp)
 
     # ==========================================================================
     # 🔗 ROUTES REDIRECT
@@ -154,6 +159,10 @@ def create_app():
     @app.route('/teacher')
     def teacher():
         return redirect(url_for('view.teacher'))
+    
+    @app.route('/reference')
+    def reference():
+        return redirect(url_for('view.reference'))
     
     # 🔥 PENTING: Return app hanya SEKALI di paling bawah
     return app

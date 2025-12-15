@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.incoming_letter import IncomingLetter
 import datetime
 
-# [UBAH] Hapus user_id dari parameter
+# [PASTIKAN] Signature fungsi ini tidak menerima user_id
 def create_incoming_letter(db: Session, letter_data: dict) -> IncomingLetter:
     new_letter = IncomingLetter(
         number=letter_data['number'],
@@ -14,7 +14,7 @@ def create_incoming_letter(db: Session, letter_data: dict) -> IncomingLetter:
         classification_id=letter_data['classification_id'],
         storage_location_id=letter_data.get('storage_location_id'),
         
-        # Default status string
+        # Default 'active' jika tidak dikirim dari FE
         archive_status=letter_data.get('archive_status', 'active'),
         
         created_at=datetime.datetime.now(),
@@ -32,15 +32,16 @@ def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> In
         return None
 
     for key, value in update_data.items():
-        # Skip field system
+        # Skip field system yang tidak boleh diubah manual
         if key in ['id', 'created_at']: 
             continue
         
         if hasattr(existing_letter, key):
-            # Handle empty storage location
+            # Handle empty storage location (select reset)
             if key == 'storage_location_id' and (value == "" or value is None):
                 setattr(existing_letter, key, None)
             else:
+                # Ini akan otomatis mengupdate 'archive_status' jika ada di update_data
                 setattr(existing_letter, key, value)
             
     existing_letter.updated_at = datetime.datetime.now()
@@ -70,6 +71,8 @@ def get_incoming_letters_by_keys(db: Session, filters: dict) -> list[IncomingLet
         
         column_to_filter = getattr(IncomingLetter, key)
         if key.endswith('_id') or key == 'archive_status':
+            query = query.filter(column_to_filter == value)
+        elif key == 'id':
             query = query.filter(column_to_filter == value)
         else:
             query = query.filter(column_to_filter.ilike(f"%{value}%"))

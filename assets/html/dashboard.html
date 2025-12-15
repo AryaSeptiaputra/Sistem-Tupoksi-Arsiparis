@@ -24,53 +24,89 @@
             </div>
         </div>
 
-        <a href="{{ url_for('view.dashboard_page') }}" class="nav-item active">
+        <a href="{{ url_for('view.dashboard_page') }}" data-route="{{ url_for('view.dashboard_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.dashboard_page')) %}active{% endif %}">
             <i class='bx bxs-dashboard'></i> Dashboard
         </a>
-        <a href="{{ url_for('view.incoming_letter_page') }}" class="nav-item">
+
+        <a href="{{ url_for('view.incoming_letter_page') }}" data-route="{{ url_for('view.incoming_letter_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.incoming_letter_page')) %}active{% endif %}">
             <i class='bx bxs-envelope'></i> Surat Masuk
         </a>
-        <a href="{{ url_for('view.outgoing_letter_page') }}" class="nav-item">
+
+        <a href="{{ url_for('view.outgoing_letter_page') }}" data-route="{{ url_for('view.outgoing_letter_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.outgoing_letter_page')) %}active{% endif %}">
             <i class='bx bxs-paper-plane'></i> Surat Keluar
         </a>
 
         {% if session.get('role') in ['admin', 'headmaster'] %}
-        <a href="{{ url_for('view.diploma_page') }}" class="nav-item">
+
+        <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
             <i class='bx bxs-certification'></i> Data Ijazah
         </a>
-        <a href="{{ url_for('view.finance_archive') }}" class="nav-item">
+
+        <a href="{{ url_for('view.finance_archive') }}" data-route="{{ url_for('view.finance_archive') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.finance_archive')) %}active{% endif %}">
             <i class='bx bxs-wallet'></i> Arsip Keuangan
         </a>
         {% endif %}
 
-        <a href="{{ url_for('view.employee_archive') }}" class="nav-item">
+        <a href="{{ url_for('view.employee_archive') }}" data-route="{{ url_for('view.employee_archive') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.employee_archive')) %}active{% endif %}">
             <i class='bx bxs-user-badge'></i> Arsip Pegawai
         </a>
 
         {% if session.get('role') == 'admin' %}
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
 
-        <a href="{{ url_for('view.teacher') }}" class="nav-item">
+        <a href="{{ url_for('view.teacher') }}" data-route="{{ url_for('view.teacher') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.teacher')) %}active{% endif %}">
             <i class='bx bxs-id-card'></i> Guru
         </a>
-        <a href="{{ url_for('view.classification_page') }}" class="nav-item">
+
+        <a href="{{ url_for('view.classification_page') }}" data-route="{{ url_for('view.classification_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.classification_page')) %}active{% endif %}">
             <i class='bx bxs-folder-open'></i> Klasifikasi
         </a>
-        <a href="{{ url_for('view.storage_location') }}" class="nav-item">
+
+        <a href="{{ url_for('view.storage_location') }}" data-route="{{ url_for('view.storage_location') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.storage_location')) %}active{% endif %}">
             <i class='bx bxs-cabinet'></i> Lokasi Simpan
         </a>
-        <a href="{{ url_for('view.disposal') }}" class="nav-item">
+
+        <a href="{{ url_for('view.disposal') }}" data-route="{{ url_for('view.disposal') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.disposal')) %}active{% endif %}">
             <i class='bx bxs-trash'></i> Penyusutan Arsip
         </a>
 
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
-        <a href="{{ url_for('view.user_page') }}" class="nav-item"><i class='bx bxs-group'></i> Pengguna</a>
-        <a href="{{ url_for('view.log_page') }}" class="nav-item"><i class='bx bx-history'></i> Log Aktivitas</a>
-        <a href="{{ url_for('view.backup') }}" class="nav-item"><i class='bx bxs-data'></i> Backup Database</a>
+
+        <a href="{{ url_for('view.user_page') }}" data-route="{{ url_for('view.user_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.user_page')) %}active{% endif %}">
+            <i class='bx bxs-group'></i> Pengguna
+        </a>
+
+        <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
+            <i class='bx bx-history'></i> Log Aktivitas
+        </a>
+
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
+        <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Backup Database
+        </a>
         {% endif %}
 
         <div style="margin-top: auto;">
-            <a class="nav-item btn-logout-sidebar" id="btn-logout"><i class='bx bx-log-out'></i> Keluar</a>
+            <a class="nav-item btn-logout-sidebar" id="btn-logout">
+                <i class='bx bx-log-out'></i> Keluar
+            </a>
         </div>
     </aside>
 

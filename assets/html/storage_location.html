@@ -15,12 +15,10 @@
     <style>
         /* --- CSS KHUSUS HALAMAN INI --- */
 
-        /* Utility: Sembunyikan elemen */
         .hidden {
             display: none !important;
         }
 
-        /* 1. LAYOUT SPLIT (Kiri Form, Kanan Panel) */
         .layout-split {
             display: flex;
             gap: 24px;
@@ -28,10 +26,8 @@
             animation: fadeIn 0.3s ease;
         }
 
-        /* 2. STYLE FORM CARD (Sebelah Kiri) */
         .card-form-styled {
             flex: 2;
-            /* Mengambil porsi lebih lebar */
             background: white;
             border-radius: 16px;
             padding: 30px;
@@ -84,22 +80,25 @@
         /* 3. TOMBOL FORM */
         .form-footer {
             display: flex;
-            gap: 12px;
+            justify-content: center; /* Center */
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #f3f4f6;
         }
 
+        /* HAPUS .btn-local-cancel */
+
         .btn-local-save {
+            width: 100%; /* Full Width */
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 24px;
+            padding: 12px 24px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            flex: 1;
             transition: 0.2s;
+            text-align: center;
         }
 
         .btn-local-save:hover {
@@ -107,25 +106,9 @@
             transform: translateY(-1px);
         }
 
-        .btn-local-cancel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            color: #4b5563;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-local-cancel:hover {
-            background: #f3f4f6;
-        }
-
         /* 4. PANEL KANAN (TIPS & PREVIEW) */
         .right-panel-stack {
             flex: 1;
-            /* Porsi lebih kecil */
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -168,7 +151,6 @@
             position: relative;
         }
 
-        /* Efek lubang gantungan di sticker */
         .sticker-preview::before {
             content: '';
             position: absolute;
@@ -183,15 +165,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -274,6 +249,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -348,7 +328,6 @@
                 </form>
 
                 <div class="form-footer">
-                    <button class="btn-local-cancel" id="btnCancel">Batal</button>
                     <button class="btn-local-save" id="btnSave">Simpan Lokasi</button>
                 </div>
             </section>
@@ -379,7 +358,8 @@
     </main>
 
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/storage_location.js') }}"></script>
 </body>
 
-</html>
+</html> 

@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         el.addEventListener("click", () => window.location.href = el.dataset.route);
     });
 
+    const token = localStorage.getItem("access_token");
+    if (!token) { window.location.href = "/page/login"; return; }
+
     // --- VARIABLES ---
     let allData = [];
     let isEditMode = false;
@@ -21,29 +24,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputName = document.getElementById("inputName");
     const inputGender = document.getElementById("inputGender");
     const inputRank = document.getElementById("inputRank");
-    const inputEmpStatus = document.getElementById("inputEmpStatus");
-    const inputStatus = document.getElementById("inputStatus");
+    const inputEmpStatus = document.getElementById("inputEmpStatus"); // Dynamic
+    const inputStatus = document.getElementById("inputStatus");       // Dynamic
     const inputAddress = document.getElementById("inputAddress");
 
     // Buttons
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
-    const btnCancel = document.getElementById("btnCancel");
+    // [HAPUS] btnCancel dihapus
     const btnSave = document.getElementById("btnSave");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
     // Filters
     const searchInput = document.getElementById("searchInput");
-    const filterStatus = document.getElementById("filterStatus");
-    const filterEmpStatus = document.getElementById("filterEmpStatus");
+    const filterStatus = document.getElementById("filterStatus"); // Dynamic
+    const filterEmpStatus = document.getElementById("filterEmpStatus"); // Dynamic
 
     // --- INITIALIZATION ---
-    await loadData();
+    await initPage();
 
     // --- EVENTS ---
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
-    if(btnCancel) btnCancel.addEventListener("click", showTableMode);
+    // [HAPUS] Event listener btnCancel dihapus
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
     // Filter Events
@@ -60,21 +63,60 @@ document.addEventListener("DOMContentLoaded", async () => {
             filterStatus.value = ""; 
             filterEmpStatus.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
     // --- FUNCTIONS ---
 
-    async function loadData() {
+    async function initPage() {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
 
+        // Load references first, then data
+        await Promise.all([
+            loadReferences(),
+            loadData()
+        ]);
+    }
+
+    // [BARU] Load Referensi Status
+    async function loadReferences() {
+        try {
+            const populate = (el, data, placeholder) => {
+                if(!el) return;
+                el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+                data.forEach(item => {
+                    el.add(new Option(item.name, item.name)); // Value pake name karena legacy DB mungkin simpan string
+                });
+            };
+
+            // 1. Status Kepegawaian (PNS, Honorer, dll)
+            const respEmp = await api.reference.getByCategory('teacher_emp_status');
+            if(respEmp && respEmp.data) {
+                populate(filterEmpStatus, respEmp.data, "Semua Kepegawaian");
+                populate(inputEmpStatus, respEmp.data, "- Pilih Status -");
+            }
+
+            // 2. Status Keaktifan (Aktif, Pensiun, dll)
+            const respActive = await api.reference.getByCategory('teacher_active_status');
+            if(respActive && respActive.data) {
+                populate(filterStatus, respActive.data, "Semua Status");
+                populate(inputStatus, respActive.data, null);
+            }
+
+        } catch (e) {
+            console.error("Gagal load references:", e);
+        }
+    }
+
+    async function loadData() {
         try {
             allData = await api.teacher.getAll();
             renderTable(allData);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
         }
     }
 
@@ -131,13 +173,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             currentEditId = data.id;
             
             inputIdentity.value = data.identity_number;
-            inputIdentity.readOnly = true; // Kunci NIP saat edit
+            inputIdentity.readOnly = true; 
             
             inputName.value = data.full_name;
             inputGender.value = data.gender;
             inputRank.value = data.rank || "";
+            
+            // Set values for dynamic dropdowns
             inputEmpStatus.value = data.employment_status;
             inputStatus.value = data.status;
+            
             inputAddress.value = data.address || "";
             
         } else {
@@ -145,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             currentEditId = null;
             inputIdentity.readOnly = false;
             
-            // Default Values
+            // Default Values (pastikan 'Aktif' ada di master reference)
             inputStatus.value = "Aktif";
         }
     }
@@ -161,19 +206,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
 
-        // Validasi Frontend Sederhana
         if(!inputIdentity.value || !inputName.value || !inputGender.value || !inputEmpStatus.value) {
-            alert("Harap lengkapi field wajib: NIP, Nama, Gender, dan Status Pegawai!");
+            ui.alert("Data Belum Lengkap", "Harap lengkapi field wajib: NIP, Nama, Gender, dan Status Pegawai!", "warning");
             return;
         }
 
         const payload = {
             identity_number: inputIdentity.value,
             full_name: inputName.value,
-            gender: inputGender.value,           // String: 'L' / 'P'
-            employment_status: inputEmpStatus.value, // String: 'PNS', 'Honorer', dll
+            gender: inputGender.value,
+            employment_status: inputEmpStatus.value, 
             rank: inputRank.value,
-            status: inputStatus.value,           // String: 'Aktif', 'Pensiun', dll
+            status: inputStatus.value,
             address: inputAddress.value
         };
 
@@ -186,16 +230,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(isEditMode) {
                 payload.id = currentEditId;
                 await api.teacher.update(payload); 
-                alert("Data guru berhasil diperbarui!");
+                ui.toast("Data guru berhasil diperbarui!", "success");
             } else {
                 await api.teacher.create(payload);
-                alert("Guru berhasil ditambahkan!");
+                ui.toast("Guru berhasil ditambahkan!", "success");
             }
             showTableMode();
             loadData();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Server Error"));
+            ui.alert("Gagal Menyimpan", err.message || "Server Error", "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -209,12 +253,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Yakin ingin menghapus data guru ini? Data User dan Arsip terkait mungkin akan ikut terhapus.")) {
+        const isConfirmed = await ui.confirm("Hapus Guru?", "Yakin ingin menghapus data ini? Data User dan Arsip terkait mungkin akan ikut terhapus.", true);
+        if(isConfirmed) {
             try {
                 await api.teacher.delete(id);
+                ui.toast("Data guru dihapus", "success");
                 loadData();
             } catch (err) {
-                alert("Gagal hapus: " + err.message);
+                ui.alert("Gagal Hapus", err.message, "error");
             }
         }
     };
@@ -227,7 +273,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const filtered = allData.filter(item => {
             const txtMatch = (item.full_name||"").toLowerCase().includes(term) || (item.identity_number||"").includes(term);
-            
             const statusMatch = status === "" || item.status === status;
             const empMatch = empStatus === "" || item.employment_status === empStatus;
 

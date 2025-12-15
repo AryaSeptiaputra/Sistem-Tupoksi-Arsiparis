@@ -40,8 +40,11 @@ class OutgoingLetter(Base):
             "destination": self.destination,
             "subject": self.subject,
             "is_decree": self.is_decree,
+            "classification_id": self.classification.id if self.classification else None,
             "classification_code": self.classification.code if self.classification else None,
-            "storage_location_name": self.storage_location.name if self.storage_location else "Belum ditentukan",
+            "classification_name": self.classification.name if self.classification else None,
+            "storage_location_id": self.storage_location.id if self.storage_location else None,
+            "storage_location_name": self.storage_location.name if self.storage_location else None,
             "archive_status": self.archive_status,
             "approval_status": self.approval_status, # Return status baru
             "file_path": self.attachment_path,

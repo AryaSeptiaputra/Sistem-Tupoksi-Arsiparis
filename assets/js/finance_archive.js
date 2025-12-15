@@ -31,15 +31,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputTitle = document.getElementById("title");
     const inputFiscalYear = document.getElementById("fiscal_year");
     const inputMonth = document.getElementById("period_month");
-    const inputCategory = document.getElementById("category");
+    const inputCategory = document.getElementById("category"); // Dynamic
     const inputAmount = document.getElementById("amount");
     const inputDesc = document.getElementById("description");
     const inputClassId = document.getElementById("classification_id");
     const inputStorageId = document.getElementById("storage_location_id");
     
-    // Status Input (Hidden by default for Create mode)
+    // Status Input
     const groupStatus = document.getElementById("group-archive-status");
-    const inputArchiveStatus = document.getElementById("archive_status");
+    const inputArchiveStatus = document.getElementById("archive_status"); // Dynamic
     
     // File Upload Elements
     const inputFile = document.getElementById("fileInput");
@@ -52,19 +52,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elSearch = document.getElementById("searchInput");
     const elFilterYear = document.getElementById("filterYear");
     const elFilterMonth = document.getElementById("filterMonth");
-    const elFilterCat = document.getElementById("filterCategory");
-    const elFilterStatus = document.getElementById("filterStatus");
+    const elFilterCat = document.getElementById("filterCategory"); // Dynamic
+    const elFilterStatus = document.getElementById("filterStatus"); // Dynamic
 
     // --- INITIALIZATION ---
     await initPage();
 
     // --- EVENT LISTENERS ---
     
-    // Navigation
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
     
-    // Preview Mode
     if(btnClosePreviewMode) {
         btnClosePreviewMode.addEventListener("click", () => {
             viewPdfFullscreen.classList.add("hidden");
@@ -73,7 +71,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Form Actions
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
     if(btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
 
@@ -82,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = e.target.files[0];
             if(file) {
                 if (file.type !== "application/pdf") {
-                    alert("Hanya file PDF yang diperbolehkan!");
+                    ui.alert("Format Salah", "Hanya file PDF yang diperbolehkan!", "warning");
                     inputFile.value = "";
                     return;
                 }
@@ -91,7 +88,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // Filter Listeners
     [elSearch, elFilterYear, elFilterMonth, elFilterCat, elFilterStatus].forEach(el => {
         if(el) {
             el.addEventListener("change", applyFilters);
@@ -107,17 +103,54 @@ document.addEventListener("DOMContentLoaded", async () => {
             elFilterCat.value = "";
             elFilterStatus.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
     // --- FUNCTIONS ---
 
     async function initPage() {
+        const tbody = document.getElementById("table-body");
+        tbody.innerHTML = `<tr><td colspan="7" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
+
+        // [BARU] Load References untuk Kategori & Status
         await Promise.all([
+            loadReferences(),
             loadClassifications(),
             loadStorageLocations(),
             loadArchives()
         ]);
+    }
+
+    // [BARU] Load Master References (Category & Status)
+    async function loadReferences() {
+        try {
+            // Helper pengisi dropdown
+            const populate = (element, data, placeholder) => {
+                if(!element) return;
+                element.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+                data.forEach(item => {
+                    element.add(new Option(item.name, item.code));
+                });
+            };
+
+            // 1. Finance Category
+            const respCat = await api.reference.getByCategory('finance_category');
+            if(respCat && respCat.data) {
+                populate(elFilterCat, respCat.data, "Semua Kategori");
+                populate(inputCategory, respCat.data, null); // Required form input
+            }
+
+            // 2. Archive Status
+            const respStat = await api.reference.getByCategory('archive_status');
+            if(respStat && respStat.data) {
+                populate(elFilterStatus, respStat.data, "Semua Status");
+                populate(inputArchiveStatus, respStat.data, null);
+            }
+
+        } catch (e) {
+            console.error("Gagal load references:", e);
+        }
     }
 
     async function loadClassifications() {
@@ -137,8 +170,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function loadArchives() {
-        const tbody = document.getElementById("table-body");
-        tbody.innerHTML = `<tr><td colspan="7" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
         try {
             allArchives = await api.financeArchive.getAll();
             
@@ -148,10 +179,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return (b.period_month || 0) - (a.period_month || 0);
             });
             
-            populateYearFilter(); // Isi dropdown filter tahun berdasarkan data
+            populateYearFilter();
             renderTable(allArchives);
         } catch (e) {
-            tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
         }
     }
 
@@ -166,38 +197,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const user = api.auth.getUserData();
         const isAdmin = user && user.role === 'admin';
-        
-        // Formatter Rupiah
         const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
         data.forEach(item => {
             const tr = document.createElement("tr");
             const hasFile = !!item.file_path;
             
-            // Logic Badge Kategori (String Based)
+            // Badge Kategori (Gunakan Code untuk styling, Name jika tersedia dari backend/reference)
+            // Default styling jika code tidak cocok
             let catClass = 'cat-lain';
-            let catLabel = item.category;
-            switch(item.category) {
-                case 'bos_reguler': catClass = 'cat-bos-reg'; catLabel = 'BOS Reguler'; break;
-                case 'bos_kinerja': catClass = 'cat-bos-kin'; catLabel = 'BOS Kinerja'; break;
-                case 'komite': catClass = 'cat-komite'; catLabel = 'Komite'; break;
-                case 'bop': catClass = 'cat-bop'; catLabel = 'BOP'; break;
-                default: catClass = 'cat-lain'; catLabel = 'Lainnya';
-            }
+            // Simple mapping untuk style lama (jika code di MasterReference sama)
+            if(item.category === 'bos_reguler') catClass = 'cat-bos-reg';
+            else if(item.category === 'bos_kinerja') catClass = 'cat-bos-kin';
+            else if(item.category === 'komite') catClass = 'cat-komite';
+            else if(item.category === 'bop') catClass = 'cat-bop';
+            
+            // Text: Gunakan category name jika backend kirim (misal lewat join), fallback ke code
+            // (Disini kita pakai code/raw value karena backend mungkin belum join name)
+            const catLabel = item.category.replace(/_/g, ' ').toUpperCase(); 
 
-            // Logic Badge Status (String Based)
-            let statusBadge = `<span class="status-pill st-active">Aktif</span>`;
-            if(item.archive_status === 'inactive') statusBadge = `<span class="status-pill st-inactive">Inaktif</span>`;
-            else if(item.archive_status === 'destroyed') statusBadge = `<span class="status-pill st-destroyed">Musnah</span>`;
+            // Badge Status
+            let statusBadgeClass = 'st-active';
+            if(item.archive_status === 'inactive') statusBadgeClass = 'st-inactive';
+            else if(item.archive_status === 'destroyed') statusBadgeClass = 'st-destroyed';
+            
+            // Fallback Text untuk Status
+            const statusText = item.archive_status || '-'; 
 
-            // Display Period
             const monthName = item.period_month ? monthNames[item.period_month] : "";
             const periodText = monthName ? `${monthName} ${item.fiscal_year}` : item.fiscal_year;
-
             const desc = item.description || "-";
             const locationName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
 
-            // Action Buttons
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" onclick="window.openFile(${item.id})" 
                     ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
@@ -221,7 +252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td><span class="code-badge">${item.classification_code || '-'}</span></td>
                 <td>
                     <div style="font-size:12px; margin-bottom:4px;">📍 ${locationName}</div>
-                    ${statusBadge}
+                    <span class="status-pill ${statusBadgeClass}">${statusText}</span>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -234,7 +265,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function populateYearFilter() {
-        // Ambil tahun unik dari data
         const years = [...new Set(allArchives.map(item => item.fiscal_year))].sort().reverse();
         elFilterYear.innerHTML = '<option value="">Semua Tahun</option>';
         years.forEach(y => elFilterYear.add(new Option(y, y)));
@@ -255,7 +285,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("form-entry").reset();
         resetFilePreview();
 
-        // Default Year
         inputFiscalYear.value = new Date().getFullYear();
 
         if (editMode && data) {
@@ -268,16 +297,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputAmount.value = data.amount;
             inputDesc.value = data.description || "";
             
-            if (data.classification_id) inputClassId.value = data.classification_id; // Set classification_id (bukan code)
+            if (data.classification_id) inputClassId.value = data.classification_id; 
             if (data.storage_location_id) inputStorageId.value = data.storage_location_id;
             
-            // Show Status Group on Edit
             if(groupStatus) groupStatus.classList.remove("hidden");
             if(inputArchiveStatus && data.archive_status) inputArchiveStatus.value = data.archive_status;
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
-                // Asumsi path public static, sesuaikan dengan konfigurasi file helper Anda
                 showPreview(`/storage/documents/finance_archives/${fileName}`);
             }
         } else {
@@ -311,8 +338,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
         
-        if (!inputTitle.value || !inputFiscalYear.value || !inputAmount.value || !inputClassId.value) {
-            alert("Harap lengkapi Judul, Tahun, Nominal, dan Klasifikasi!");
+        if (!inputTitle.value || !inputFiscalYear.value || !inputAmount.value || !inputClassId.value || !inputCategory.value) {
+            ui.alert("Data Belum Lengkap", "Harap lengkapi Judul, Tahun, Kategori, Nominal, dan Klasifikasi!", "warning");
             return;
         }
 
@@ -327,7 +354,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         if(inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
         
-        // Status hanya dikirim saat Edit (di Create default backend 'active')
         if(isEditMode && inputArchiveStatus) {
             formData.append('archive_status', inputArchiveStatus.value);
         }
@@ -343,16 +369,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.financeArchive.update(formData);
-                alert("Berhasil diperbarui!");
+                ui.toast("Berhasil diperbarui!", "success");
             } else {
                 await api.financeArchive.create(formData);
-                alert("Berhasil disimpan!");
+                ui.toast("Berhasil disimpan!", "success");
             }
             showTableMode();
             loadArchives();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Error Server"));
+            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -367,15 +393,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Yakin ingin menghapus arsip keuangan ini?")) {
-            try { await api.financeArchive.delete(id); loadArchives(); } 
-            catch(e) { alert("Gagal hapus: " + e.message); }
+        const isConfirmed = await ui.confirm("Hapus Data?", "Yakin ingin menghapus arsip keuangan ini secara permanen?", true);
+        if(isConfirmed) {
+            try { 
+                await api.financeArchive.delete(id); 
+                ui.toast("Data telah dihapus", "success");
+                loadArchives(); 
+            } 
+            catch(e) { 
+                ui.alert("Gagal Hapus", e.message, "error"); 
+            }
         }
     };
 
     window.openFile = (id) => {
         const item = allArchives.find(x => x.id === id);
-        if(!item || !item.file_path) { alert("File tidak tersedia."); return; }
+        if(!item || !item.file_path) { 
+            ui.toast("File tidak tersedia", "error"); 
+            return; 
+        }
         
         const fileName = item.file_path.split(/[\\/]/).pop();
         const finalUrl = `/storage/documents/finance_archives/${fileName}`;
@@ -390,7 +426,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // --- FILTER LOGIC ---
-
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const year = elFilterYear.value;
@@ -401,7 +436,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const filtered = allArchives.filter(item => {
             const txtMatch = (item.title||"").toLowerCase().includes(term) || (item.description||"").toLowerCase().includes(term);
             const yearMatch = year === "" || item.fiscal_year == year;
-            // Gunakan == (bukan ===) karena input select string ("1") vs data DB int (1)
             const monthMatch = month === "" || item.period_month == month;
             const catMatch = cat === "" || item.category === cat;
             const statusMatch = status === "" || item.archive_status === status;

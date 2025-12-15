@@ -17,7 +17,7 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
     const config = {
         method: method,
         headers: headers,
-        credentials: 'include' // <--- ⚠️ TAMBAHKAN BARIS INI (Wajib!)
+        credentials: 'include'
     };
 
     if (body) {
@@ -34,17 +34,28 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
         
         // --- BLOK PENANGANAN ERROR ---
         if (!response.ok) {
-            // JIKA ERROR 401 (UNAUTHORIZED)
-            // FIX: Tambahkan pengecekan endpoint !== '/auth/login'
-            // Agar jika password salah saat login, dia tidak me-refresh halaman (redirect), tapi melempar error ke catch.
+            // JIKA ERROR 401 (UNAUTHORIZED) - Sesi Habis
             if (response.status === 401 && endpoint !== '/auth/login') {
-                console.warn("Sesi habis atau Token invalid. Mengalihkan ke login...");
+                console.warn("Sesi habis atau Token invalid.");
                 localStorage.removeItem('access_token');
+
+                // [UPDATE] Tampilkan Notifikasi sebelum redirect
+                if (typeof ui !== 'undefined' && ui.alert) {
+                    await ui.alert(
+                        "Sesi Berakhir", 
+                        "Masa berlaku login Anda telah habis.<br>Silakan login kembali untuk melanjutkan.", 
+                        "warning"
+                    );
+                } else {
+                    // Fallback jika ui.js belum terload
+                    alert("Sesi Anda telah habis. Silakan login kembali.");
+                }
+
                 window.location.href = '/page/login'; 
                 return; 
             }
 
-            // Jika error lain (500, 404, atau 401 saat login), baca pesan error
+            // Jika error lain (500, 404, atau 401 saat login)
             const result = await response.json().catch(() => ({}));
             throw new Error(result.message || result.error || `Server Error (${response.status})`);
         }
@@ -67,13 +78,13 @@ const api = {
         login: async (nuptk, password) => {
             const result = await fetchAPI('/auth/login', 'POST', { nuptk, password });
             
-            // FIX: Cek apakah result valid DAN memiliki access_token sebelum disimpan
             if (result && result.access_token) {
                 localStorage.setItem('access_token', result.access_token);
             }
             return result;
         },
         logout: () => {
+            // Logout manual tidak perlu notifikasi "Sesi Habis", langsung redirect
             localStorage.removeItem('access_token');
             window.location.href = '/page/login'; 
         },
@@ -157,12 +168,10 @@ const api = {
     backup: {
         manual: () => fetchAPI('/backup/manual', 'POST'),
         getLogs: () => fetchAPI('/backup/logs', 'GET'),
-        
-        // TAMBAHAN BARU:
         restore: (filename) => fetchAPI('/backup/restore', 'POST', { filename })
     },
 
-    // 9. STORAGE LOCATION (Lokasi Simpan)
+    // 9. STORAGE LOCATION
     storageLocation: {
         create: (data) => fetchAPI('/storage_location/create', 'POST', data),
         update: (data) => fetchAPI('/storage_location/update', 'POST', data),
@@ -187,6 +196,14 @@ const api = {
     disposal: {
         check: () => fetchAPI('/disposal/check', 'GET'),
         execute: (items) => fetchAPI('/disposal/execute', 'POST', { items }) 
+    },
+
+    reference: {
+        // [UPDATE] Tambahkan method CRUD lengkap
+        getByCategory: (category) => fetchAPI(`/api/references/${category}?all=true`, 'GET'), // Tambah all=true agar admin bisa lihat yang non-aktif
+        create: (data) => fetchAPI('/api/references', 'POST', data),
+        update: (id, data) => fetchAPI(`/api/references/${id}`, 'PUT', data),
+        delete: (id) => fetchAPI(`/api/references/${id}`, 'DELETE')
     }
 };
 
@@ -210,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", (e) => {
-            e.preventDefault(); // Mencegah perilaku default link jika itu tag <a>
+            e.preventDefault(); 
             api.auth.logout();
         });
     }

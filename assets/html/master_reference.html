@@ -4,26 +4,24 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistem Arsip - Data Guru & Staff</title>
+    <title>Sistem Arsip - Master Referensi</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-
     <style>
-        /* Reuse style from User page for consistency */
+        /* Menggunakan style yang sama dengan Classification */
         .layout-split {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
+            grid-template-columns: 2fr 1fr;
             gap: 24px;
             align-items: start;
             height: calc(100vh - 140px);
             min-height: 0;
         }
 
-        .card-styled {
+        .card-form-styled {
             background: white;
             border-radius: 16px;
             padding: 32px;
@@ -31,46 +29,19 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-
-        #form-entry {
-            flex: 1;
             overflow-y: auto;
-            padding-right: 8px;
-            margin-bottom: 16px;
         }
 
-        #form-entry::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #form-entry::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 4px;
-        }
-
-        .form-section-title {
-            font-size: 16px;
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 24px;
-        }
-
-        .form-grid-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .local-form-group {
             margin-bottom: 20px;
         }
 
         .local-label {
             display: block;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #374151;
             margin-bottom: 8px;
-            color: #4b5563;
         }
 
         .local-input,
@@ -78,65 +49,99 @@
         .local-textarea {
             width: 100%;
             padding: 12px 16px;
-            border-radius: 8px;
-            border: none;
-            background-color: #F8FAFC;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
             font-family: inherit;
             font-size: 14px;
-            color: #1f2937;
+            background: #f9fafb;
             transition: 0.2s;
         }
 
         .local-input:focus,
         .local-select:focus,
         .local-textarea:focus {
-            outline: 2px solid var(--primary);
             background: white;
+            border-color: var(--primary);
+            outline: none;
         }
 
-        .local-textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-footer {
-            margin-top: auto;
-            padding-top: 24px;
-            border-top: 1px solid #f3f4f6;
-            display: flex;
-            /* Justify content tidak berpengaruh jika child width 100%, tapi tetap kita set center */
-            justify-content: center; 
-            gap: 12px;
-            background: white;
-            flex-shrink: 0;
-        }
-
-        .btn-save {
-            width: 100%; 
-            padding: 12px 24px;
-            background: var(--primary); /* UBAH INI: Mengikuti warna Surat Masuk */
-            border: none;
-            border-radius: 10px; /* Opsional: disamakan radiusnya */
+        .btn-local-save {
+            width: 100%;
+            background: var(--primary);
             color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Shadow disesuaikan agar lebih soft */
-            text-align: center;
             transition: 0.2s;
         }
 
-        .btn-save:hover {
-            opacity: 0.9; /* Efek hover standar */
+        .btn-local-save:hover {
+            background: var(--primary-hover);
         }
 
         .hidden {
             display: none !important;
         }
 
-        /* Status Badge Style */
-        .badge-active { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
-        .badge-inactive { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
-        .badge-other { background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+        /* Style untuk Kategori Selector di Header */
+        .category-selector {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* --- Tambahkan CSS ini ke dalam <style> di master_reference.html --- */
+
+        /* Style Container Utama (Mirip dengan Incoming Letter) */
+        .filter-group-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 6px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: 0.2s;
+            height: 40px;
+            /* Menyamakan tinggi */
+            min-width: 300px;
+        }
+
+        .filter-group-wrapper:hover {
+            border-color: var(--primary);
+        }
+
+        /* Style untuk Label/Judul di sebelah kiri (Warna Primary/Orange) */
+        .filter-label-styled {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            /* Mengambil warna primary tema */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        /* Style untuk Dropdown (Membersihkan border default) */
+        .filter-select-clean {
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: #374151;
+            background: transparent;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 500;
+        }
     </style>
 </head>
 
@@ -239,11 +244,11 @@
     <main class="main-content">
         <div class="header-page">
             <div class="header-title">
-                <h1 id="page-title">Master Data Guru</h1>
-                <p id="page-subtitle">Kelola biodata Guru, Staff, dan Tenaga Kependidikan</p>
+                <h1 id="page-title">Master Data Referensi</h1>
+                <p id="page-subtitle">Kelola opsi dropdown untuk berbagai modul sistem.</p>
             </div>
             <div class="header-tools">
-                <button class="btn-add" id="btn-add-new" title="Tambah Guru">+</button>
+                <button class="btn-add" id="btn-add-new" title="Tambah Data Baru">+</button>
                 <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">↩
                     Kembali</button>
                 <div class="user-avatar" id="header-avatar">?</div>
@@ -251,29 +256,35 @@
         </div>
 
         <section id="view-table" class="content-card">
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari NIP, Nama, atau Status..." id="searchInput">
-            </div>
+            <div class="filter-row"
+                style="flex-wrap: wrap; gap:16px; align-items:center; background:#f8fafc; padding:16px; border-radius:12px; margin-bottom:16px;">
+                <div style="flex:1;">
+                    <div class="filter-group-wrapper">
 
-            <div class="filter-row">
-                <select class="filter-select" id="filterStatus">
-                    </select>
-                
-                <select class="filter-select" id="filterEmpStatus">
-                    </select>
-                <button id="btnResetFilter" class="btn-export">🔄 Reset</button>
+                        <div class="filter-label-styled">
+                            <i class='bx bxs-category'></i> <span>Kategori Data</span>
+                        </div>
+
+                        <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 8px;"></div>
+
+                        <select id="categoryFilter" class="filter-select-clean">
+                        </select>
+                    </div>
+                </div>
+                <div class="search-container" style="margin-bottom: 0; width: 300px;">
+                    <input type="text" class="search-input" placeholder="Cari Kode atau Nama..." id="searchInput">
+                </div>
             </div>
 
             <div class="table-responsive">
-                <table id="mainTable">
+                <table id="referenceTable">
                     <thead>
                         <tr>
-                            <th>NIP / NUPTK</th>
-                            <th>Nama Lengkap</th>
-                            <th>L/P</th>
-                            <th>Status Pegawai</th>
-                            <th>Status Aktif</th>
-                            <th style="text-align: center;">Aksi</th>
+                            <th width="10%">Urutan</th>
+                            <th width="15%">Kode</th>
+                            <th width="30%">Nama Referensi</th>
+                            <th width="30%">Deskripsi</th>
+                            <th width="15%" style="text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body"></tbody>
@@ -282,81 +293,61 @@
         </section>
 
         <div id="view-form" class="layout-split hidden">
-            <section class="card-styled">
-                <h3 class="form-section-title">Form Biodata Guru</h3>
-
+            <section class="card-form-styled">
                 <form id="form-entry">
                     <input type="hidden" id="entry-id">
 
-                    <div class="form-grid-row">
-                        <div>
-                            <label class="local-label">NIP / NUPTK / ID Pegawai</label>
-                            <input type="text" id="inputIdentity" class="local-input" placeholder="Nomor Identitas Unik"
-                                required>
+                    <div class="local-form-group">
+                        <label class="local-label">Kategori</label>
+                        <input type="text" id="displayCategory" class="local-input" readonly
+                            style="background:#e2e8f0; font-weight:600; color:#475569;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+                        <div class="local-form-group">
+                            <label class="local-label">Kode (Value) <span>*</span></label>
+                            <input type="text" id="inputCode" class="local-input" required placeholder="Contoh: active">
                         </div>
-                        <div>
-                            <label class="local-label">Nama Lengkap</label>
-                            <input type="text" id="inputName" class="local-input" placeholder="Contoh: Budi Santoso"
-                                required>
+                        <div class="local-form-group">
+                            <label class="local-label">Nama Tampilan (Label) <span>*</span></label>
+                            <input type="text" id="inputName" class="local-input" required placeholder="Contoh: Aktif">
                         </div>
                     </div>
 
-                    <div class="form-grid-row">
-                        <div>
-                            <label class="local-label">Jenis Kelamin</label>
-                            <select id="inputGender" class="local-select" required>
-                                <option value="">- Pilih -</option>
-                                <option value="L">Laki-laki</option>
-                                <option value="P">Perempuan</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="local-label">Golongan (Opsional)</label>
-                            <input type="text" id="inputRank" class="local-input" placeholder="Contoh: III/a">
-                        </div>
+                    <div class="local-form-group">
+                        <label class="local-label">Urutan Tampil (Sort Order)</label>
+                        <input type="number" id="inputSort" class="local-input" value="0">
+                        <p class="local-helper">Angka lebih kecil akan muncul lebih atas di dropdown.</p>
                     </div>
 
-                    <div class="form-grid-row">
-                        <div>
-                            <label class="local-label">Status Kepegawaian</label>
-                            <select id="inputEmpStatus" class="local-select" required>
-                                </select>
-                        </div>
-                        <div>
-                            <label class="local-label">Status Keaktifan</label>
-                            <select id="inputStatus" class="local-select" required style="font-weight: 600;">
-                                </select>
-                        </div>
+                    <div class="local-form-group">
+                        <label class="local-label">Deskripsi (Opsional)</label>
+                        <textarea id="inputDesc" class="local-textarea" rows="3"></textarea>
                     </div>
 
-                    <div>
-                        <label class="local-label">Alamat Domisili</label>
-                        <textarea id="inputAddress" class="local-textarea" placeholder="Alamat lengkap..."></textarea>
+                    <div class="local-form-group">
+                        <label class="local-label">Status Aktif</label>
+                        <select id="inputIsActive" class="local-select">
+                            <option value="true">✅ Aktif</option>
+                            <option value="false">❌ Tidak Aktif (Soft Delete)</option>
+                        </select>
                     </div>
                 </form>
 
                 <div class="form-footer">
-                    <button class="btn-save" id="btnSave">Simpan Data</button>
+                    <button class="btn-local-save" id="btnSave">Simpan Data</button>
                 </div>
             </section>
 
-            <aside class="card-styled" style="background: #F0F9FF; border-color: #BAE6FD;">
-                <h4 style="font-size:16px; font-weight:600; margin-bottom:12px; color:#0369a1;">Informasi Sistem</h4>
-                <p style="font-size:13px; color:#334155; line-height:1.6; margin-bottom:16px;">
-                    Data ini merupakan <strong>Master Data</strong>. Pastikan NIP/NUPTK benar karena akan digunakan
-                    sebagai kunci untuk:
-                </p>
-                <ul style="font-size:13px; color:#334155; padding-left:20px; margin-bottom:20px;">
-                    <li>Pembuatan Akun Login (User).</li>
-                    <li>Kepemilikan Arsip Pribadi (Ijazah, SK).</li>
-                    <li>Pencatat Surat Masuk/Keluar.</li>
-                </ul>
-
-                <div style="background:white; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
-                    <span style="font-size:12px; color:#64748b; display:block; margin-bottom:5px;">Tips:</span>
-                    <p style="font-size:12px; color:#0f172a;">
-                        Jika guru pensiun, ubah status ke <strong>'Pensiun'</strong> daripada menghapus data, agar
-                        riwayat surat yang pernah beliau input tidak hilang.
+            <aside class="right-panel-stack">
+                <div class="guide-box" style="background:#fff7ed; border-color:#ffedd5;">
+                    <h4 class="guide-title" style="color:#c2410c;">⚠️ Perhatian</h4>
+                    <p style="font-size:13px; color:#9a3412; line-height:1.6;">
+                        Mengubah <b>Kode (Value)</b> pada data yang sudah digunakan oleh arsip lain dapat menyebabkan
+                        data tidak tampil dengan benar.
+                        <br><br>
+                        Disarankan hanya mengubah <b>Nama Tampilan</b> atau menonaktifkan status jika opsi tidak lagi
+                        digunakan.
                     </p>
                 </div>
             </aside>
@@ -365,7 +356,7 @@
 
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/teacher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/master_reference.js') }}"></script>
 </body>
 
 </html>

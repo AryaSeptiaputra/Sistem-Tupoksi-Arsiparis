@@ -1,6 +1,8 @@
+/* FILE: outgoing_letter.js */
+
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // --- 0. NAVIGASI ---
+    // --- 0. NAVIGASI & TOKEN CHECK ---
     document.querySelectorAll("[data-route]").forEach(el => {
         el.addEventListener("click", () => { window.location.href = el.dataset.route; });
     });
@@ -25,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btnSave = document.getElementById("btn-save-data");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
-    // Inputs
+    // Inputs Form
     const inputId = document.getElementById("entry-id");
     const inputNumber = document.getElementById("number");
     const inputDestination = document.getElementById("destination");
@@ -35,13 +37,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputClassId = document.getElementById("classification_id");
     const inputStorageId = document.getElementById("storage_location_id");
     
-    // [BARU] Input Status
+    // Dropdown Status (Dinamis)
     const inputArchiveStatus = document.getElementById("archive_status");
     const inputApprovalStatus = document.getElementById("approval_status");
     
     const radioInputs = document.getElementsByName("is_decree");
-
     const inputFile = document.getElementById("fileInput");
+    
+    // Upload UI
     const uploadBox = document.getElementById("upload-box");
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
@@ -53,8 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elStartDate = document.getElementById("startDate");
     const elEndDate = document.getElementById("endDate");
     const elFilterClass = document.getElementById("filterClassification");
-    const elFilterStatus = document.getElementById("filterStatus");
-    const elFilterApproval = document.getElementById("filterApproval"); // Filter Baru
+    const elFilterStatus = document.getElementById("filterStatus");     // Archive Status Filter
+    const elFilterApproval = document.getElementById("filterApproval"); // Approval Status Filter
 
     // --- INITIALIZATION ---
     await initPage();
@@ -76,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = e.target.files[0];
             if (file) {
                 if(file.type !== "application/pdf") {
-                    alert("Hanya file PDF yang diperbolehkan.");
+                    ui.alert("Format Salah", "Hanya file PDF yang diperbolehkan.", "warning");
                     inputFile.value = "";
                     return;
                 }
@@ -105,6 +108,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(elFilterStatus) elFilterStatus.value = "";
             if(elFilterApproval) elFilterApproval.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
@@ -117,8 +121,45 @@ document.addEventListener("DOMContentLoaded", async () => {
         await Promise.all([
             loadClassifications(),
             loadStorageLocations(),
+            loadReferences(), // Load Archive & Approval Status
             loadLetters()
         ]);
+    }
+
+    // [FUNGSI UTAMA] Mengambil data dari MasterReference
+    async function loadReferences() {
+        try {
+            // Helper pengisi dropdown
+            const populate = (element, data, placeholder) => {
+                if(!element) return;
+                element.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+                data.forEach(item => {
+                    // item.code (misal: 'active', 'pending') -> value
+                    // item.name (misal: 'Aktif', 'Menunggu') -> text
+                    element.add(new Option(item.name, item.code));
+                });
+            };
+
+            // 1. Load Archive Status (Shared)
+            // Kategori di Python: ARCHIVE_STATUS = "archive_status"
+            const respArchive = await api.reference.getByCategory('archive_status');
+            if(respArchive && respArchive.data) {
+                populate(elFilterStatus, respArchive.data, "Semua Status");
+                populate(inputArchiveStatus, respArchive.data, null);
+            }
+
+            // 2. Load Letter Approval Status (Outgoing Specific)
+            // Kategori di Python: LETTER_APPROVAL_STATUS = "letter_approval_status"
+            const respApproval = await api.reference.getByCategory('letter_approval_status');
+            if(respApproval && respApproval.data) {
+                populate(elFilterApproval, respApproval.data, "Semua Persetujuan");
+                populate(inputApprovalStatus, respApproval.data, null);
+            }
+
+        } catch (e) {
+            console.error("Gagal load references:", e);
+            ui.toast("Gagal memuat data referensi", "error");
+        }
     }
 
     async function loadClassifications() {
@@ -169,34 +210,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // Format Data
             const dateLet = item.letter_date ? new Date(item.letter_date).toLocaleDateString("id-ID") : "-";
             const dateSent = item.sent_date ? new Date(item.sent_date).toLocaleDateString("id-ID") : "-";
-            
             const hasFile = !!item.file_path;
             
-            // Badges
+            // Badge Jenis Surat
             const isSK = item.is_decree; 
             const typeBadge = isSK 
                 ? `<span class="type-badge tb-sk">SK</span>` 
                 : `<span class="type-badge tb-biasa">Biasa</span>`;
 
-            // Status Logic (String Based)
-            let statusPill = `<span class="status-pill st-active">Aktif</span>`;
-            if (item.archive_status === 'inactive') statusPill = `<span class="status-pill st-inactive">Inaktif</span>`;
-            else if (item.archive_status === 'destroyed') statusPill = `<span class="status-pill st-destroyed">Musnah</span>`;
+            // --- Status Pill Logic (CSS) ---
+            // Code dari DB ('active', 'inactive') dicocokkan untuk styling.
+            // Text fallback pakai code jika name tidak tersedia di object response (biasanya backend join atau kita mapping).
+            // Untuk simple-nya, kita gunakan mapping style manual, tapi TEXT bisa kita biarkan code atau mapping manual jika belum ada join.
             
-            // Approval Logic
-            let approvalBadge = `<span class="approval-badge ap-pending">⏳ Menunggu</span>`;
-            switch(item.approval_status) {
-                case 'approved': approvalBadge = `<span class="approval-badge ap-approved">✅ Disetujui</span>`; break;
-                case 'rejected': approvalBadge = `<span class="approval-badge ap-rejected">❌ Ditolak</span>`; break;
-                case 'draft': approvalBadge = `<span class="approval-badge ap-draft">📝 Draft</span>`; break;
-            }
+            let statusPillClass = "st-active";
+            // Mapping sederhana code -> class
+            if (item.archive_status === 'inactive') statusPillClass = 'st-inactive';
+            if (item.archive_status === 'destroyed') statusPillClass = 'st-destroyed';
+            
+            // Gunakan item.archive_status (code) sebagai text jika backend belum mengirim 'archive_status_name'
+            // Idealnya backend mengirim 'archive_status_name' hasil join master_reference.
+            const statusText = item.archive_status || "-"; 
+            const statusPill = `<span class="status-pill ${statusPillClass}">${statusText}</span>`;
+
+            // --- Approval Badge Logic (CSS) ---
+            let approvalClass = "ap-pending";
+            if (item.approval_status === 'approved') approvalClass = 'ap-approved';
+            if (item.approval_status === 'rejected') approvalClass = 'ap-rejected';
+            if (item.approval_status === 'draft') approvalClass = 'ap-draft';
+            
+            const approvalText = item.approval_status || "-";
+            const approvalBadge = `<span class="approval-badge ${approvalClass}">${approvalText}</span>`;
 
             const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
 
-            // ACTION BUTTONS
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" 
                     onclick="window.openFile(${item.id})" 
@@ -213,42 +262,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             tr.innerHTML = `
                 <td>
                     <div class="text-main" style="font-family:monospace; color:var(--primary);">${item.number}</div>
-                    <div class="text-sub"><span class="date-badge">TANGGAL:</span> ${dateLet}</div>
+                    <div class="text-sub"><span class="date-badge">TGL:</span> ${dateLet}</div>
                     <div style="margin-top:4px;">${approvalBadge}</div>
                 </td>
-                
+                <td><div class="text-main" style="font-size:14px;">${dateSent}</div></td>
                 <td>
-                    <div class="text-main" style="font-size:14px;">${dateSent}</div>
-                </td>
-                
-                <td>
-                    <div class="text-main">
-                        ${item.destination} 
-                        ${typeBadge}
-                    </div>
+                    <div class="text-main">${item.destination} ${typeBadge}</div>
                     <div class="text-desc" title="${item.subject}">${item.subject}</div>
                 </td>
-                
-                <td>
-                    <span class="code-badge" style="font-size:13px;">${item.classification_code || '-'}</span>
-                </td>
-                
+                <td><span class="code-badge" style="font-size:13px;">${item.classification_code || '-'}</span></td>
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
                     ${statusPill}
                 </td>
-                
-                <td style="text-align:center;">
-                    <div class="btn-action-group">
-                        ${actionButtons}
-                    </div>
-                </td>
+                <td style="text-align:center;"><div class="btn-action-group">${actionButtons}</div></td>
             `;
             tbody.appendChild(tr);
         });
     }
-
-    // --- FORM LOGIC ---
 
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
@@ -271,7 +302,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (data.letter_date) inputLetterDate.value = data.letter_date.split('T')[0];
             if (data.sent_date) inputSentDate.value = data.sent_date.split('T')[0];
 
-            // Radio Button
             const isDecreeVal = data.is_decree ? "true" : "false";
             for(let rb of radioInputs) {
                 if(rb.value === isDecreeVal) rb.checked = true;
@@ -280,21 +310,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(data.classification_id) inputClassId.value = data.classification_id;
             if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
             
-            // Set Status Values
+            // Set Dynamic Status Values (pastikan option sudah ada dari loadReferences)
             if(data.archive_status) inputArchiveStatus.value = data.archive_status;
             if(data.approval_status) inputApprovalStatus.value = data.approval_status;
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
-                // Asumsi file helper menyimpan ke folder ini
                 const cleanPath = `/storage/documents/outgoing_letters/${fileName}`;
                 showPreview(cleanPath); 
             }
         } else {
             currentEditId = null;
-            // Default Values
-            inputArchiveStatus.value = "active";
-            inputApprovalStatus.value = "pending";
+            // Set Default Values (Opsional, pastikan 'active' dan 'pending' ada di database master reference Anda)
+            // inputArchiveStatus.value = "active"; 
+            // inputApprovalStatus.value = "pending";
         }
     }
 
@@ -324,7 +353,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         
         if (!inputNumber.value || !inputDestination.value || !inputClassId.value) {
-            alert("Harap lengkapi No Surat, Tujuan, dan Klasifikasi.");
+            ui.alert("Data Belum Lengkap", "Harap lengkapi No Surat, Tujuan, dan Klasifikasi.", "warning");
             return;
         }
 
@@ -336,7 +365,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('sent_date', inputSentDate.value);
         formData.append('classification_id', inputClassId.value);
         
-        // Handle Optional & Status
         if(inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
         if(inputArchiveStatus.value) formData.append('archive_status', inputArchiveStatus.value);
         if(inputApprovalStatus.value) formData.append('approval_status', inputApprovalStatus.value);
@@ -358,16 +386,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.outgoingLetter.update(formData);
-                alert("Berhasil diperbarui!");
+                ui.toast("Data berhasil diperbarui!", "success");
             } else {
                 await api.outgoingLetter.create(formData);
-                alert("Berhasil disimpan!");
+                ui.toast("Data berhasil disimpan!", "success");
             }
             showTableMode();
             loadLetters();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Error server"));
+            ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -381,15 +409,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Hapus surat keluar ini?")) {
-            try { await api.outgoingLetter.delete(id); loadLetters(); }
-            catch(e) { alert("Gagal hapus: " + e.message); }
+        const isConfirmed = await ui.confirm("Hapus Surat?", "Apakah Anda yakin ingin menghapus surat ini?", true);
+        if(isConfirmed) {
+            try { 
+                await api.outgoingLetter.delete(id); 
+                ui.toast("Data telah dihapus", "success");
+                loadLetters(); 
+            }
+            catch(e) { 
+                ui.alert("Gagal Hapus", e.message, "error"); 
+            }
         }
     };
 
     window.openFile = (id) => {
         const item = allLetters.find(l => l.id === id);
-        if (!item || !item.file_path) { alert("File tidak tersedia."); return; }
+        if (!item || !item.file_path) { 
+            ui.toast("File tidak tersedia", "error"); 
+            return; 
+        }
         const fileName = item.file_path.split(/[\\/]/).pop();
         const cleanPath = `/storage/documents/outgoing_letters/${fileName}`;
         viewTable.classList.add("hidden"); viewForm.classList.add("hidden"); 
@@ -402,7 +440,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    // --- FILTER LOGIC ---
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const cls = elFilterClass.value;
@@ -415,17 +452,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if(end) end.setHours(23, 59, 59);
 
         const filtered = allLetters.filter(item => {
-            // Text Match
             const txtMatch = (item.number||"").toLowerCase().includes(term) ||
                            (item.destination||"").toLowerCase().includes(term) ||
                            (item.subject||"").toLowerCase().includes(term);
             
-            // Dropdown Match
             const clsMatch = cls === "" || item.classification_code === cls;
             const statusMatch = status === "" || item.archive_status === status;
             const approvalMatch = approval === "" || item.approval_status === approval;
 
-            // Date Match
             let dateMatch = true;
             let targetDateStr = (dateType === 'letter') ? item.letter_date : item.sent_date;
             

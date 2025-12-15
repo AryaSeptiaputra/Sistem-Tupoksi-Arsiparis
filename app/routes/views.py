@@ -61,3 +61,7 @@ def disposal():
 @view_bp.route('/teacher', methods=['GET'])
 def teacher():
     return render_template('teacher.html')
+
+@view_bp.route('/reference', methods=['GET'])
+def reference():
+    return render_template('master_reference.html')

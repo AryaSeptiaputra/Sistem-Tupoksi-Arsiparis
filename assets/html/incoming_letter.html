@@ -116,6 +116,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -170,9 +175,6 @@
 
                 <select id="filterStatus" class="filter-select" style="min-width: 120px;">
                     <option value="">Semua Status</option>
-                    <option value="active">🟢 Aktif</option>
-                    <option value="inactive">🟡 Inaktif</option>
-                    <option value="destroyed">🔴 Musnah</option>
                 </select>
 
                 <button id="btnResetFilter" class="filter-btn">🔄 Reset</button>
@@ -209,9 +211,6 @@
                     <div class="form-group hidden" id="group-archive-status">
                         <label>Status Arsip</label>
                         <select id="archive_status" class="filter-select" style="width:100%">
-                            <option value="active">🟢 Aktif (Unit Kerja)</option>
-                            <option value="inactive">🟡 Inaktif (Gudang)</option>
-                            <option value="destroyed">🔴 Musnah</option>
                         </select>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">

@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             endDateInput.value = "";
             filterUser.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
@@ -74,6 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         } catch (e) {
             console.error("Gagal memuat list user untuk filter:", e);
+            // Optional: ui.toast("Gagal memuat filter user", "error");
         }
     }
 
@@ -83,8 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             allLogs = await api.log.getAll();
             
-            // Urutkan dari yang terbaru (Descending by ID atau Timestamp)
-            // Asumsi backend kirim 'created_at' atau 'timestamp'
+            // Urutkan dari yang terbaru (Descending by timestamp)
             allLogs.sort((a, b) => {
                 const dateA = new Date(a.created_at || a.timestamp);
                 const dateB = new Date(b.created_at || b.timestamp);
@@ -95,6 +96,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (e) {
             console.error(e);
             tbody.innerHTML = `<tr><td colspan="3" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+            ui.toast("Gagal memuat data log", "error");
         }
     }
 
@@ -123,14 +125,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // 2. User Chip (Visual)
             // Backend biasanya kirim 'username' atau 'user.username'
-            // Kita handle keduanya
             const username = item.username || (item.user ? item.user.username : "System/Unknown");
             
-            // 3. Highlight Kata Kunci Aksi (Create/Update/Delete)
+            // 3. Highlight Kata Kunci Aksi
             let actionText = item.action || item.activity || "-";
-            
-            // Opsional: Beri warna pada kata kunci tertentu
-            // Contoh: "Menghapus" jadi merah, "Menambahkan" jadi hijau
             actionText = highlightKeywords(actionText);
 
             tr.innerHTML = `
@@ -151,11 +149,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if(!text) return "-";
         
         let newText = text;
+        // Penyesuaian kata kunci sesuai log backend
         newText = newText.replace(/menambahkan/gi, '<b style="color:#16a34a">menambahkan</b>');
         newText = newText.replace(/membuat/gi, '<b style="color:#16a34a">membuat</b>');
         newText = newText.replace(/mengupdate/gi, '<b style="color:#ca8a04">mengupdate</b>');
         newText = newText.replace(/mengubah/gi, '<b style="color:#ca8a04">mengubah</b>');
         newText = newText.replace(/menghapus/gi, '<b style="color:#dc2626">menghapus</b>');
+        newText = newText.replace(/login/gi, '<b style="color:#2563eb">login</b>');
+        newText = newText.replace(/logout/gi, '<b style="color:#475569">logout</b>');
         
         return newText;
     }
@@ -192,18 +193,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function exportToCSV() {
-        // Ambil data yang sedang tampil (terfilter) atau semua jika mau
-        // Disini kita export semua data yang ada di memori 'allLogs'
-        // atau bisa juga hasil filter. Mari export hasil filter:
-        
-        // *Re-run filter logic to get current displayed data*
-        // Agar lebih mudah, kita ambil logikanya saja:
-        
-        /* Simpelnya, kita export allLogs saja untuk contoh ini, 
-           atau Anda bisa simpan hasil filter di variabel global 'filteredLogs'. */
-        
         if (allLogs.length === 0) {
-            alert("Tidak ada data untuk diexport.");
+            // [UPDATE] Gunakan ui.alert
+            ui.alert("Export Gagal", "Tidak ada data untuk diexport.", "warning");
             return;
         }
 
@@ -225,5 +217,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
+        // [UPDATE] Tambahkan Toast
+        ui.toast("File CSV berhasil diunduh", "success");
     }
 });

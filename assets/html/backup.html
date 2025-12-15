@@ -38,6 +38,7 @@
         </a>
 
         {% if session.get('role') in ['admin', 'headmaster'] %}
+
         <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
             <i class='bx bxs-certification'></i> Data Ijazah
@@ -87,6 +88,11 @@
         <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
             <i class='bx bx-history'></i> Log Aktivitas
+        </a>
+
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
         </a>
 
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"

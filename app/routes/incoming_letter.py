@@ -51,7 +51,9 @@ def create_incoming_letter_route():
             if full_path and os.path.exists(full_path): os.remove(full_path)
             return jsonify({"error": "User authentication failed"}), 401
         
-        new_letter = create_incoming_letter(db_session, data, user_id=current_user.id)
+        # [PERBAIKAN UTAMA DI SINI]: Hapus parameter user_id
+        new_letter = create_incoming_letter(db_session, data)
+        
         create_log(db_session, current_user.id, f"Tambah surat masuk No: '{new_letter.number}'")
         return jsonify(new_letter.to_dict()), 201
 

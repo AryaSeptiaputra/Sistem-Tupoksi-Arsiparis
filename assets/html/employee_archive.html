@@ -13,7 +13,6 @@
 
     <style>
         /* Shared Styles */
-        /* HANYA PERTAHANKAN GAYA LAYOUT DAN GAYA SPESIFIK HALAMAN */
         .layout-split {
             display: grid;
             grid-template-columns: 400px 1fr;
@@ -102,7 +101,7 @@
             display: none !important;
         }
 
-        /* Badge Jenis Dokumen (Dipertahankan, ini spesifik halaman) */
+        /* Badge Jenis Dokumen */
         .badge-doc {
             font-size: 10px;
             font-weight: 700;
@@ -111,81 +110,27 @@
             text-transform: uppercase;
         }
 
-        .doc-sk {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #93c5fd;
-        }
+        /* Kelas-kelas ini akan dicocokkan dengan kode dari referensi */
+        .doc-sk { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .doc-ijazah { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
+        .doc-sertifikat { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .doc-lain { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
 
-        .doc-ijazah {
-            background: #fce7f3;
-            color: #be185d;
-            border: 1px solid #fbcfe8;
+        /* --- CSS FORM --- */
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #374151; }
+        .form-group label span { color: #ef4444; }
+        
+        .input-control { width: 100%; }
+        .input-control input, .input-control select, .input-control textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 8px; font-family: "Poppins", sans-serif; font-size: 13px;
+            background-color: white; color: #1f2937; outline: none; box-sizing: border-box; transition: all 0.2s;
         }
-
-        .doc-sertifikat {
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
+        .input-control input:focus, .input-control select:focus, .input-control textarea:focus {
+            border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
         }
-
-        .doc-lain {
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-        }
-
-        /* --- PERBAIKAN CSS FORM (Dipertahankan, ini styling elemen form umum) --- */
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #374151;
-        }
-
-        .form-group label span {
-            color: #ef4444;
-        }
-
-        .input-control {
-            width: 100%;
-        }
-
-        .input-control input,
-        .input-control select,
-        .input-control textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color, #e5e7eb);
-            border-radius: 8px;
-            font-family: "Poppins", sans-serif;
-            font-size: 13px;
-            background-color: white;
-            color: #1f2937;
-            outline: none;
-            box-sizing: border-box;
-            transition: all 0.2s;
-        }
-
-        .input-control input:focus,
-        .input-control select:focus,
-        .input-control textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-soft);
-        }
-
-        ::placeholder {
-            color: #9ca3af;
-            opacity: 1;
-        }
-
-        /* Catatan: Gaya font tabel seperti .text-main, .text-sub, dan #employeeTable thead th
-                   tidak perlu lagi di sini karena sudah dipindahkan ke components.css. */
+        ::placeholder { color: #9ca3af; opacity: 1; }
     </style>
 </head>
 
@@ -267,6 +212,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -302,14 +252,8 @@
 
             <div class="filter-row">
                 <select id="filterType" class="filter-select">
-                    <option value="">Semua Jenis Dokumen</option>
-                    <option value="sk_cpns">SK CPNS/PNS</option>
-                    <option value="sk_pangkat">SK Pangkat</option>
-                    <option value="sk_berkala">SK Berkala</option>
-                    <option value="sertifikat">Sertifikat</option>
-                    <option value="ijazah">Ijazah</option>
-                    <option value="ktp_kk">KTP / KK</option>
-                </select>
+                    </select>
+                
                 <select id="filterEmployee" class="filter-select">
                     <option value="">Semua Pegawai</option>
                 </select>
@@ -327,34 +271,7 @@
                             <th style="text-align:center;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body">
-                        <tr>
-                            <td>
-                                <span class="text-main">SK Kenaikan Pangkat III/b</span>
-                                <span class="text-sub">Tahun Terbit: 2023</span>
-                            </td>
-                            <td>
-                                <span class="badge-doc doc-sk">SK Pangkat</span>
-                            </td>
-                            <td>
-                                <span class="text-main">Dr. Rini Anggraini, M.Kom.</span>
-                                <span class="text-sub">NIP. 198001012005021001</span>
-                            </td>
-                            <td>
-                                <span class="text-sub">Lemari A-03</span>
-                            </td>
-                            <td>
-                                <div class="btn-action-group">
-                                    <button class="btn-action-view" title="Lihat Dokumen"><i
-                                            class='bx bx-file-find'></i></button>
-                                    <button class="btn-action-view btn-edit" title="Ubah Data"><i
-                                            class='bx bx-pencil'></i></button>
-                                    <button class="btn-action-view btn-delete" title="Hapus Data"><i
-                                            class='bx bx-trash'></i></button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody id="table-body"></tbody>
                 </table>
             </div>
         </section>
@@ -389,14 +306,7 @@
                             <label>Jenis Dokumen</label>
                             <div class="input-control">
                                 <select id="document_type" style="width:100%">
-                                    <option value="lainnya">Lainnya</option>
-                                    <option value="sk_cpns">SK CPNS/PNS</option>
-                                    <option value="sk_pangkat">SK Kenaikan Pangkat</option>
-                                    <option value="sk_berkala">SK Berkala</option>
-                                    <option value="sertifikat">Sertifikat / Piagam</option>
-                                    <option value="ijazah">Ijazah Terakhir</option>
-                                    <option value="ktp_kk">KTP / KK</option>
-                                </select>
+                                    </select>
                             </div>
                         </div>
                         <div class="form-group">

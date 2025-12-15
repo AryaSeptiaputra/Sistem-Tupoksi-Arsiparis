@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let allDocs = [];
     let isEditMode = false;
     let currentEditId = null;
+    let refDocTypes = []; // Simpan referensi untuk lookup label nanti
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -28,11 +29,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Inputs Form
     const inputId = document.getElementById("entry-id");
     const inputName = document.getElementById("document_name");
-    
-    // [UPDATE] Referensi ke input Owner (Guru)
     const inputOwnerId = document.getElementById("owner_id"); 
-    
-    const inputDocType = document.getElementById("document_type");
+    const inputDocType = document.getElementById("document_type"); // Dynamic
     const inputYear = document.getElementById("document_year");
     const inputStorageId = document.getElementById("storage_location_id");
     const inputDesc = document.getElementById("description");
@@ -46,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Filters
     const elSearch = document.getElementById("searchInput");
-    const elFilterType = document.getElementById("filterType");
+    const elFilterType = document.getElementById("filterType"); // Dynamic
     const elFilterEmployee = document.getElementById("filterEmployee");
 
     // --- INITIALIZATION ---
@@ -69,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = e.target.files[0];
             if (file) {
                 if(file.type !== "application/pdf") {
-                    alert("Hanya file PDF yang diperbolehkan.");
+                    ui.alert("Format Salah", "Hanya file PDF yang diperbolehkan.", "warning");
                     inputFile.value = "";
                     return;
                 }
@@ -93,6 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnResetFilter.addEventListener("click", () => {
             elSearch.value = ""; elFilterType.value = ""; elFilterEmployee.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
@@ -102,19 +101,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
 
+        // [BARU] Load References, Teachers, Locations, Documents
         await Promise.all([
-            loadTeachers(), // Load Data Guru
+            loadReferences(),
+            loadTeachers(), 
             loadStorageLocations(),
             loadDocuments()
         ]);
     }
 
+    // [BARU] Load Referensi Jenis Dokumen
+    async function loadReferences() {
+        try {
+            const response = await api.reference.getByCategory('emp_doc_type');
+            refDocTypes = response.data || [];
+
+            const populate = (el, placeholder) => {
+                if(!el) return;
+                el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+                refDocTypes.forEach(item => {
+                    el.add(new Option(item.name, item.code));
+                });
+            };
+
+            populate(elFilterType, "Semua Jenis Dokumen");
+            populate(inputDocType, null); // Form select, required
+
+        } catch (e) {
+            console.error("Gagal load references:", e);
+        }
+    }
+
     async function loadTeachers() {
         try {
-            // [UPDATE] Mengambil data dari API Teacher (Master Data)
             const teachers = await api.teacher.getAll(); 
             
-            // Populate Dropdown di Form
             if(inputOwnerId) {
                 inputOwnerId.innerHTML = '<option value="">-- Pilih Guru / Pegawai --</option>';
                 teachers.forEach(t => {
@@ -122,7 +143,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
 
-            // Populate Dropdown di Filter
             if(elFilterEmployee) {
                 elFilterEmployee.innerHTML = '<option value="">Semua Pegawai</option>';
                 teachers.forEach(t => {
@@ -168,25 +188,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             
             const hasFile = !!item.file_path;
             const locName = item.storage_location_name || '<span style="color:#ccc;">-</span>';
-            
-            // [UPDATE] Tampilkan nama pemilik dari response backend
             const ownerName = item.owner_name || "Unknown";
             const ownerNip = item.owner_identity || "-";
 
-            // Badge Type Logic
-            let typeLabel = item.document_type || "Lainnya";
+            // Badge Type Logic (Dynamic Label, Static Class Mapping)
+            let typeLabel = item.document_type;
             let badgeClass = "doc-lain";
             
-            switch(typeLabel) {
-                case 'sk_cpns': typeLabel = "SK CPNS"; badgeClass = "doc-sk"; break;
-                case 'sk_pangkat': typeLabel = "SK Pangkat"; badgeClass = "doc-sk"; break;
-                case 'sk_berkala': typeLabel = "SK Berkala"; badgeClass = "doc-sk"; break;
-                case 'ijazah': typeLabel = "Ijazah"; badgeClass = "doc-ijazah"; break;
-                case 'sertifikat': typeLabel = "Sertifikat"; badgeClass = "doc-sertifikat"; break;
-                case 'ktp_kk': typeLabel = "KTP / KK"; badgeClass = "doc-lain"; break;
-                default: typeLabel = "Lainnya"; badgeClass = "doc-lain";
-            }
+            // Coba cari nama cantik dari referensi yang sudah diload
+            const refItem = refDocTypes.find(r => r.code === item.document_type);
+            if(refItem) typeLabel = refItem.name;
 
+            // Simple mapping for visuals (based on code)
+            const code = item.document_type;
+            if (code === 'sk_cpns' || code === 'sk_pangkat' || code === 'sk_berkala') badgeClass = "doc-sk";
+            else if (code === 'ijazah') badgeClass = "doc-ijazah";
+            else if (code === 'sertifikat') badgeClass = "doc-sertifikat";
+            
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" 
                     onclick="window.openFile(${item.id})" 
@@ -240,19 +258,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             currentEditId = data.id;
             inputId.value = data.id;
             inputName.value = data.document_name;
-            
-            // [UPDATE] Set Owner ID
             inputOwnerId.value = data.owner_id; 
-
             inputDocType.value = data.document_type;
             inputYear.value = data.document_year;
             inputDesc.value = data.description || "";
-            
             if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
-                // Asumsi file helper menyimpan di folder ini
                 const cleanPath = `/storage/documents/employee_archives/${fileName}`;
                 showPreview(cleanPath); 
             }
@@ -286,29 +299,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
         
-        // [UPDATE] Validasi Owner ID
         if (!inputName.value.trim() || !inputOwnerId.value) {
-            alert("Harap lengkapi Nama Dokumen dan Pemilik (Guru).");
+            ui.alert("Data Belum Lengkap", "Harap lengkapi Nama Dokumen dan Pemilik (Guru).", "warning");
             return;
         }
 
         const formData = new FormData();
         formData.append('document_name', inputName.value.trim());
-        
-        // [UPDATE] Kirim owner_id
         formData.append('owner_id', inputOwnerId.value);
-        
         formData.append('document_type', inputDocType.value);
         formData.append('document_year', inputYear.value);
         formData.append('description', inputDesc.value);
         
-        if(inputStorageId.value) {
-            formData.append('storage_location_id', inputStorageId.value);
-        }
-        
-        if (inputFile.files[0]) {
-            formData.append('file', inputFile.files[0]);
-        }
+        if(inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
+        if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
 
         const btn = e.target;
         const originalText = btn.textContent;
@@ -319,16 +323,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.employeeArchive.update(formData);
-                alert("Berhasil diperbarui!");
+                ui.toast("Berhasil diperbarui!", "success");
             } else {
                 await api.employeeArchive.create(formData);
-                alert("Berhasil disimpan!");
+                ui.toast("Berhasil disimpan!", "success");
             }
             showTableMode();
             loadDocuments();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Error server"));
+            ui.alert("Gagal Menyimpan", err.message || "Error server", "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -342,15 +346,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Hapus dokumen ini?")) {
-            try { await api.employeeArchive.delete(id); loadDocuments(); }
-            catch(e) { alert("Gagal hapus: " + e.message); }
+        const isConfirmed = await ui.confirm("Hapus Dokumen?", "Apakah Anda yakin ingin menghapus dokumen ini?", true);
+        if(isConfirmed) {
+            try { 
+                await api.employeeArchive.delete(id); 
+                ui.toast("Dokumen telah dihapus", "success");
+                loadDocuments(); 
+            }
+            catch(e) { 
+                ui.alert("Gagal Hapus", e.message, "error"); 
+            }
         }
     };
 
     window.openFile = (id) => {
         const item = allDocs.find(d => d.id === id);
-        if (!item || !item.file_path) { alert("File tidak tersedia."); return; }
+        if (!item || !item.file_path) { 
+            ui.toast("File tidak tersedia", "error"); 
+            return; 
+        }
         const fileName = item.file_path.split(/[\\/]/).pop();
         const cleanPath = `/storage/documents/employee_archives/${fileName}`;
         
@@ -368,15 +382,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const type = elFilterType.value;
-        const ownerId = elFilterEmployee.value; // Filter by Owner ID
+        const ownerId = elFilterEmployee.value;
 
         const filtered = allDocs.filter(item => {
             const txtMatch = (item.document_name||"").toLowerCase().includes(term) ||
                            (item.owner_name||"").toLowerCase().includes(term);
             
             const typeMatch = type === "" || item.document_type === type;
-            
-            // Compare Owner ID
             const empMatch = ownerId === "" || String(item.owner_id) === String(ownerId);
 
             return txtMatch && typeMatch && empMatch;

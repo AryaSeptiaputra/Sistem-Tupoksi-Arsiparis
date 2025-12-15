@@ -8,9 +8,14 @@ const ui = {
             <div class="custom-modal-box">
                 <span id="modalIcon" class="modal-icon">⚠️</span>
                 <h3 id="modalTitle" class="modal-title">Judul</h3>
-                <p id="modalMessage" class="modal-message">Pesan...</p>
-                <div class="modal-actions" id="modalActions">
+                <div id="modalBody">
+                    <p id="modalMessage" class="modal-message">Pesan...</p>
+                    <div id="modalInputContainer" style="display:none; margin-top:10px;">
+                        <input type="text" id="modalInput" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-family:inherit; outline:none;">
                     </div>
+                </div>
+                <div class="modal-actions" id="modalActions">
+                </div>
             </div>
         </div>
         <div id="toastContainer" class="custom-toast-container"></div>
@@ -18,24 +23,29 @@ const ui = {
         document.body.insertAdjacentHTML('beforeend', html);
     },
 
-    // 1. PENGGANTI ALERT
+    // 1. ALERT (Hanya tombol OK)
     alert: (title, message, type = 'info') => {
         ui.init();
         return new Promise((resolve) => {
             const modal = document.getElementById('customModal');
             const icon = document.getElementById('modalIcon');
             const actions = document.getElementById('modalActions');
+            const inputContainer = document.getElementById('modalInputContainer');
 
-            // Set Content
+            // Reset
+            inputContainer.style.display = 'none';
+
+            // Set Content (Gunakan innerHTML agar support <b> dan <br>)
             document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalMessage').innerHTML = message;
             
             // Set Icon
             if(type === 'success') icon.textContent = '✅';
             else if(type === 'error') icon.textContent = '❌';
+            else if(type === 'warning') icon.textContent = '⚠️';
             else icon.textContent = 'ℹ️';
 
-            // Set Button (Hanya OK)
+            // Set Button
             actions.innerHTML = `<button class="btn-modal-confirm" id="btnModalOk">Oke, Mengerti</button>`;
 
             // Show
@@ -49,16 +59,20 @@ const ui = {
         });
     },
 
-    // 2. PENGGANTI CONFIRM (Mengembalikan Promise true/false)
+    // 2. CONFIRM (Tombol Batal & Ya)
     confirm: (title, message, isDanger = false) => {
         ui.init();
         return new Promise((resolve) => {
             const modal = document.getElementById('customModal');
             const icon = document.getElementById('modalIcon');
             const actions = document.getElementById('modalActions');
+            const inputContainer = document.getElementById('modalInputContainer');
+
+            // Reset
+            inputContainer.style.display = 'none';
 
             document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalMessage').innerHTML = message;
             icon.textContent = '❓';
 
             const confirmBtnClass = isDanger ? 'btn-modal-confirm danger' : 'btn-modal-confirm';
@@ -84,7 +98,57 @@ const ui = {
         });
     },
 
-    // 3. TOAST NOTIFICATION (Muncul sebentar lalu hilang)
+    // 3. PROMPT (Input Text + Tombol) - [BARU DITAMBAHKAN]
+    prompt: (title, message, placeholder = '') => {
+        ui.init();
+        return new Promise((resolve) => {
+            const modal = document.getElementById('customModal');
+            const icon = document.getElementById('modalIcon');
+            const actions = document.getElementById('modalActions');
+            const inputContainer = document.getElementById('modalInputContainer');
+            const inputField = document.getElementById('modalInput');
+
+            // Setup Content
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').innerHTML = message;
+            icon.textContent = '📝';
+
+            // Show Input
+            inputContainer.style.display = 'block';
+            inputField.value = '';
+            inputField.placeholder = placeholder;
+
+            actions.innerHTML = `
+                <button class="btn-modal-cancel" id="btnModalCancel">Batal</button>
+                <button class="btn-modal-confirm" id="btnModalSubmit">Kirim</button>
+            `;
+
+            modal.classList.add('active');
+            inputField.focus();
+
+            // Handle Submit
+            document.getElementById('btnModalSubmit').onclick = () => {
+                const val = inputField.value;
+                modal.classList.remove('active');
+                resolve(val); // Return string input
+            };
+
+            // Handle Cancel
+            document.getElementById('btnModalCancel').onclick = () => {
+                modal.classList.remove('active');
+                resolve(null); // Return null jika batal
+            };
+            
+            // Handle Enter Key di Input
+            inputField.onkeyup = (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('btnModalSubmit').click();
+                }
+            };
+        });
+    },
+
+    // 4. TOAST NOTIFICATION
     toast: (message, type = 'success') => {
         ui.init();
         const container = document.getElementById('toastContainer');
@@ -93,6 +157,8 @@ const ui = {
         
         let icon = '✅';
         if(type === 'error') icon = '❌';
+        if(type === 'warning') icon = '⚠️';
+        if(type === 'info') icon = 'ℹ️';
         
         el.innerHTML = `
             <span style="font-size:20px;">${icon}</span>

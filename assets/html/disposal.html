@@ -169,6 +169,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database

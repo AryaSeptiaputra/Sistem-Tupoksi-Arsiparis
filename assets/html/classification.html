@@ -132,26 +132,15 @@
             padding-top: 24px;
             border-top: 1px solid var(--border-color);
             display: flex;
-            justify-content: flex-end;
+            justify-content: center; /* Center button */
             gap: 12px;
         }
 
-        .btn-local-cancel {
-            padding: 10px 24px;
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            color: var(--text-main);
-        }
-
-        .btn-local-cancel:hover {
-            background: #f9fafb;
-        }
+        /* HAPUS .btn-local-cancel */
 
         .btn-local-save {
-            padding: 10px 24px;
+            width: 100%; /* Selebar form */
+            padding: 12px 24px;
             background: var(--primary);
             border: none;
             border-radius: 8px;
@@ -160,6 +149,7 @@
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(255, 138, 92, 0.4);
             transition: 0.2s;
+            text-align: center;
         }
 
         .btn-local-save:hover {
@@ -251,6 +241,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -336,10 +331,7 @@
                     <div class="local-form-group">
                         <label class="local-label">Nasib Akhir Arsip</label>
                         <select id="inputFinalAction" class="local-select">
-                            <option value="destroy">Musnah (Destroy)</option>
-                            <option value="permanent">Permanen</option>
-                            <option value="assess">Dinilai Kembali</option>
-                        </select>
+                            </select>
                         <p class="local-helper">Tindakan setelah masa inaktif habis.</p>
                     </div>
                     <div class="local-form-group">
@@ -350,8 +342,7 @@
                 </form>
 
                 <div class="form-footer">
-                    <button class="btn-local-cancel" id="btnCancel">Batal</button>
-                    <button class="btn-local-save" id="btnSave">Simpan Klasifikasi</button>
+                    <button class="btn-local-save" id="btnSave">Simpan Data</button>
                 </div>
             </section>
 

@@ -13,7 +13,6 @@
 
     <style>
         /* --- LAYOUT UTAMA --- */
-        /* JANGAN HAPUS: Ini mendefinisikan layout split 400px 1fr dan memungkinkan scroll pada card-form */
         .layout-split {
             display: grid;
             grid-template-columns: 400px 1fr;
@@ -102,7 +101,7 @@
             display: none !important;
         }
 
-        /* --- STYLING FORM STANDAR (Dipertahankan) --- */
+        /* --- STYLING FORM STANDAR --- */
         .form-group {
             margin-bottom: 14px;
         }
@@ -151,7 +150,7 @@
             opacity: 1;
         }
 
-        /* Badges & Pills (Dipertahankan) */
+        /* Badges & Pills */
         .badge-cat {
             font-size: 10px;
             font-weight: 700;
@@ -161,35 +160,12 @@
             letter-spacing: 0.5px;
         }
 
-        .cat-bos-reg {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #93c5fd;
-        }
-
-        .cat-bos-kin {
-            background: #fae8ff;
-            color: #86198f;
-            border: 1px solid #f0abfc;
-        }
-
-        .cat-komite {
-            background: #ffedd5;
-            color: #9a3412;
-            border: 1px solid #fdba74;
-        }
-
-        .cat-bop {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
-        }
-
-        .cat-lain {
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-        }
+        /* Styling spesifik kategori tetap dipertahankan untuk visual */
+        .cat-bos-reg { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .cat-bos-kin { background: #fae8ff; color: #86198f; border: 1px solid #f0abfc; }
+        .cat-komite { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+        .cat-bop { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .cat-lain { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
 
         .status-pill {
             display: inline-block;
@@ -199,23 +175,9 @@
             font-weight: 600;
         }
 
-        .st-active {
-            background: #ecfdf5;
-            color: #059669;
-            border: 1px solid #a7f3d0;
-        }
-
-        .st-inactive {
-            background: #fffbeb;
-            color: #b45309;
-            border: 1px solid #fcd34d;
-        }
-
-        .st-destroyed {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
-        }
+        .st-active { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .st-inactive { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+        .st-destroyed { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 
         .money-text {
             font-family: 'Courier New', monospace;
@@ -223,7 +185,6 @@
             color: #111827;
         }
 
-        /* CSS UPDATE: Menambahkan line-clamp standar */
         .desc-text {
             font-size: 11px;
             color: #6b7280;
@@ -234,12 +195,6 @@
             overflow: hidden;
             margin-top: 4px;
             font-style: italic;
-        }
-
-        .meta-text {
-            font-size: 10px;
-            color: #9ca3af;
-            margin-top: 2px;
         }
     </style>
 </head>
@@ -322,6 +277,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -376,19 +336,13 @@
                     <option value="11">November</option>
                     <option value="12">Desember</option>
                 </select>
+                
                 <select id="filterCategory" class="filter-select">
-                    <option value="">Semua Kategori</option>
-                    <option value="bos_reguler">BOS Reguler</option>
-                    <option value="bos_kinerja">BOS Kinerja</option>
-                    <option value="komite">Komite</option>
-                    <option value="bop">BOP</option>
-                </select>
+                    </select>
+                
                 <select id="filterStatus" class="filter-select">
-                    <option value="">Semua Status</option>
-                    <option value="active">🟢 Aktif</option>
-                    <option value="inactive">🟡 Inaktif</option>
-                    <option value="destroyed">🔴 Musnah</option>
-                </select>
+                    </select>
+                
                 <button id="btnResetFilter" class="filter-btn">🔄 Reset</button>
             </div>
 
@@ -459,12 +413,7 @@
                             <label>Kategori Dana</label>
                             <div class="input-control">
                                 <select id="category">
-                                    <option value="bos_reguler">BOS Reguler</option>
-                                    <option value="bos_kinerja">BOS Kinerja</option>
-                                    <option value="komite">Dana Komite</option>
-                                    <option value="bop">BOP</option>
-                                    <option value="lainnya">Lainnya</option>
-                                </select>
+                                    </select>
                             </div>
                         </div>
                         <div class="form-group">
@@ -497,10 +446,7 @@
                     <div class="form-group hidden" id="group-archive-status">
                         <label>Status Arsip</label>
                         <select id="archive_status" class="filter-select" style="width:100%">
-                            <option value="active">🟢 Aktif (Unit Kerja)</option>
-                            <option value="inactive">🟡 Inaktif (Gudang)</option>
-                            <option value="destroyed">🔴 Musnah</option>
-                        </select>
+                            </select>
                     </div>
 
                     <div class="form-group">

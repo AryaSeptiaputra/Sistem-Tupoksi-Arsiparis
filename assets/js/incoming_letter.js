@@ -72,7 +72,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             const file = e.target.files[0];
             if (file) {
                 if (file.type !== "application/pdf") {
-                    alert("Harap pilih file PDF.");
+                    // [UBAH] Ganti alert dengan ui.alert
+                    ui.alert("Format Salah", "Harap pilih file bertipe PDF.", "warning");
                     inputFile.value = "";
                     return;
                 }
@@ -100,6 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             elStartDate.value = ""; elEndDate.value = ""; 
             elFilterClass.value = ""; elFilterStatus.value = "";
             applyFilters();
+            ui.toast("Filter direset", "info");
         });
     }
 
@@ -109,11 +111,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
 
+        // [BARU] Load References juga
         await Promise.all([
             loadClassifications(),
             loadStorageLocations(),
+            loadReferences(), // <--- Tambahan
             loadLetters()
         ]);
+    }
+
+    // [BARU] Fungsi helper untuk mengisi dropdown dari Master Reference
+    async function loadReferences() {
+        try {
+            // Ambil opsi untuk status arsip (category: 'archive_status')
+            const response = await api.reference.getByCategory('archive_status');
+            const data = response.data || [];
+
+            // Helper render
+            const populate = (el, withPlaceholder) => {
+                if(!el) return;
+                el.innerHTML = withPlaceholder ? `<option value="">${withPlaceholder}</option>` : '';
+                data.forEach(item => {
+                    // item.code = 'active', item.name = '🟢 Aktif'
+                    el.add(new Option(item.name, item.code));
+                });
+            };
+
+            // Isi Dropdown Filter
+            populate(elFilterStatus, "Semua Status");
+
+            // Isi Dropdown Form (Tidak perlu placeholder kosong jika required, tapi opsional)
+            populate(inputArchiveStatus, null);
+
+        } catch (e) {
+            console.error("Gagal load references:", e);
+        }
     }
 
     async function loadClassifications() {
@@ -165,22 +197,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         const isAdmin = user && user.role === 'admin';
 
         data.forEach(item => {
-            // [FIX] DEFINISIKAN TR DI SINI
             const tr = document.createElement("tr");
 
-            // [FIX] FORMAT TANGGAL
             const dateLet = item.letter_date ? new Date(item.letter_date).toLocaleDateString("id-ID") : "-";
             const dateRec = item.received_date ? new Date(item.received_date).toLocaleDateString("id-ID") : "-";
 
-            // [FIX] Status Pill Logic
-            let statusPill = `<span class="status-pill st-active">Aktif</span>`;
-            if (item.archive_status === 'inactive') statusPill = `<span class="status-pill st-inactive">Inaktif</span>`;
-            else if (item.archive_status === 'destroyed') statusPill = `<span class="status-pill st-destroyed">Musnah</span>`;
+            // Logic Status Pill (Tetap handle manual css class, tapi text dari DB biasanya inggris/code)
+            // Kita bisa mapping manual atau biarkan apa adanya jika master data 'name'-nya sudah ada emoji.
+            // Di sini saya asumsi 'archive_status' dari DB adalah code (active, inactive).
+            
+            let statusBadgeClass = "st-active";
+            let statusText = item.archive_status; // Fallback
 
+            if(item.archive_status === 'active') { statusBadgeClass = 'st-active'; statusText = 'Aktif'; }
+            else if(item.archive_status === 'inactive') { statusBadgeClass = 'st-inactive'; statusText = 'Inaktif'; }
+            else if(item.archive_status === 'destroyed') { statusBadgeClass = 'st-destroyed'; statusText = 'Musnah'; }
+            
+            // Jika backend mengirim raw code, kita tampilkan text. 
+            // Jika master reference sudah diload, text bisa diambil dari sana, tapi untuk performa tabel, mapping simple ok.
+            
             const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
             const hasFile = !!item.file_path;
 
-            // [FIX] ACTION BUTTONS
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" 
                     onclick="window.openFile(${item.id})" 
@@ -211,7 +249,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </td>
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
-                    ${statusPill}
+                    <span class="status-pill ${statusBadgeClass}">${statusText}</span>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -224,12 +262,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // --- FILTER LOGIC ---
-
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const cls = elFilterClass.value;
         const status = elFilterStatus.value;
-        const dateType = elDateType.value; // 'received' atau 'letter'
+        const dateType = elDateType.value;
 
         const start = elStartDate.value ? new Date(elStartDate.value) : null;
         const end = elEndDate.value ? new Date(elEndDate.value) : null;
@@ -280,14 +317,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputNumber.value = data.number;
             inputSender.value = data.sender;
             inputSubject.value = data.subject;
+            
             if (data.letter_date) inputLetterDate.value = data.letter_date.split('T')[0];
             if (data.received_date) inputReceivedDate.value = data.received_date.split('T')[0];
             
-            if(data.classification_id) inputClassId.value = data.classification_id;
-            if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
+            // [FIX] Convert ke String agar dropdown terpilih (mengatasi masalah int vs string)
+            if(data.classification_id) inputClassId.value = String(data.classification_id);
+            if(data.storage_location_id) inputStorageId.value = String(data.storage_location_id);
             
+            // Tampilkan Status Archive saat edit
             if (groupArchiveStatus) {
                 groupArchiveStatus.classList.remove("hidden");
+                // data.archive_status akan cocok dengan value dropdown (code) yang diload dari loadReferences()
                 if(data.archive_status) inputArchiveStatus.value = data.archive_status;
             }
 
@@ -298,6 +339,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } else {
             currentEditId = null;
+            // Saat tambah baru, status arsip biasanya default 'active', dan field disembunyikan
+            // atau bisa ditampilkan jika ingin langsung set status.
             if (groupArchiveStatus) groupArchiveStatus.classList.add("hidden");
         }
     }
@@ -326,8 +369,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function handleSaveData(e) {
         e.preventDefault();
+        
+        // Validasi Manual
         if (!inputNumber.value || !inputSender.value || !inputClassId.value) {
-            alert("Harap lengkapi Nomor Surat, Pengirim, dan Klasifikasi!");
+            // [UBAH] Alert -> ui.alert
+            ui.alert("Data Belum Lengkap", "Harap lengkapi Nomor Surat, Pengirim, dan Klasifikasi!", "warning");
             return;
         }
 
@@ -340,7 +386,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('classification_id', inputClassId.value);
         
         if (inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
-        if (isEditMode && inputArchiveStatus.value) formData.append('archive_status', inputArchiveStatus.value);
+        
+        // Kirim status arsip jika sedang edit (karena field muncul)
+        if (isEditMode && inputArchiveStatus.value) {
+            formData.append('archive_status', inputArchiveStatus.value);
+        }
         
         if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
 
@@ -353,16 +403,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.incomingLetter.update(formData);
-                alert("Data berhasil diperbarui!");
+                // [UBAH] Alert -> ui.toast
+                ui.toast("Data berhasil diperbarui!", "success");
             } else {
                 await api.incomingLetter.create(formData);
-                alert("Data berhasil disimpan!");
+                ui.toast("Data berhasil disimpan!", "success");
             }
             showTableMode();
             loadLetters();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Kesalahan server"));
+            // [UBAH] Alert -> ui.alert
+            ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -376,17 +428,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if (confirm("Yakin ingin menghapus data ini?")) {
+        // [UBAH] Confirm -> ui.confirm
+        const isConfirmed = await ui.confirm("Hapus Data?", "Apakah Anda yakin ingin menghapus surat ini secara permanen?", true);
+        if (isConfirmed) {
             try {
                 await api.incomingLetter.delete(id);
+                ui.toast("Data telah dihapus", "success");
                 loadLetters();
-            } catch (err) { alert("Gagal hapus: " + err.message); }
+            } catch (err) { 
+                ui.alert("Gagal Hapus", err.message, "error");
+            }
         }
     };
 
     window.openFile = (id) => {
         const item = allLetters.find(l => l.id === id);
-        if (!item || !item.file_path) { alert("File tidak tersedia."); return; }
+        if (!item || !item.file_path) { 
+            ui.toast("File PDF tidak tersedia", "error"); 
+            return; 
+        }
         const fileName = item.file_path.split(/[\\/]/).pop();
         const finalUrl = `/storage/documents/incoming_letters/${fileName}`;
         

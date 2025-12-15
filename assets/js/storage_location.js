@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Buttons
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
-    const btnCancel = document.getElementById("btnCancel");
+    // [HAPUS] btnCancel
     const btnSave = document.getElementById("btnSave");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
@@ -45,7 +45,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
-    if(btnCancel) btnCancel.addEventListener("click", showTableMode);
+    // [HAPUS] Event listener btnCancel
+    
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
     // Live Preview Label
@@ -63,6 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnResetFilter.addEventListener("click", () => {
             searchInput.value = "";
             applyFilter();
+            ui.toast("Filter direset", "info");
         });
     }
 
@@ -139,10 +141,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputName.value = data.name;
             inputDesc.value = data.description || "";
             // Trigger preview update
-            previewLabelTxt.textContent = data.name;
+            if(previewLabelTxt) previewLabelTxt.textContent = data.name;
         } else {
             currentEditId = null;
-            previewLabelTxt.textContent = "LEMARI BARU";
+            if(previewLabelTxt) previewLabelTxt.textContent = "LEMARI BARU";
         }
     }
 
@@ -162,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         
         if (!inputName.value.trim()) {
-            alert("Nama Lokasi wajib diisi!");
+            ui.alert("Data Tidak Lengkap", "Nama Lokasi wajib diisi!", "warning");
             return;
         }
 
@@ -179,16 +181,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 payload.id = currentEditId;
                 await api.storageLocation.update(payload);
-                alert("Berhasil diperbarui!");
+                ui.toast("Berhasil diperbarui!", "success");
             } else {
                 await api.storageLocation.create(payload);
-                alert("Berhasil disimpan!");
+                ui.toast("Berhasil disimpan!", "success");
             }
             showTableMode();
             loadData();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Error Server"));
+            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
         } finally {
             btnSave.textContent = originalText;
             btnSave.disabled = false;
@@ -202,12 +204,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     window.triggerDelete = async (id) => {
-        if(confirm("Yakin ingin menghapus lokasi ini? Pastikan tidak ada arsip yang tersimpan di sini.")) {
+        const isConfirmed = await ui.confirm("Hapus Lokasi?", "Yakin ingin menghapus lokasi ini? Pastikan tidak ada arsip yang tersimpan di sini.", true);
+        if(isConfirmed) {
             try {
                 await api.storageLocation.delete(id);
+                ui.toast("Lokasi dihapus", "success");
                 loadData();
             } catch (err) {
-                alert("Gagal hapus: " + err.message);
+                ui.alert("Gagal Hapus", err.message, "error");
             }
         }
     };

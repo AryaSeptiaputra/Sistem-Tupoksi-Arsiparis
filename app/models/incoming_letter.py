@@ -35,9 +35,11 @@ class IncomingLetter(Base):
             "received_date": self.received_date.isoformat() if self.received_date else None,
             "sender": self.sender,
             "subject": self.subject,
+            "classification_id": self.classification.id if self.classification else None,
             "classification_code": self.classification.code if self.classification else None,
             "classification_name": self.classification.name if self.classification else None,
-            "storage_location_name": self.storage_location.name if self.storage_location else "Belum Ditentukan",
+            "storage_location_id": self.storage_location.id if self.storage_location else None,
+            "storage_location_name": self.storage_location.name if self.storage_location else None,
             "archive_status": self.archive_status,
             "file_path": self.attachment_path,
             "created_at": self.created_at

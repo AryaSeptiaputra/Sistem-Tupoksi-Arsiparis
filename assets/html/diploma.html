@@ -221,6 +221,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -258,13 +263,6 @@
 
             <div class="filter-row">
                 <select id="filterMajor" class="filter-select">
-                    <option value="">Semua Jurusan</option>
-                    <option value="Kimia Industri">Kimia Industri</option>
-                    <option value="Teknik Penyempurnaan Tekstil">Teknik Penyempurnaan Tekstil</option>
-                    <option value="Analisis Kimia">Analisis Kimia</option>
-                    <option value="Farmasi">Farmasi</option>
-                    <option value="RPL">RPL</option>
-                    <option value="TKJ">TKJ</option>
                 </select>
 
                 <select id="filterYear" class="filter-select">
@@ -322,15 +320,6 @@
                         <div class="form-group">
                             <label>Jurusan</label>
                             <select id="major" class="filter-select" style="width:100%" required>
-                                <option value="">Pilih...</option>
-                                <option value="RPL">Rekayasa Perangkat Lunak</option>
-                                <option value="TKJ">Teknik Komputer Jaringan</option>
-                                <option value="AKL">Akuntansi</option>
-                                <option value="OTKP">Perkantoran</option>
-                                <option value="Kimia Industri">Kimia Industri</option>
-                                <option value="Teknik Penyempurnaan Tekstil">Teknik Penyempurnaan Tekstil</option>
-                                <option value="Analisis Kimia">Analisis Kimia</option>
-                                <option value="Farmasi">Farmasi</option>
                             </select>
                         </div>
                         <div class="form-group">

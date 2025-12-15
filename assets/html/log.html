@@ -98,6 +98,11 @@
             <i class='bx bx-history'></i> Log Aktivitas
         </a>
 
+        <a href="{{ url_for('view.reference') }}" data-route="{{ url_for('view.reference') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.reference')) %}active{% endif %}">
+            <i class='bx bxs-data'></i> Master Referensi
+        </a>
+
         <a href="{{ url_for('view.backup') }}" data-route="{{ url_for('view.backup') }}"
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
@@ -154,9 +159,7 @@
                     <thead>
                         <tr>
                             <th style="width: 200px;">Waktu</th>
-
                             <th style="width: 300px;">Pengguna</th>
-
                             <th>Aktivitas</th>
                         </tr>
                     </thead>

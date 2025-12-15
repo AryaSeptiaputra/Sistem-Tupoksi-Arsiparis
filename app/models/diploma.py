@@ -27,7 +27,10 @@ class Diploma(Base):
             "number": self.number,
             "student_name": self.student_name,
             "major": self.major,
+            "academic_year": self.academic_year,
             "is_collected": self.is_collected,
+            "collacted_at": self.collected_at,
+            "storage_location_id": self.storage_location.id if self.storage_location else None,
             "storage_location_name": self.storage_location.name if self.storage_location else None,
             "created_at": self.created_at
         }

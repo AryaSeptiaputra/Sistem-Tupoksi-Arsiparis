@@ -42,8 +42,11 @@ class FinanceArchive(Base):
             "amount": self.amount,
             "description": self.description,
             
+            "classification_id": self.classification.id if self.classification else None,
             "classification_code": self.classification.code if self.classification else None,
-            "storage_location_name": self.storage_location.name if self.storage_location else "Belum Set",
+            "classification_name": self.classification.name if self.classification else None,
+            "storage_location_id": self.storage_location.id if self.storage_location else None,
+            "storage_location_name": self.storage_location.name if self.storage_location else None,
             
             "archive_status": self.archive_status,
             "file_path": self.attachment_path,

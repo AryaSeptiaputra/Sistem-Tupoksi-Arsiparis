@@ -42,7 +42,8 @@ class EmployeeArchive(Base):
             "owner_id": self.owner_id,
             "owner_name": self.owner.full_name if self.owner else "Unknown",
             "owner_identity": self.owner.identity_number if self.owner else "-",
-            
-            "storage_location_name": self.storage_location.name if self.storage_location else "Belum Set",
+        
+            "storage_location_id": self.storage_location.id if self.storage_location else None,
+            "storage_location_name": self.storage_location.name if self.storage_location else None,
             "created_at": self.created_at
         }
