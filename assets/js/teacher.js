@@ -20,25 +20,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Inputs
     const inputId = document.getElementById("entry-id");
-    const inputIdentity = document.getElementById("inputIdentity"); // NIP/NUPTK
+    const inputIdentity = document.getElementById("inputIdentity"); 
     const inputName = document.getElementById("inputName");
     const inputGender = document.getElementById("inputGender");
-    const inputRank = document.getElementById("inputRank");
-    const inputEmpStatus = document.getElementById("inputEmpStatus"); // Dynamic
-    const inputStatus = document.getElementById("inputStatus");       // Dynamic
+    const inputRank = document.getElementById("inputRank"); // Sekarang ini adalah <select>
+    const inputEmpStatus = document.getElementById("inputEmpStatus");
+    const inputStatus = document.getElementById("inputStatus");
     const inputAddress = document.getElementById("inputAddress");
 
     // Buttons
     const btnAdd = document.getElementById("btn-add-new");
     const btnBack = document.getElementById("btn-back-list");
-    // [HAPUS] btnCancel dihapus
     const btnSave = document.getElementById("btnSave");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
     // Filters
     const searchInput = document.getElementById("searchInput");
-    const filterStatus = document.getElementById("filterStatus"); // Dynamic
-    const filterEmpStatus = document.getElementById("filterEmpStatus"); // Dynamic
+    const filterStatus = document.getElementById("filterStatus");
+    const filterEmpStatus = document.getElementById("filterEmpStatus");
 
     // --- INITIALIZATION ---
     await initPage();
@@ -46,7 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- EVENTS ---
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
-    // [HAPUS] Event listener btnCancel dihapus
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
     // Filter Events
@@ -73,36 +71,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
 
-        // Load references first, then data
         await Promise.all([
             loadReferences(),
             loadData()
         ]);
     }
 
-    // [BARU] Load Referensi Status
     async function loadReferences() {
         try {
             const populate = (el, data, placeholder) => {
                 if(!el) return;
                 el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
                 data.forEach(item => {
-                    el.add(new Option(item.name, item.name)); // Value pake name karena legacy DB mungkin simpan string
+                    // Gunakan item.name sebagai value agar yang tersimpan di database guru adalah "III/a, Penata Muda"
+                    el.add(new Option(item.name, item.name)); 
                 });
             };
 
-            // 1. Status Kepegawaian (PNS, Honorer, dll)
+            // 1. Status Kepegawaian
             const respEmp = await api.reference.getByCategory('teacher_emp_status');
             if(respEmp && respEmp.data) {
                 populate(filterEmpStatus, respEmp.data, "Semua Kepegawaian");
                 populate(inputEmpStatus, respEmp.data, "- Pilih Status -");
             }
 
-            // 2. Status Keaktifan (Aktif, Pensiun, dll)
+            // 2. Status Keaktifan
             const respActive = await api.reference.getByCategory('teacher_active_status');
             if(respActive && respActive.data) {
                 populate(filterStatus, respActive.data, "Semua Status");
                 populate(inputStatus, respActive.data, null);
+            }
+
+            // 3. [BARU] Pangkat / Golongan
+            const respRank = await api.reference.getByCategory('teacher_rank');
+            if(respRank && respRank.data) {
+                // Populate Dropdown Rank yang baru
+                populate(inputRank, respRank.data, "- Pilih Golongan -");
             }
 
         } catch (e) {
@@ -132,7 +136,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // Badge Styling Logic
             let statusBadge = `<span class="badge-other">${item.status}</span>`;
             if(item.status === 'Aktif') statusBadge = `<span class="badge-active">Aktif</span>`;
             else if(item.status === 'Pensiun' || item.status === 'Keluar') statusBadge = `<span class="badge-inactive">${item.status}</span>`;
@@ -165,7 +168,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
-        // Reset form
         document.getElementById("form-entry").reset();
         
         if(editMode && data) {
@@ -177,21 +179,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             
             inputName.value = data.full_name;
             inputGender.value = data.gender;
+            
+            // [UPDATE] Set value untuk Dropdown Rank
             inputRank.value = data.rank || "";
             
-            // Set values for dynamic dropdowns
             inputEmpStatus.value = data.employment_status;
             inputStatus.value = data.status;
-            
             inputAddress.value = data.address || "";
             
         } else {
             pageTitle.textContent = "Tambah Guru Baru";
             currentEditId = null;
             inputIdentity.readOnly = false;
-            
-            // Default Values (pastikan 'Aktif' ada di master reference)
             inputStatus.value = "Aktif";
+            // Default Rank kosong
+            inputRank.value = "";
         }
     }
 
@@ -207,7 +209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
 
         if(!inputIdentity.value || !inputName.value || !inputGender.value || !inputEmpStatus.value) {
-            ui.alert("Data Belum Lengkap", "Harap lengkapi field wajib: NIP, Nama, Gender, dan Status Pegawai!", "warning");
+            ui.alert("Data Belum Lengkap", "Harap lengkapi field wajib!", "warning");
             return;
         }
 
@@ -216,7 +218,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             full_name: inputName.value,
             gender: inputGender.value,
             employment_status: inputEmpStatus.value, 
-            rank: inputRank.value,
+            rank: inputRank.value, // Mengambil value dari dropdown
             status: inputStatus.value,
             address: inputAddress.value
         };
@@ -246,14 +248,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // --- GLOBAL ---
     window.triggerEdit = (id) => {
         const item = allData.find(u => u.id === id);
         if(item) showFormMode(true, item);
     };
 
     window.triggerDelete = async (id) => {
-        const isConfirmed = await ui.confirm("Hapus Guru?", "Yakin ingin menghapus data ini? Data User dan Arsip terkait mungkin akan ikut terhapus.", true);
+        const isConfirmed = await ui.confirm("Hapus Guru?", "Yakin ingin menghapus data ini?", true);
         if(isConfirmed) {
             try {
                 await api.teacher.delete(id);
@@ -265,7 +266,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
     
-    // --- FILTER ---
     function applyFilters() {
         const term = searchInput.value.toLowerCase();
         const status = filterStatus.value;

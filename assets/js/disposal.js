@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const countBadge = document.getElementById("count-badge");
 
     let disposalList = [];
-    let selectedItems = new Set(); // Menggunakan Set untuk menyimpan ID unik
+    let selectedItems = new Set(); 
 
     // --- INIT ---
     await loadDisposalData();
@@ -79,13 +79,43 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // Badge Source
+            // 1. Tentukan Label & Warna Badge
             let badgeClass = 'src-in';
             let badgeLabel = 'Surat Masuk';
-            if(item.table_source === 'outgoing_letter') { badgeClass = 'src-out'; badgeLabel = 'Surat Keluar'; }
-            if(item.table_source === 'finance_archive') { badgeClass = 'src-fin'; badgeLabel = 'Keuangan'; }
+            
+            if(item.table_source === 'outgoing_letter') { 
+                badgeClass = 'src-out'; badgeLabel = 'Surat Keluar'; 
+            } else if(item.table_source === 'finance_archive') { 
+                badgeClass = 'src-fin'; badgeLabel = 'Keuangan'; 
+            } else if(item.table_source === 'employee_archive') { 
+                badgeClass = 'src-emp'; badgeLabel = 'Pegawai'; 
+                // Tambahkan style manual jika class css belum ada
+                tr.style.cssText = "--emp-color: #7e22ce;"; 
+            } else if(item.table_source === 'diploma') {
+                badgeClass = 'src-dip'; badgeLabel = 'Ijazah';
+            }
 
-            // Key unik untuk seleksi: "id|source" (karena ID bisa sama antar tabel)
+            // 2. Tentukan Judul (Fallback ke berbagai key)
+            let rawTitle = item.title || item.subject || item.document_name || item.student_name || '(Tanpa Judul)';
+            
+            // Jika Ijazah, gabungkan nama + jurusan
+            if (item.table_source === 'diploma' && item.student_name) {
+                rawTitle = `${item.student_name} - ${item.major}`;
+            }
+
+            // 3. LOGIKA TAMPILAN PINTAR (SMART DISPLAY)
+            // Jika ada Nomor, tampilkan Nomor (Bold) + Judul (Small)
+            // Jika TIDAK ada Nomor, tampilkan Judul (Bold) + Tipe (Small)
+            
+            let mainText = item.number; // Default: Nomor jadi utama
+            let subText = rawTitle;     // Default: Judul jadi sub
+            
+            // Cek jika nomor kosong/strip, ATAU ini adalah arsip keuangan/pegawai
+            if (!item.number || item.number === '-' || item.number === 'null') {
+                mainText = rawTitle;    // Judul NAIK jadi utama
+                subText = item.type || badgeLabel; // Sub-nya jadi kategori (misal: "Arsip Keuangan")
+            }
+
             const uniqueKey = `${item.id}|${item.table_source}`;
 
             tr.innerHTML = `
@@ -94,17 +124,21 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </td>
                 <td><span class="badge-source ${badgeClass}">${badgeLabel}</span></td>
                 <td>
-                    <div style="font-weight:600; color:var(--text-main); font-size:14px;">${item.number || '-'}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">${item.title}</div>
+                    <div style="font-weight:600; color:var(--text-main); font-size:14px;">
+                        ${mainText}
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        ${subText}
+                    </div>
                 </td>
                 <td style="font-family:monospace; font-size:13px;">${item.doc_year}</td>
                 <td style="font-family:monospace; font-size:13px; color:#ef4444; font-weight:600;">${item.expiry_year}</td>
-                <td><span class="code-badge">${item.classification}</span></td>
+                <td><span class="code-badge">${item.classification || '-'}</span></td>
             `;
             tableBody.appendChild(tr);
         });
 
-        // Pasang listener individual checkbox setelah render
+        // Re-attach listeners
         document.querySelectorAll(".item-check").forEach(cb => {
             cb.addEventListener("change", (e) => {
                 toggleSelection(e.target.dataset.id, e.target.dataset.source, e.target.checked);
@@ -114,8 +148,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function toggleSelection(id, source, isChecked) {
-        // Objek item yang akan dikirim ke backend
-        // Kita simpan string JSON agar mudah di Set, nanti diparse saat kirim
         const itemObj = JSON.stringify({ id: parseInt(id), table_source: source });
         
         if (isChecked) {
@@ -140,7 +172,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const count = selectedItems.size;
         if (count === 0) return;
 
-        // [UPDATE] Gunakan ui.prompt untuk keamanan ekstra
         const userConfirmation = await ui.prompt(
             "Konfirmasi Pemusnahan", 
             `PERINGATAN KERAS!<br>
@@ -148,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             - File digital (Scan) akan DIHAPUS.<br>
             - Status data diubah menjadi 'Musnah'.<br><br>
             Ketik <b>SETUJU</b> untuk melanjutkan:`,
-            "Batal" // Button cancel text
+            "Batal" 
         );
 
         if (userConfirmation === "SETUJU") {
@@ -157,21 +188,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             btnExecute.disabled = true;
 
             try {
-                // Convert Set of JSON strings back to Array of Objects
                 const itemsPayload = Array.from(selectedItems).map(str => JSON.parse(str));
                 
                 const response = await api.disposal.execute(itemsPayload);
                 
-                // [UPDATE] ui.alert
                 ui.alert("Pemusnahan Berhasil", `Sukses! ${response.count} arsip telah dimusnahkan.`, "success");
-                loadDisposalData(); // Refresh table
+                loadDisposalData(); 
             } catch (e) {
                 ui.alert("Gagal Eksekusi", e.message, "error");
                 btnExecute.innerHTML = originalBtnText;
                 btnExecute.disabled = false;
             }
         } else if (userConfirmation !== null) {
-            // Jika user menekan OK tapi ketikannya salah (bukan null/cancel)
             ui.toast("Konfirmasi salah. Pemusnahan dibatalkan.", "warning");
         }
     }

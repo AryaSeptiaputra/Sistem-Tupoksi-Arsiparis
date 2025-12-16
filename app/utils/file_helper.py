@@ -72,7 +72,7 @@ def handle_file_upload(file_obj, subfolder):
 
     # 3. Tentukan folder tujuan (Masuk ke app/static agar bisa diakses browser)
     # Struktur: /app/static/storage/documents/{subfolder}/
-    base_upload_dir = os.path.join(os.getcwd(), 'app', 'static', 'storage', 'documents', subfolder)
+    base_upload_dir = os.path.join(os.getcwd(), 'storage', 'documents', subfolder)
     
     if not os.path.exists(base_upload_dir):
         os.makedirs(base_upload_dir)

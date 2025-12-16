@@ -1,21 +1,19 @@
 import os
 import subprocess
+import json
 from datetime import datetime
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.core.config import settings
-from app.core.database import SessionLocal
-from app.models.backup import Backup
-
 from app.utils.db_helper import parse_db_url
 from app.utils.file_helper import cleanup_old_files
 
 # Mendefinisikan lokasi folder backup
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
+LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json') # [BARU] Path file log
 
-def perform_database_backup(user_id=None):
+def perform_database_backup(triggered_by="SYSTEM"):
     """
     Melakukan backup database MySQL menggunakan mysqldump.
+    Param triggered_by: Nama user atau 'SYSTEM' (String)
     """
     
     # 1. Pastikan folder backup ada
@@ -28,7 +26,7 @@ def perform_database_backup(user_id=None):
     filename = f"backup_{db_config['name']}_{timestamp}.sql"
     filepath = os.path.join(BACKUP_DIR, filename)
 
-    # 2. Siapkan environment variable untuk password (agar aman dan tidak muncul di ps aux)
+    # 2. Siapkan environment variable
     env = os.environ.copy()
     env['MYSQL_PWD'] = db_config['password']
 
@@ -62,19 +60,18 @@ def perform_database_backup(user_id=None):
         status = "FAILED"
         err_msg = e.stderr if e.stderr else str(e)
         message = f"Dump process failed: {err_msg}"
-        # Hapus file kosong/corrupt jika ada
         if os.path.exists(filepath):
             os.remove(filepath)
     except Exception as e:
         status = "FAILED"
         message = f"Unexpected error: {str(e)}"
 
-    # 4. Simpan log ke database
-    _log_to_database(
+    # 4. [UBAH] Simpan log ke JSON Local
+    _log_to_json(
         filename=filename if status == "SUCCESS" else None,
         status=status,
         message=message,
-        user_id=user_id
+        triggered_by=triggered_by
     )
 
     if status == "FAILED":
@@ -85,9 +82,7 @@ def perform_database_backup(user_id=None):
 def perform_database_restore(filename):
     """
     Merestore database dari file SQL tertentu.
-    PERINGATAN: Data lama akan tertimpa.
     """
-    # 1. Validasi path file (security)
     safe_filename = os.path.basename(filename)
     filepath = os.path.join(BACKUP_DIR, safe_filename)
 
@@ -99,8 +94,6 @@ def perform_database_restore(filename):
     env = os.environ.copy()
     env['MYSQL_PWD'] = db_config['password']
 
-    # 2. Perintah mysql untuk restore
-    # mysql -h ... -u ... dbname
     command = [
         'mysql',
         '-h', db_config['host'],
@@ -110,7 +103,6 @@ def perform_database_restore(filename):
     ]
 
     try:
-        # Buka file SQL dan alirkan ke stdin proses mysql
         with open(filepath, 'r') as input_file:
             subprocess.run(
                 command, 
@@ -132,22 +124,40 @@ def perform_database_restore(filename):
     except Exception as e:
         raise Exception(f"Error Tidak Terduga: {str(e)}")
 
-def _log_to_database(filename, status, message, user_id):
+# --- [BARU] FUNGSI JSON HELPER ---
+
+def _log_to_json(filename, status, message, triggered_by):
     """
-    Helper function untuk menyimpan log backup ke DB dengan session terpisah.
+    Menulis log ke file JSON (Append mode logic).
     """
-    session = SessionLocal()
+    log_entry = {
+        "id": int(datetime.now().timestamp()), # ID unik sederhana berbasis waktu
+        "filename": filename,
+        "status": status,
+        "message": message,
+        "created_by": triggered_by, # Menyimpan nama user langsung
+        "created_at": datetime.now().isoformat()
+    }
+    
+    logs = get_all_logs() # Ambil log lama
+    logs.insert(0, log_entry) # Tambahkan log baru di paling atas (terbaru)
+
     try:
-        new_log = Backup(
-            filename=filename,
-            status=status,
-            message=message,
-            user_id=user_id
-        )
-        session.add(new_log)
-        session.commit()
+        with open(LOG_FILE_PATH, 'w') as f:
+            json.dump(logs, f, indent=4)
     except Exception as e:
-        session.rollback()
-        print(f"CRITICAL: Failed to save backup log. Error: {e}")
-    finally:
-        session.close()
+        print(f"CRITICAL: Gagal menulis log JSON. Error: {e}")
+
+def get_all_logs():
+    """
+    Membaca semua log dari file JSON.
+    """
+    if not os.path.exists(LOG_FILE_PATH):
+        return []
+    
+    try:
+        with open(LOG_FILE_PATH, 'r') as f:
+            data = json.load(f)
+            return data
+    except Exception:
+        return []

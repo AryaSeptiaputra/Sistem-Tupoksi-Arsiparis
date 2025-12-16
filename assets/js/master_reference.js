@@ -9,11 +9,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!token) { window.location.href = "/page/login"; return; }
 
     // --- CONFIGURATION ---
-    // Mapping kode kategori ke nama yang mudah dibaca user
     const CATEGORY_MAP = {
         'school_major': '🎓 Jurusan Sekolah (Diploma)',
         'teacher_emp_status': '👨‍🏫 Status Kepegawaian Guru',
         'teacher_active_status': '🟢 Status Keaktifan Guru',
+        'teacher_rank': '🥇 Pangkat / Golongan', // [BARU] Ditambahkan
         'finance_category': '💰 Kategori Keuangan',
         'emp_doc_type': '📄 Jenis Dokumen Pegawai',
         'letter_approval_status': '👍 Status Persetujuan Surat',
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- STATE ---
     let allData = [];
-    let currentCategory = 'school_major'; // Default init
+    let currentCategory = 'school_major'; 
     let isEditMode = false;
     let currentEditId = null;
 
@@ -32,11 +32,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const viewForm = document.getElementById("view-form");
     const pageTitle = document.getElementById("page-title");
 
-    // Inputs
     const categoryFilter = document.getElementById("categoryFilter");
     const searchInput = document.getElementById("searchInput");
     
-    const inputId = document.getElementById("entry-id");
     const displayCategory = document.getElementById("displayCategory");
     const inputCode = document.getElementById("inputCode");
     const inputName = document.getElementById("inputName");
@@ -52,7 +50,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     initPage();
 
     // --- LISTENERS ---
-    
     if(categoryFilter) {
         categoryFilter.addEventListener("change", (e) => {
             currentCategory = e.target.value;
@@ -63,21 +60,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if(btnBack) btnBack.addEventListener("click", showTableMode);
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
+    if(searchInput) searchInput.addEventListener("keyup", applyFilter);
 
-    if(searchInput) {
-        searchInput.addEventListener("keyup", applyFilter);
+    // [BARU] FITUR PENYEDERHANAAN INPUT
+    // Saat Nama diketik, Kode otomatis terisi (Auto-Slug)
+    // Contoh: "III/a Penata Muda" -> "iiia_penata_muda"
+    if(inputName && inputCode) {
+        inputName.addEventListener("input", (e) => {
+            if(!isEditMode) { // Hanya aktif saat tambah baru agar tidak merusak data lama
+                const val = e.target.value;
+                const slug = val.toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '') // Hapus simbol aneh seperti / atau .
+                    .replace(/\s+/g, '_');       // Ganti spasi dengan underscore
+                inputCode.value = slug;
+            }
+        });
     }
 
     // --- FUNCTIONS ---
 
     function initPage() {
-        // 1. Populate Category Dropdown
         categoryFilter.innerHTML = "";
         Object.keys(CATEGORY_MAP).forEach(key => {
             categoryFilter.add(new Option(CATEGORY_MAP[key], key));
         });
-
-        // 2. Load Data for default category
         currentCategory = categoryFilter.value;
         loadData();
     }
@@ -87,10 +93,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         tbody.innerHTML = `<tr><td colspan="5" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
         
         try {
-            // Fetch data (api.js akan mengirim ?all=true secara otomatis jika kita panggil method ini)
             const response = await api.reference.getByCategory(currentCategory);
             allData = response.data || [];
-            
             renderTable(allData);
         } catch (e) {
             console.error(e);
@@ -109,12 +113,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         data.forEach(item => {
             const tr = document.createElement("tr");
-            
-            // Visual Styles
             const activeBadge = item.is_active 
                 ? '<span style="color:green; font-size:10px;">🟢 Aktif</span>' 
                 : '<span style="color:red; font-size:10px;">🔴 Non-Aktif</span>';
-            
             const trStyle = item.is_active ? '' : 'background:#f9fafb; opacity:0.7;';
 
             tr.style = trStyle;
@@ -137,8 +138,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- FORM LOGIC ---
-
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
         
@@ -147,10 +146,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnAdd.classList.add("hidden");
         btnBack.classList.remove("hidden");
 
-        // Reset form
         document.getElementById("form-entry").reset();
-        
-        // Set Readonly Category Display
         displayCategory.value = CATEGORY_MAP[currentCategory] || currentCategory;
 
         if (editMode && data) {
@@ -162,13 +158,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputSort.value = data.sort_order;
             inputDesc.value = data.description || "";
             inputIsActive.value = data.is_active ? "true" : "false";
-            
-            // Kode sebaiknya tidak diubah sembarangan saat edit, tapi kita biarkan editable dengan warning
+            // Kunci input kode saat edit agar aman
+            inputCode.readOnly = true; 
+            inputCode.style.backgroundColor = "#e2e8f0";
         } else {
             pageTitle.textContent = "Tambah Referensi Baru";
             currentEditId = null;
             inputSort.value = 0;
             inputIsActive.value = "true";
+            // Buka kunci input kode saat baru
+            inputCode.readOnly = false;
+            inputCode.style.backgroundColor = "";
         }
     }
 
@@ -221,15 +221,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // --- GLOBAL HELPERS ---
-    
     window.triggerEdit = (id) => {
         const item = allData.find(x => x.id === id);
         if(item) showFormMode(true, item);
     };
 
     window.triggerDelete = async (id) => {
-        const isConfirmed = await ui.confirm("Non-aktifkan?", "Data ini tidak akan dihapus permanen, tapi akan disembunyikan dari dropdown sistem.", true);
+        const isConfirmed = await ui.confirm("Non-aktifkan?", "Data ini akan disembunyikan dari dropdown sistem.", true);
         if(isConfirmed) {
             try {
                 await api.reference.delete(id);

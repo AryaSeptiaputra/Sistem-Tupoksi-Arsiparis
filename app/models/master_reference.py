@@ -6,26 +6,17 @@ class ReferenceCategory(str, enum.Enum):
     """
     Daftar kategori tetap yang digunakan di sistem.
     """
-    # 1. Untuk model Diploma (major)
     SCHOOL_MAJOR = "school_major"
-    
-    # 2. Untuk model Teacher (employment_status, status)
     TEACHER_EMP_STATUS = "teacher_emp_status"
     TEACHER_ACTIVE_STATUS = "teacher_active_status"
     
-    # 3. Untuk model FinanceArchive (category)
+    # [BARU] Tambahkan kategori untuk Pangkat/Golongan
+    TEACHER_RANK = "teacher_rank"
+    
     FINANCE_CATEGORY = "finance_category"
-    
-    # 4. Untuk model EmployeeArchive (document_type)
     EMP_DOC_TYPE = "emp_doc_type"
-    
-    # 5. Untuk model OutgoingLetter (approval_status)
     LETTER_APPROVAL_STATUS = "letter_approval_status"
-    
-    # 6. Shared: Untuk archive_status (Pastikan ini huruf kecil)
     ARCHIVE_STATUS = "archive_status"
-
-    # 7. Untuk model Classification (final_action)
     FINAL_ACTION = "final_action"
 
 class MasterReference(Base):
@@ -33,9 +24,19 @@ class MasterReference(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Menggunakan Enum
-    category = Column(Enum('school_major', 'teacher_emp_status', 'teacher_active_status', 'finance_category', 'emp_doc_type', 'letter_approval_status', 'archive_status', 'final_action',  name='category'), 
-                      nullable=False, index=True)
+    # [UPDATE] Tambahkan 'teacher_rank' ke dalam list Enum di kolom category
+    category = Column(Enum(
+        'school_major', 
+        'teacher_emp_status', 
+        'teacher_active_status', 
+        'teacher_rank',  # <-- Tambahan baru
+        'finance_category', 
+        'emp_doc_type', 
+        'letter_approval_status', 
+        'archive_status', 
+        'final_action',  
+        name='category'), 
+        nullable=False, index=True)
     
     code = Column(String(50), nullable=False, index=True)
     name = Column(String(150), nullable=False)
@@ -50,12 +51,10 @@ class MasterReference(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            # [PERBAIKAN FATAL DISINI]
-            # Hapus .value! Cukup self.category saja.
             "category": self.category, 
-            
             "code": self.code,
             "name": self.name,
             "sort_order": self.sort_order,
+            "description": self.description,
             "is_active": self.is_active
         }
