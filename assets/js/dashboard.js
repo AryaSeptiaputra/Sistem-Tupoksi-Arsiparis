@@ -28,23 +28,47 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ========================================= */
 
 function loadUserInfo() {
-    const welcomeEl = document.getElementById("user-welcome");
+    const avatarEl = document.getElementById("dashboard-avatar");
     const nameEl = document.getElementById("profile-name");
     const roleEl = document.getElementById("profile-role");
-    const avatarEl = document.getElementById("dashboard-avatar");
+    const welcomeEl = document.getElementById("user-welcome");
 
+    if (!avatarEl) return;
+
+    // Ambil data user dari localStorage (via api.js)
     const user = api.auth.getUserData();
     if (!user) return;
 
-    const displayName = user.username || "Pengguna";
-    const displayRole = user.role || "Staf";
-    const initial = displayName.charAt(0).toUpperCase();
+    // Ambil full_name dari teacher
+    const fullName =
+        user.full_name ||
+        (user.teacher && user.teacher.full_name) ||
+        "Pengguna";
 
-    if (welcomeEl) welcomeEl.textContent = `Halo, ${displayName}!`;
-    if (nameEl) nameEl.textContent = displayName;
-    if (roleEl) roleEl.textContent = displayRole.charAt(0).toUpperCase() + displayRole.slice(1);
-    if (avatarEl) avatarEl.textContent = initial; 
+    // Inisial huruf pertama
+    const initial = fullName.charAt(0).toUpperCase();
+
+    // Set avatar
+    avatarEl.textContent = initial;
+
+    // Klik avatar → ke halaman profile
+    avatarEl.addEventListener("click", () => {
+        window.location.href = "/page/user_profile";
+    });
+
+    // Set nama & role (jika elemen ada)
+    if (nameEl) nameEl.textContent = fullName;
+    if (roleEl && user.role) {
+        roleEl.textContent =
+            user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    }
+
+    if (welcomeEl) {
+        welcomeEl.textContent = `Halo, ${fullName}!`;
+    }
 }
+
+
 
 function setupTabs() {
     const tabs = document.querySelectorAll('.tab-btn');
@@ -510,6 +534,7 @@ function renderActivityChart(incoming, outgoing) {
         container.append(wrapper);
     });
 }
+
 
 function setupEventListeners() {
     const btnLogout = document.getElementById("btn-logout");
