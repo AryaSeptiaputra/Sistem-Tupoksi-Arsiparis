@@ -31,38 +31,25 @@ def get_current_actor_id(db_session):
 def create_route():
     data = request.form.to_dict()
     
-    document_name = data.get('document_name', '').strip()
-    owner_id = data.get('owner_id', '').strip() # ID Teacher pemilik dokumen
-    
-    if not document_name or not owner_id:
-        return jsonify({"error": "Nama Dokumen dan Pemilik (Guru) wajib diisi"}), 400
+    if not data.get('document_name') or not data.get('owner_id'):
+        return jsonify({"error": "Nama Dokumen dan Pemilik wajib diisi"}), 400
         
-    data['document_name'] = document_name
-    data['owner_id'] = owner_id
-
+    # Validasi file
     file = request.files.get('file')
-    attachment_path = None
     if file:
         try:
-            attachment_path, _ = handle_file_upload(file, 'employee_archives')
-            data['attachment_path'] = attachment_path
+            path, _ = handle_file_upload(file, 'employee_archives')
+            data['attachment_path'] = path
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     
     db_session = db.SessionLocal()
     try:
-        # Validasi: Apakah ID Guru ada?
-        owner = db_session.query(Teacher).filter(Teacher.id == int(owner_id)).first()
-        if not owner:
-             return jsonify({"error": "Data Guru tidak ditemukan"}), 400
-        
-        # Create
         new_data = create_employee_archive(db_session, data)
         
-        # Log (Siapa yang upload -> Current Actor)
         actor_id = get_current_actor_id(db_session)
         if actor_id:
-            create_log(db_session, actor_id, f"Upload Arsip Pegawai ({owner.full_name}): {new_data.document_name}")
+            create_log(db_session, actor_id, f"Upload Arsip Pegawai: {new_data.document_name}")
         
         return jsonify(new_data.to_dict()), 201
     except Exception as e:
@@ -75,12 +62,11 @@ def create_route():
 @jwt_required()
 def update_route():
     data = request.form.to_dict()
-    archive_id = data.get('id')
-    if not archive_id: return jsonify({"error": "ID required"}), 400
+    if not data.get('id'): return jsonify({"error": "ID required"}), 400
 
     db_session = db.SessionLocal()
     try:
-        curr = db_session.query(EmployeeArchive).filter(EmployeeArchive.id == archive_id).first()
+        curr = db_session.query(EmployeeArchive).filter(EmployeeArchive.id == data.get('id')).first()
         if not curr: return jsonify({"error": "Not found"}), 404
         old_path = curr.attachment_path
 
@@ -91,7 +77,7 @@ def update_route():
                 data['attachment_path'] = path
             except Exception as e: return jsonify({"error": str(e)}), 500
 
-        updated = update_employee_archive(db_session, archive_id, data)
+        updated = update_employee_archive(db_session, data.get('id'), data)
         
         if file and old_path and old_path != updated.attachment_path:
             delete_physical_file(old_path)
@@ -115,10 +101,8 @@ def delete_route():
         deleted = delete_employee_archive(db_session, data.get('id'))
         if deleted:
             if deleted.attachment_path: delete_physical_file(deleted.attachment_path)
-            
             actor_id = get_current_actor_id(db_session)
             if actor_id: create_log(db_session, actor_id, f"Hapus Arsip Pegawai: {deleted.document_name}")
-            
             return jsonify({"status": "deleted"}), 200
         return jsonify({"error": "Not found"}), 404
     except Exception as e:

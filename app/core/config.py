@@ -1,24 +1,23 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 class Settings(BaseSettings):
     """
-    Application configuration settings.
-
-    This class defines the schema for environment variables required by the 
-    application. It automatically validates types and loads values from 
-    the environment or a local '.env' file.
-
-    Attributes:
-        DATABASE_URL (str): The full database connection string (DSN).
-        JWT_SECRET_KEY (str): The secret key used for signing and verifying 
-            JWT tokens for authentication.
+    Konfigurasi aplikasi yang disesuaikan untuk mode Production.
     """
     DATABASE_URL: str
     JWT_SECRET_KEY: str
+    
+    # Tambahkan variabel baru yang ada di .env Anda di sini:
+    SECRET_KEY: Optional[str] = None
+    FLASK_ENV: str = "production"
+    FLASK_DEBUG: int = 0
+    LOG_FILE_PATH: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_file_encoding='utf-8'
+        env_file_encoding='utf-8',
+        extra="ignore" 
     )
 
 settings = Settings()

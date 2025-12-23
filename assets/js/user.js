@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Validasi
         if(!inputTeacherId.value || !inputRole.value) {
-            alert("Harap pilih Guru dan Role!");
+            ui.alert("Harap pilih Guru dan Role!");
             return;
         }
 
@@ -237,11 +237,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const conf = inputConfPass.value;
         
         if(!isEditMode && !pass) {
-            alert("Password wajib diisi untuk akun baru!");
+            ui.alert("Password wajib diisi untuk akun baru!");
             return;
         }
         if(pass && pass !== conf) {
-            alert("Konfirmasi password tidak cocok!");
+            ui.alert("Konfirmasi password tidak cocok!");
             return;
         }
 
@@ -262,16 +262,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(isEditMode) {
                 payload.id = currentEditId;
                 await api.user.update(payload); 
-                alert("Akun berhasil diperbarui!");
+                ui.toast("Akun berhasil diperbarui!");
             } else {
                 await api.user.create(payload);
-                alert("Akun berhasil dibuat!");
+                ui.toast("Akun berhasil dibuat!");
             }
             showTableMode();
             loadData();
         } catch (err) {
             console.error(err);
-            alert("Gagal: " + (err.message || "Server Error"));
+            ui.alert("Gagal: " + (err.message || "Server Error"));
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -290,7 +290,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await api.user.delete(id);
                 loadData();
             } catch (err) {
-                alert("Gagal hapus: " + err.message);
+                ui.confirm("Gagal hapus: " + err.message);
             }
         }
     };

@@ -24,7 +24,7 @@ class Teacher(Base):
     employment_status = Column(String(50), nullable=False)
     
     # Golongan (Opsional)
-    rank = Column(String(20), nullable=True) # Cth: III/a
+    rank = Column(String(100), nullable=True) # Cth: III/a
     
     # 4. [BARU] Status Keaktifan di Sekolah
     # Contoh isi: 'Aktif', 'Pensiun', 'Keluar', 'Cuti', 'Meninggal Dunia'

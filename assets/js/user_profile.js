@@ -102,28 +102,40 @@ function loadUserProfile() {
 /**
  * Update password user
  */
+/**
+ * Update data user (Nama & Password opsional)
+ */
 async function handleUpdate(event) {
     event.preventDefault();
 
     const id = document.getElementById('input-id').value;
+    const fullName = document.getElementById('input-username').value; // Ambil nilai input
     const password = document.getElementById('input-password').value;
 
-    if (!password) {
-        alert("Password wajib diisi");
-        return;
+    // Payload wajib menyertakan full_name agar service di backend bisa menangkapnya
+    let payload = {
+        id: id,
+        full_name: fullName 
+    };
+
+    // Password hanya dikirim jika diisi
+    if (password) {
+        payload.password = password;
     }
 
     try {
-        await api.user.update({
-            id: id,
-            password: password
-        });
+        await api.user.update(payload);
 
-        alert("Password berhasil diperbarui. Silakan login ulang.");
-        api.auth.logout();
+        if (password) {
+            alert("Password berhasil diperbarui. Silakan login ulang.");
+            api.auth.logout();
+        } else {
+            alert("Profil berhasil diperbarui.");
+            loadUserProfile(); // Refresh data di layar
+            document.getElementById('input-password').value = "";
+        }
     } catch (error) {
-        alert("Gagal update password");
-        console.error(error);
+        alert("Gagal update: " + (error.message || "Error Server"));
     }
 }
 

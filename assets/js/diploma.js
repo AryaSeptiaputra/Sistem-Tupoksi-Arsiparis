@@ -100,7 +100,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnResetFilter.addEventListener("click", () => {
             elSearch.value = ""; elFilterMajor.value = ""; elFilterYear.value = ""; elFilterStatus.value = "";
             applyFilters();
-            // [UBAH] Gunakan ui.toast
             ui.toast("Filter direset", "info");
         });
     }
@@ -111,7 +110,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="5" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
 
-        // [BARU] Tambahkan loadReferences
         await Promise.all([
             loadReferences(), 
             loadStorageLocations(), 
@@ -119,10 +117,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         ]);
     }
 
-    // [BARU] Load Jurusan dari Master Reference
     async function loadReferences() {
         try {
-            // Category: school_major
             const response = await api.reference.getByCategory('school_major');
             const data = response.data || [];
 
@@ -130,8 +126,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if(!el) return;
                 el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
                 data.forEach(item => {
-                    // item.name = 'Rekayasa Perangkat Lunak', item.code (optional) 
-                    // Asumsi model backend: name adalah value yang disimpan di tabel diploma.major
                     el.add(new Option(item.name, item.name));
                 });
             };
@@ -179,13 +173,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            // Status Logic
-            const statusObj = item.status || {}; 
-            const isCollected = statusObj.is_collected === true;
-            const rawDate = statusObj.collected_at;
-            const dateTaken = rawDate ? new Date(rawDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "-";
+            // --- FIX: Ambil langsung dari item sesuai model diploma.py ---
+            const isCollected = item.is_collected === true || item.is_collected === 1;
+            const rawDate = item.collected_at || item.collacted_at; // Handle typo jika belum ganti di python
             
-            // Menggunakan class Pill Baru
+            const dateTaken = (isCollected && rawDate) 
+                ? new Date(rawDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) 
+                : "-";
+            
             let statusPill = isCollected 
                 ? `<span class="status-pill st-success">Sudah Diambil</span>` 
                 : `<span class="status-pill st-warning">Belum Diambil</span>`;
@@ -193,7 +188,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             const hasFile = !!item.attachment_path;
             const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
 
-            // GENERATE TOMBOL AKSI
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat File" 
                     onclick="window.openFile(${item.id})" 
@@ -207,27 +201,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                 `;
             }
 
-            // --- RENDER DENGAN STRUKTUR BARU (GABUNGAN KOLOM) ---
             tr.innerHTML = `
                 <td>
                     <div class="text-main">${item.student_name}</div>
                     <div class="text-sub">No. Seri: ${item.number || '-'}</div>
                 </td>
-                
                 <td>
                     <span class="major-badge">${item.major || '-'}</span>
                     <div class="text-sub" style="margin-top:4px;">Tahun: ${item.academic_year || '-'}</div>
                 </td>
-                
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
                     ${statusPill}
                 </td>
-                
                 <td>
                     <div class="text-main" style="font-size:14px;">${dateTaken}</div>
                 </td>
-                
                 <td style="text-align:center;">
                     <div class="btn-action-group">
                         ${actionButtons}
@@ -237,8 +226,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             tbody.appendChild(tr);
         });
     }
-
-    // --- FORM MANAGEMENT (Sama seperti sebelumnya) ---
 
     function showFormMode(editMode = false, data = null) {
         isEditMode = editMode;
@@ -259,17 +246,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputId.value = data.id;
             inputName.value = data.student_name;
             inputSerial.value = data.number;
-            inputMajor.value = data.major; // Value ini harus cocok dengan salah satu 'name' dari reference
+            inputMajor.value = data.major; 
             inputYear.value = data.academic_year;
             
             if (data.storage_location_id) inputStorageId.value = data.storage_location_id;
 
-            const statusObj = data.status || {};
-            if (statusObj.is_collected === true) {
+            // --- FIX: Ambil dari root data ---
+            if (data.is_collected === true || data.is_collected === 1) {
                 inputIsTaken.checked = true;
                 wrapperDateTaken.classList.remove("hidden");
-                if(statusObj.collected_at) {
-                    inputDateTaken.value = statusObj.collected_at.split('T')[0];
+                const rawDate = data.collected_at || data.collacted_at;
+                if(rawDate) {
+                    inputDateTaken.value = rawDate.split('T')[0];
                 }
             }
 
@@ -309,7 +297,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         e.preventDefault();
         
         if (!inputName.value || !inputSerial.value || !inputMajor.value) {
-            // [UBAH] Gunakan ui.alert
             ui.alert("Data Belum Lengkap", "Harap lengkapi Nama, No. Seri, dan Jurusan!", "warning");
             return;
         }
@@ -340,7 +327,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.diploma.update(formData);
-                // [UBAH] Gunakan ui.toast
                 ui.toast("Data berhasil diperbarui!", "success");
             } else {
                 await api.diploma.create(formData);
@@ -350,7 +336,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            // [UBAH] Gunakan ui.alert
             ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
         } finally {
             btn.textContent = originalText;
@@ -358,14 +343,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // --- GLOBAL ACTIONS ---
     window.triggerEdit = (id) => {
         const item = allDiplomas.find(d => d.id === id);
         if(item) showFormMode(true, item);
     };
 
     window.triggerDelete = async (id) => {
-        // [UBAH] Gunakan ui.confirm
         const isConfirmed = await ui.confirm("Hapus Data?", "Yakin ingin menghapus data ijazah ini secara permanen?", true);
         if(isConfirmed) {
             try { 
@@ -398,7 +381,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    // Filter Logic
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const mjr = elFilterMajor.value;
@@ -410,8 +392,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                            (item.number || "").toLowerCase().includes(term);
             const mjrMatch = mjr === "" || item.major === mjr;
             const yrMatch = yr === "" || item.academic_year === yr;
-            const statusObj = item.status || {};
-            const isCollected = statusObj.is_collected === true;
+            
+            // --- FIX: Filter Status dari root data ---
+            const isCollected = item.is_collected === true || item.is_collected === 1;
             let stsMatch = true;
             if (sts === "taken") stsMatch = isCollected;
             if (sts === "pending") stsMatch = !isCollected;

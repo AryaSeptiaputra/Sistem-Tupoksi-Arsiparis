@@ -41,16 +41,17 @@ def create_user(db: Session, user_data: dict) -> User:
 
 def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
     """
-    Updates user details (Role, Status, Password).
-    Cannot update teacher_id (Account ownership is fixed).
+    Updates user details (Role, Status, Password) AND Linked Teacher Data (Full Name).
     """
     existing_user = db.query(User).filter(User.id == user_id).first()
     
     if not existing_user:
         return None
 
+    # --- 1. Update Data Tabel User (Password, Role, Status) ---
     for key, value in update_data.items():
-        if key in ['id', 'teacher_id']: # Prevent changing ID or Owner
+        # Skip field yang tidak boleh diubah atau bukan milik tabel User (kecuali full_name nanti)
+        if key in ['id', 'teacher_id', 'full_name']: 
             continue
         
         if not hasattr(existing_user, key):
@@ -64,9 +65,16 @@ def update_user(db: Session, user_id: int, update_data: dict) -> User | None:
             value = get_password_hash(value)
 
         setattr(existing_user, key, value)
+
+    # --- 2. [BARU] Update Data Tabel Teacher (Nama Lengkap) ---
+    # Kita cek apakah ada request ganti nama, dan pastikan user punya relasi teacher
+    if 'full_name' in update_data and existing_user.teacher:
+        existing_user.teacher.full_name = update_data['full_name']
     
+    # Update timestamp
     existing_user.updated_at = datetime.datetime.now()
     
+    # Commit perubahan (SQLAlchemy akan otomatis update tabel User & Teacher)
     db.commit()
     db.refresh(existing_user)
     return existing_user

@@ -2,22 +2,20 @@ from sqlalchemy.orm import Session
 from app.models.employee_archive import EmployeeArchive
 import datetime
 
-# [UBAH] create menerima owner_id (ID Teacher), bukan user_id/uploader
 def create_employee_archive(db: Session, data: dict) -> EmployeeArchive:
     new_archive = EmployeeArchive(
         document_name=data['document_name'],
-        document_type=data.get('document_type', 'lainnya'), # String
+        document_type=data.get('document_type', 'lainnya'),
+        archive_status=data.get('archive_status', 'active'),
         document_year=int(data['document_year']) if data.get('document_year') else None,
         description=data.get('description'),
         attachment_path=data.get('attachment_path'),
+        owner_id=int(data['owner_id']),
         
-        # Relasi ke Teacher (Owner)
-        owner_id=int(data['owner_id']), 
+        # Simpan Classification ID
+        classification_id=int(data['classification_id']) if data.get('classification_id') else None,
         
-        storage_location_id=int(data['storage_location_id']) if data.get('storage_location_id') else None,
-        
-        created_at=datetime.datetime.now(),
-        updated_at=datetime.datetime.now()
+        storage_location_id=int(data['storage_location_id']) if data.get('storage_location_id') else None
     )
     
     db.add(new_archive)
@@ -33,11 +31,11 @@ def update_employee_archive(db: Session, archive_id: int, update_data: dict) -> 
         if key in ['id', 'created_at']: continue
         
         if hasattr(archive, key):
-            # Konversi Integer
-            if key == 'owner_id' or key == 'storage_location_id' or key == 'document_year':
-                 setattr(archive, key, int(value) if value else None)
+            # Konversi Integer untuk Foreign Keys
+            if key in ['owner_id', 'storage_location_id', 'document_year', 'classification_id']:
+                setattr(archive, key, int(value) if value else None)
             else:
-                 setattr(archive, key, value)
+                setattr(archive, key, value)
             
     archive.updated_at = datetime.datetime.now()
     db.commit()
@@ -53,7 +51,3 @@ def delete_employee_archive(db: Session, archive_id: int) -> EmployeeArchive | N
 
 def get_all_employee_archives(db: Session) -> list[EmployeeArchive]:
     return db.query(EmployeeArchive).all()
-
-# Cari berdasarkan ID Guru (Owner)
-def get_archives_by_owner(db: Session, owner_id: int) -> list[EmployeeArchive]:
-    return db.query(EmployeeArchive).filter(EmployeeArchive.owner_id == owner_id).all()

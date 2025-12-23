@@ -1,20 +1,14 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // --- 0. NAVIGASI ---
-    document.querySelectorAll("[data-route]").forEach(el => {
-        el.addEventListener("click", () => { window.location.href = el.dataset.route; });
-    });
-
     const token = localStorage.getItem("access_token");
     if (!token) { window.location.href = "/page/login"; return; }
 
-    // --- STATE VARIABLES ---
     let allDocs = [];
     let isEditMode = false;
     let currentEditId = null;
-    let refDocTypes = []; // Simpan referensi untuk lookup label nanti
+    let refDocTypes = [];
 
-    // --- DOM REFERENCES ---
+    // --- DOM ---
     const viewTable = document.getElementById("view-table");
     const viewForm = document.getElementById("view-form");
     const viewPdfFullscreen = document.getElementById("view-pdf-fullscreen");
@@ -26,17 +20,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btnSave = document.getElementById("btn-save-data");
     const btnResetFilter = document.getElementById("btnResetFilter");
 
-    // Inputs Form
-    const inputId = document.getElementById("entry-id");
-    const inputName = document.getElementById("document_name");
-    const inputOwnerId = document.getElementById("owner_id"); 
-    const inputDocType = document.getElementById("document_type"); // Dynamic
-    const inputYear = document.getElementById("document_year");
-    const inputStorageId = document.getElementById("storage_location_id");
-    const inputDesc = document.getElementById("description");
-
-    // File Upload
-    const inputFile = document.getElementById("fileInput");
+    // Inputs
+    const inputArchiveStatus = document.getElementById("archive_status");
+    const inputDocType = document.getElementById("document_type");
+    const inputOwnerId = document.getElementById("owner_id");
+    const inputClassId = document.getElementById("classification_id"); // NEW
+    const fileInput = document.getElementById("fileInput");
     const uploadBox = document.getElementById("upload-box");
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
@@ -44,120 +33,86 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Filters
     const elSearch = document.getElementById("searchInput");
-    const elFilterType = document.getElementById("filterType"); // Dynamic
+    const elFilterType = document.getElementById("filterType");
     const elFilterEmployee = document.getElementById("filterEmployee");
+    const elFilterStatus = document.getElementById("filterStatus");
+    const elFilterClass = document.getElementById("filterClassification"); // NEW
 
-    // --- INITIALIZATION ---
     await initPage();
-
-    // --- EVENT LISTENERS ---
-    if(btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
-    if(btnBack) btnBack.addEventListener("click", showTableMode);
-    
-    if (btnClosePreviewMode) {
-        btnClosePreviewMode.addEventListener("click", () => {
-            viewPdfFullscreen.classList.add("hidden");
-            fullscreenPdfViewer.src = "";
-            showTableMode();
-        });
-    }
-
-    if (inputFile) {
-        inputFile.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if(file.type !== "application/pdf") {
-                    ui.alert("Format Salah", "Hanya file PDF yang diperbolehkan.", "warning");
-                    inputFile.value = "";
-                    return;
-                }
-                const url = URL.createObjectURL(file);
-                showPreview(url);
-            }
-        });
-    }
-    if(btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
-    if(btnSave) btnSave.addEventListener("click", handleSaveData);
-
-    // Filter Listeners
-    [elSearch, elFilterType, elFilterEmployee].forEach(el => {
-        if(el) {
-            el.addEventListener("change", applyFilters);
-            el.addEventListener("keyup", applyFilters);
-        }
-    });
-
-    if(btnResetFilter) {
-        btnResetFilter.addEventListener("click", () => {
-            elSearch.value = ""; elFilterType.value = ""; elFilterEmployee.value = "";
-            applyFilters();
-            ui.toast("Filter direset", "info");
-        });
-    }
-
-    // --- FUNCTIONS ---
 
     async function initPage() {
         const tbody = document.getElementById("table-body");
-        tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>`;
 
-        // [BARU] Load References, Teachers, Locations, Documents
         await Promise.all([
             loadReferences(),
+            loadClassifications(), // NEW
             loadTeachers(), 
             loadStorageLocations(),
             loadDocuments()
         ]);
     }
 
-    // [BARU] Load Referensi Jenis Dokumen
+    // --- NEW: Load Classifications ---
+    async function loadClassifications() {
+        try {
+            const data = await api.classification.getAll();
+            
+            // Populate Form
+            if(inputClassId) {
+                inputClassId.innerHTML = '<option value="">-- Pilih Klasifikasi --</option>';
+                data.forEach(c => inputClassId.add(new Option(`${c.code} - ${c.name}`, c.id)));
+            }
+            
+            // Populate Filter
+            if(elFilterClass) {
+                elFilterClass.innerHTML = '<option value="">Semua Klasifikasi</option>';
+                data.forEach(c => elFilterClass.add(new Option(`${c.code} - ${c.name}`, c.code)));
+            }
+        } catch (e) { console.error("Gagal load klasifikasi", e); }
+    }
+
     async function loadReferences() {
         try {
-            const response = await api.reference.getByCategory('emp_doc_type');
-            refDocTypes = response.data || [];
+            const respType = await api.reference.getByCategory('emp_doc_type');
+            refDocTypes = respType.data || [];
+            const respStatus = await api.reference.getByCategory('archive_status');
+            const refStatus = respStatus.data || [];
 
-            const populate = (el, placeholder) => {
+            const populate = (el, data, placeholder) => {
                 if(!el) return;
                 el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                refDocTypes.forEach(item => {
-                    el.add(new Option(item.name, item.code));
-                });
+                data.forEach(item => el.add(new Option(item.name, item.code)));
             };
 
-            populate(elFilterType, "Semua Jenis Dokumen");
-            populate(inputDocType, null); // Form select, required
-
-        } catch (e) {
-            console.error("Gagal load references:", e);
-        }
+            populate(elFilterType, refDocTypes, "Semua Jenis");
+            populate(elFilterStatus, refStatus, "Semua Status");
+            populate(inputDocType, refDocTypes, null);
+            populate(inputArchiveStatus, refStatus, null);
+        } catch (e) { console.error(e); }
     }
 
     async function loadTeachers() {
         try {
             const teachers = await api.teacher.getAll(); 
-            
             if(inputOwnerId) {
                 inputOwnerId.innerHTML = '<option value="">-- Pilih Guru / Pegawai --</option>';
-                teachers.forEach(t => {
-                    inputOwnerId.add(new Option(`${t.full_name} (${t.identity_number})`, t.id));
-                });
+                teachers.forEach(t => inputOwnerId.add(new Option(t.full_name, t.id)));
             }
-
             if(elFilterEmployee) {
                 elFilterEmployee.innerHTML = '<option value="">Semua Pegawai</option>';
-                teachers.forEach(t => {
-                    elFilterEmployee.add(new Option(t.full_name, t.id));
-                });
+                teachers.forEach(t => elFilterEmployee.add(new Option(t.full_name, t.id)));
             }
-        } catch (e) { console.error("Gagal memuat data guru:", e); }
+        } catch (e) { console.error(e); }
     }
 
     async function loadStorageLocations() {
         try {
             const data = await api.storageLocation.getAll();
-            if(inputStorageId) {
-                inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
-                data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
+            const elStore = document.getElementById("storage_location_id");
+            if(elStore) {
+                elStore.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
+                data.forEach(l => elStore.add(new Option(l.name, l.id)));
             }
         } catch (e) { console.error(e); }
     }
@@ -166,72 +121,63 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             allDocs = await api.employeeArchive.getAll();
             renderTable(allDocs);
-        } catch (e) {
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
-        }
+        } catch (e) { console.error(e); }
     }
 
     function renderTable(data) {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = "";
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
             return;
         }
-
-        const user = api.auth.getUserData();
-        const isAdmin = user && user.role === 'admin';
 
         data.forEach(item => {
             const tr = document.createElement("tr");
             
+            let statusClass = "st-active";
+            if (item.archive_status === 'inactive') statusClass = "st-inactive";
+            if (item.archive_status === 'destroyed') statusClass = "st-destroyed";
+
+            const typeLabel = refDocTypes.find(r => r.code === item.document_type)?.name || item.document_type;
             const hasFile = !!item.file_path;
-            const locName = item.storage_location_name || '<span style="color:#ccc;">-</span>';
-            const ownerName = item.owner_name || "Unknown";
-            const ownerNip = item.owner_identity || "-";
-
-            // Badge Type Logic (Dynamic Label, Static Class Mapping)
-            let typeLabel = item.document_type;
-            let badgeClass = "doc-lain";
             
-            // Coba cari nama cantik dari referensi yang sudah diload
-            const refItem = refDocTypes.find(r => r.code === item.document_type);
-            if(refItem) typeLabel = refItem.name;
+            // Badge Klasifikasi
+            const classBadge = item.classification_code 
+                ? `<span style="background:#eef2ff; color:#4338ca; padding:2px 6px; border-radius:4px; font-size:10px; border:1px solid #c7d2fe; margin-right:4px;">${item.classification_code}</span>` 
+                : '';
 
-            // Simple mapping for visuals (based on code)
-            const code = item.document_type;
-            if (code === 'sk_cpns' || code === 'sk_pangkat' || code === 'sk_berkala') badgeClass = "doc-sk";
-            else if (code === 'ijazah') badgeClass = "doc-ijazah";
-            else if (code === 'sertifikat') badgeClass = "doc-sertifikat";
+            // --- PERBAIKAN LOGIKA TOMBOL VIEW DI SINI ---
+            // Jika ada file: pakai class 'btn-view-file' (Oranye). Jika tidak: default (Abu-abu)
+            const viewButtonClass = hasFile ? "btn-action-view btn-view-file" : "btn-action-view";
             
-            let actionButtons = `
-                <button class="btn-action-view" title="Lihat PDF" 
-                    onclick="window.openFile(${item.id})" 
-                    ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
-            `;
-
-            if (isAdmin) {
-                actionButtons += `
-                    <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
-                    <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
-                `;
-            }
+            // Atur style disabled jika tidak ada file (agar tetap abu-abu dan transparan)
+            const viewAttr = !hasFile ? 'disabled style="opacity:0.5; cursor:default;"' : `onclick="window.openFile(${item.id})"`;
 
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight:600;">${item.document_name}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">Tahun: ${item.document_year || '-'}</div>
+                    <div style="font-weight:600; color:var(--primary);">${item.document_name}</div>
+                    <div style="margin-top:2px;">
+                        ${classBadge}
+                        <span style="font-size:11px; color:#666;">Tahun: ${item.document_year || '-'}</span>
+                    </div>
                 </td>
-                <td><span class="badge-doc ${badgeClass}">${typeLabel}</span></td>
+                <td><span class="badge-doc doc-lain">${typeLabel}</span></td>
                 <td>
-                    <div style="font-weight:500;">${ownerName}</div>
-                    <div style="font-size:11px; color:#64748b;">${ownerNip}</div>
+                    <div style="font-weight:500;">${item.owner_name}</div>
+                    <div style="font-size:11px; color:#999;">${item.owner_identity || '-'}</div>
                 </td>
-                <td><div style="font-size:12px;">📍 ${locName}</div></td>
+                <td>
+                    <div style="font-size:12px; margin-bottom:4px;">📍 ${item.storage_location_name || '-'}</div>
+                    <span class="status-pill ${statusClass}">${item.archive_status}</span>
+                </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
-                        ${actionButtons}
+                        <button class="${viewButtonClass}" title="Lihat PDF" ${viewAttr}>📄</button>
+                        
+                        <button class="btn-action-view btn-edit" onclick="triggerEdit(${item.id})" title="Edit">✏️</button>
+                        <button class="btn-action-view btn-delete" onclick="triggerDelete(${item.id})" title="Hapus">🗑️</button>
                     </div>
                 </td>
             `;
@@ -239,49 +185,128 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- FORM LOGIC ---
-
-    function showFormMode(editMode = false, data = null) {
+    // --- Form Logic ---
+    window.showFormMode = (editMode = false, data = null) => {
         isEditMode = editMode;
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
-        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-        
         if(btnAdd) btnAdd.classList.add("hidden");
-        if(btnBack) btnBack.classList.remove("hidden");
-
-        document.getElementById("form-title").textContent = editMode ? "✏️ Edit Dokumen" : "📝 Tambah Dokumen";
+        btnBack.classList.remove("hidden");
+        
         document.getElementById("form-entry").reset();
         resetFilePreview();
 
         if (editMode && data) {
             currentEditId = data.id;
-            inputId.value = data.id;
-            inputName.value = data.document_name;
-            inputOwnerId.value = data.owner_id; 
+            document.getElementById("document_name").value = data.document_name;
+            inputOwnerId.value = data.owner_id;
             inputDocType.value = data.document_type;
-            inputYear.value = data.document_year;
-            inputDesc.value = data.description || "";
-            if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
+            inputArchiveStatus.value = data.archive_status;
+            document.getElementById("document_year").value = data.document_year;
+            document.getElementById("storage_location_id").value = data.storage_location_id || "";
+            document.getElementById("description").value = data.description || "";
+            
+            // NEW: Set Classification
+            if (data.classification_id) inputClassId.value = data.classification_id;
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
-                const cleanPath = `/storage/documents/employee_archives/${fileName}`;
-                showPreview(cleanPath); 
+                showPreview(`/storage/documents/employee_archives/${fileName}`);
             }
         } else {
-            currentEditId = null;
+            inputArchiveStatus.value = "active";
         }
+    };
+
+    async function handleSaveData(e) {
+        e.preventDefault();
+        
+        // Validation
+        if (!inputClassId.value) {
+            ui.alert("Data Belum Lengkap", "Harap pilih Klasifikasi Surat", "warning");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('document_name', document.getElementById("document_name").value);
+        formData.append('owner_id', inputOwnerId.value);
+        formData.append('classification_id', inputClassId.value); // NEW
+        formData.append('document_type', inputDocType.value);
+        formData.append('archive_status', inputArchiveStatus.value);
+        formData.append('document_year', document.getElementById("document_year").value);
+        formData.append('description', document.getElementById("description").value);
+        formData.append('storage_location_id', document.getElementById("storage_location_id").value);
+        
+        if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+        try {
+            if (isEditMode) {
+                formData.append('id', currentEditId);
+                await api.employeeArchive.update(formData);
+            } else {
+                await api.employeeArchive.create(formData);
+            }
+            ui.toast("Data disimpan", "success");
+            showTableMode();
+            loadDocuments();
+        } catch (err) { ui.alert("Gagal", err.message, "error"); }
     }
 
-    function showTableMode() {
-        viewForm.classList.add("hidden");
-        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-        viewTable.classList.remove("hidden");
-        if(btnAdd) btnAdd.classList.remove("hidden");
-        if(btnBack) btnBack.classList.add("hidden");
-        resetFilePreview();
+    // --- Filters ---
+    [elSearch, elFilterType, elFilterEmployee, elFilterStatus, elFilterClass].forEach(el => {
+        if(el) {
+            el.addEventListener("change", applyFilters);
+            el.addEventListener("keyup", applyFilters);
+        }
+    });
+
+    function applyFilters() {
+        const term = elSearch.value.toLowerCase();
+        const res = allDocs.filter(i => {
+            const matchesText = i.document_name.toLowerCase().includes(term) || i.owner_name.toLowerCase().includes(term);
+            const matchesType = elFilterType.value === "" || i.document_type === elFilterType.value;
+            const matchesStatus = elFilterStatus.value === "" || i.archive_status === elFilterStatus.value;
+            const matchesOwner = elFilterEmployee.value === "" || String(i.owner_id) === elFilterEmployee.value;
+            
+            // NEW: Filter Classification
+            const matchesClass = elFilterClass.value === "" || i.classification_code === elFilterClass.value;
+
+            return matchesText && matchesType && matchesStatus && matchesOwner && matchesClass;
+        });
+        renderTable(res);
     }
+
+    // ... (Sisa fungsi standard seperti triggerEdit, triggerDelete, viewPdf, showTableMode tetap sama) ...
+    // Pastikan fungsi window.openFile, triggerEdit, triggerDelete ada di sini (dicopy dari kode asli)
+    
+    window.openFile = (id) => {
+        const item = allDocs.find(d => d.id === id);
+        if (!item || !item.file_path) { ui.toast("File tidak ditemukan", "error"); return; }
+        const fileName = item.file_path.split(/[\\/]/).pop();
+        const finalUrl = `/storage/documents/employee_archives/${fileName}`;
+        viewTable.classList.add("hidden");
+        viewForm.classList.add("hidden");
+        if(btnAdd) btnAdd.classList.add("hidden");
+        viewPdfFullscreen.classList.remove("hidden");
+        viewPdfFullscreen.classList.add("active-flex");
+        fullscreenPdfViewer.src = finalUrl;
+    };
+    
+    if (btnClosePreviewMode) {
+        btnClosePreviewMode.addEventListener("click", () => {
+            viewPdfFullscreen.classList.add("hidden");
+            viewPdfFullscreen.classList.remove("active-flex");
+            fullscreenPdfViewer.src = "";
+            viewTable.classList.remove("hidden");
+            if(btnAdd) btnAdd.classList.remove("hidden");
+        });
+    }
+
+    fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file && file.type === "application/pdf") { showPreview(URL.createObjectURL(file)); } 
+        else { ui.alert("Format Salah", "Pilih file PDF", "warning"); fileInput.value = ""; }
+    });
 
     function showPreview(url) {
         uploadBox.style.display = 'none';
@@ -290,109 +315,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function resetFilePreview() {
-        inputFile.value = "";
+        fileInput.value = "";
         pdfViewer.src = "";
         previewBox.style.display = 'none';
         uploadBox.style.display = 'flex';
     }
+    
+    btnCancelUpload.addEventListener("click", resetFilePreview);
 
-    async function handleSaveData(e) {
-        e.preventDefault();
-        
-        if (!inputName.value.trim() || !inputOwnerId.value) {
-            ui.alert("Data Belum Lengkap", "Harap lengkapi Nama Dokumen dan Pemilik (Guru).", "warning");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('document_name', inputName.value.trim());
-        formData.append('owner_id', inputOwnerId.value);
-        formData.append('document_type', inputDocType.value);
-        formData.append('document_year', inputYear.value);
-        formData.append('description', inputDesc.value);
-        
-        if(inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
-        if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
-
-        const btn = e.target;
-        const originalText = btn.textContent;
-        btn.textContent = "Menyimpan...";
-        btn.disabled = true;
-
-        try {
-            if (isEditMode) {
-                formData.append('id', currentEditId);
-                await api.employeeArchive.update(formData);
-                ui.toast("Berhasil diperbarui!", "success");
-            } else {
-                await api.employeeArchive.create(formData);
-                ui.toast("Berhasil disimpan!", "success");
-            }
-            showTableMode();
-            loadDocuments();
-        } catch (err) {
-            console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Error server", "error");
-        } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }
-    }
-
-    // --- GLOBAL ACTIONS ---
-    window.triggerEdit = (id) => {
-        const item = allDocs.find(d => d.id === id);
-        if(item) showFormMode(true, item);
-    };
+    window.triggerEdit = (id) => { const item = allDocs.find(d => d.id === id); if(item) showFormMode(true, item); };
 
     window.triggerDelete = async (id) => {
-        const isConfirmed = await ui.confirm("Hapus Dokumen?", "Apakah Anda yakin ingin menghapus dokumen ini?", true);
-        if(isConfirmed) {
-            try { 
-                await api.employeeArchive.delete(id); 
-                ui.toast("Dokumen telah dihapus", "success");
-                loadDocuments(); 
-            }
-            catch(e) { 
-                ui.alert("Gagal Hapus", e.message, "error"); 
-            }
+        const isConfirmed = await ui.confirm("Hapus Data?", "Yakin ingin menghapus arsip ini?", true);
+        if (isConfirmed) {
+            try { await api.employeeArchive.delete(id); ui.toast("Berhasil dihapus", "success"); loadDocuments(); } 
+            catch (e) { ui.alert("Error", e.message, "error"); }
         }
     };
-
-    window.openFile = (id) => {
-        const item = allDocs.find(d => d.id === id);
-        if (!item || !item.file_path) { 
-            ui.toast("File tidak tersedia", "error"); 
-            return; 
-        }
-        const fileName = item.file_path.split(/[\\/]/).pop();
-        const cleanPath = `/storage/documents/employee_archives/${fileName}`;
-        
-        viewTable.classList.add("hidden"); viewForm.classList.add("hidden"); 
-        if(btnAdd) btnAdd.classList.add("hidden");
-
-        if(viewPdfFullscreen) {
-            viewPdfFullscreen.classList.remove("hidden");
-            viewPdfFullscreen.style.display = "flex";
-            if(fullscreenPdfViewer) fullscreenPdfViewer.src = cleanPath;
-        }
-    };
-
-    // --- FILTER LOGIC ---
-    function applyFilters() {
-        const term = elSearch.value.toLowerCase();
-        const type = elFilterType.value;
-        const ownerId = elFilterEmployee.value;
-
-        const filtered = allDocs.filter(item => {
-            const txtMatch = (item.document_name||"").toLowerCase().includes(term) ||
-                           (item.owner_name||"").toLowerCase().includes(term);
-            
-            const typeMatch = type === "" || item.document_type === type;
-            const empMatch = ownerId === "" || String(item.owner_id) === String(ownerId);
-
-            return txtMatch && typeMatch && empMatch;
-        });
-        renderTable(filtered);
+    
+    function showTableMode() {
+        viewForm.classList.add("hidden");
+        viewTable.classList.remove("hidden");
+        if(btnAdd) btnAdd.classList.remove("hidden");
+        btnBack.classList.add("hidden");
     }
+
+    if (btnSave) btnSave.addEventListener("click", handleSaveData);
+    if (btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
+    if (btnBack) btnBack.addEventListener("click", showTableMode);
 });

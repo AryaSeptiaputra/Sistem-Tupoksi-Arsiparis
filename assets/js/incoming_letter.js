@@ -33,11 +33,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputLetterDate = document.getElementById("letter_date");
     const inputReceivedDate = document.getElementById("received_date");
     const inputClassId = document.getElementById("classification_id");
-    
+
     const inputStorageId = document.getElementById("storage_location_id");
     const inputArchiveStatus = document.getElementById("archive_status");
     const groupArchiveStatus = document.getElementById("group-archive-status");
-    
+
     const inputFile = document.getElementById("fileInput");
     const uploadBox = document.getElementById("upload-box");
     const previewBox = document.getElementById("preview-box");
@@ -58,11 +58,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- EVENT LISTENERS ---
     if (btnAdd) btnAdd.addEventListener("click", () => showFormMode(false));
     if (btnBack) btnBack.addEventListener("click", showTableMode);
-    
+
     if (btnClosePreviewMode) {
         btnClosePreviewMode.addEventListener("click", () => {
             viewPdfFullscreen.classList.add("hidden");
-            fullscreenPdfViewer.src = ""; 
+            fullscreenPdfViewer.src = "";
             showTableMode();
         });
     }
@@ -96,9 +96,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (btnResetFilter) {
         btnResetFilter.addEventListener("click", () => {
-            elSearch.value = ""; 
-            elDateType.value = "received"; 
-            elStartDate.value = ""; elEndDate.value = ""; 
+            elSearch.value = "";
+            elDateType.value = "received";
+            elStartDate.value = ""; elEndDate.value = "";
             elFilterClass.value = ""; elFilterStatus.value = "";
             applyFilters();
             ui.toast("Filter direset", "info");
@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // Helper render
             const populate = (el, withPlaceholder) => {
-                if(!el) return;
+                if (!el) return;
                 el.innerHTML = withPlaceholder ? `<option value="">${withPlaceholder}</option>` : '';
                 data.forEach(item => {
                     // item.code = 'active', item.name = '🟢 Aktif'
@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        const user = api.auth.getUserData(); 
+        const user = api.auth.getUserData();
         const isAdmin = user && user.role === 'admin';
 
         data.forEach(item => {
@@ -205,17 +205,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Logic Status Pill (Tetap handle manual css class, tapi text dari DB biasanya inggris/code)
             // Kita bisa mapping manual atau biarkan apa adanya jika master data 'name'-nya sudah ada emoji.
             // Di sini saya asumsi 'archive_status' dari DB adalah code (active, inactive).
-            
+
             let statusBadgeClass = "st-active";
             let statusText = item.archive_status; // Fallback
 
-            if(item.archive_status === 'active') { statusBadgeClass = 'st-active'; statusText = 'Aktif'; }
-            else if(item.archive_status === 'inactive') { statusBadgeClass = 'st-inactive'; statusText = 'Inaktif'; }
-            else if(item.archive_status === 'destroyed') { statusBadgeClass = 'st-destroyed'; statusText = 'Musnah'; }
-            
+            if (item.archive_status === 'active') { statusBadgeClass = 'st-active'; statusText = 'Aktif'; }
+            else if (item.archive_status === 'inactive') { statusBadgeClass = 'st-inactive'; statusText = 'Inaktif'; }
+            else if (item.archive_status === 'destroyed') { statusBadgeClass = 'st-destroyed'; statusText = 'Musnah'; }
+
             // Jika backend mengirim raw code, kita tampilkan text. 
             // Jika master reference sudah diload, text bisa diambil dari sana, tapi untuk performa tabel, mapping simple ok.
-            
+
             const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
             const hasFile = !!item.file_path;
 
@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const txtMatch = (item.number || "").toLowerCase().includes(term) ||
                 (item.sender || "").toLowerCase().includes(term) ||
                 (item.subject || "").toLowerCase().includes(term);
-            
+
             const clsMatch = cls === "" || item.classification_code === cls;
             const statusMatch = status === "" || item.archive_status === status;
 
@@ -288,7 +288,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (start && d < start) dateMatch = false;
                 if (end && d > end) dateMatch = false;
             } else {
-                if (start || end) dateMatch = false; 
+                if (start || end) dateMatch = false;
             }
 
             return txtMatch && clsMatch && statusMatch && dateMatch;
@@ -303,13 +303,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         isEditMode = editMode;
         viewTable.classList.add("hidden");
         viewForm.classList.remove("hidden");
-        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
-        if(btnAdd) btnAdd.classList.add("hidden");
-        if(btnBack) btnBack.classList.remove("hidden");
+        if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+        if (btnAdd) btnAdd.classList.add("hidden");
+        if (btnBack) btnBack.classList.remove("hidden");
 
         document.getElementById("form-title").textContent = editMode ? "✏️ Edit Surat Masuk" : "📝 Tambah Surat Masuk";
         document.getElementById("form-entry").reset();
         resetFilePreview();
+
+        // PERUBAHAN: Pastikan grup status arsip selalu tampil
+        if (groupArchiveStatus) {
+            groupArchiveStatus.classList.remove("hidden");
+        }
 
         if (editMode && data) {
             currentEditId = data.id;
@@ -317,20 +322,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputNumber.value = data.number;
             inputSender.value = data.sender;
             inputSubject.value = data.subject;
-            
+
             if (data.letter_date) inputLetterDate.value = data.letter_date.split('T')[0];
             if (data.received_date) inputReceivedDate.value = data.received_date.split('T')[0];
-            
-            // [FIX] Convert ke String agar dropdown terpilih (mengatasi masalah int vs string)
-            if(data.classification_id) inputClassId.value = String(data.classification_id);
-            if(data.storage_location_id) inputStorageId.value = String(data.storage_location_id);
-            
-            // Tampilkan Status Archive saat edit
-            if (groupArchiveStatus) {
-                groupArchiveStatus.classList.remove("hidden");
-                // data.archive_status akan cocok dengan value dropdown (code) yang diload dari loadReferences()
-                if(data.archive_status) inputArchiveStatus.value = data.archive_status;
-            }
+
+            if (data.classification_id) inputClassId.value = String(data.classification_id);
+            if (data.storage_location_id) inputStorageId.value = String(data.storage_location_id);
+
+            // Set nilai status saat edit
+            if (data.archive_status) inputArchiveStatus.value = data.archive_status;
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
@@ -339,18 +339,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } else {
             currentEditId = null;
-            // Saat tambah baru, status arsip biasanya default 'active', dan field disembunyikan
-            // atau bisa ditampilkan jika ingin langsung set status.
-            if (groupArchiveStatus) groupArchiveStatus.classList.add("hidden");
+            // Default untuk data baru
+            inputArchiveStatus.value = "active";
         }
     }
 
     function showTableMode() {
         viewForm.classList.add("hidden");
-        if(viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
+        if (viewPdfFullscreen) viewPdfFullscreen.classList.add("hidden");
         viewTable.classList.remove("hidden");
-        if(btnAdd) btnAdd.classList.remove("hidden");
-        if(btnBack) btnBack.classList.add("hidden");
+        if (btnAdd) btnAdd.classList.remove("hidden");
+        if (btnBack) btnBack.classList.add("hidden");
         resetFilePreview();
     }
 
@@ -369,10 +368,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function handleSaveData(e) {
         e.preventDefault();
-        
-        // Validasi Manual
+
         if (!inputNumber.value || !inputSender.value || !inputClassId.value) {
-            // [UBAH] Alert -> ui.alert
             ui.alert("Data Belum Lengkap", "Harap lengkapi Nomor Surat, Pengirim, dan Klasifikasi!", "warning");
             return;
         }
@@ -384,14 +381,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('letter_date', inputLetterDate.value);
         formData.append('received_date', inputReceivedDate.value);
         formData.append('classification_id', inputClassId.value);
-        
+
         if (inputStorageId.value) formData.append('storage_location_id', inputStorageId.value);
-        
-        // Kirim status arsip jika sedang edit (karena field muncul)
-        if (isEditMode && inputArchiveStatus.value) {
+
+        // PERUBAHAN: Selalu kirim status arsip baik saat edit maupun tambah baru
+        if (inputArchiveStatus.value) {
             formData.append('archive_status', inputArchiveStatus.value);
         }
-        
+
         if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
 
         const btn = e.target;
@@ -403,7 +400,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (isEditMode) {
                 formData.append('id', currentEditId);
                 await api.incomingLetter.update(formData);
-                // [UBAH] Alert -> ui.toast
                 ui.toast("Data berhasil diperbarui!", "success");
             } else {
                 await api.incomingLetter.create(formData);
@@ -412,8 +408,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             showTableMode();
             loadLetters();
         } catch (err) {
-            console.error(err);
-            // [UBAH] Alert -> ui.alert
             ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
         } finally {
             btn.textContent = originalText;
@@ -435,7 +429,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await api.incomingLetter.delete(id);
                 ui.toast("Data telah dihapus", "success");
                 loadLetters();
-            } catch (err) { 
+            } catch (err) {
                 ui.alert("Gagal Hapus", err.message, "error");
             }
         }
@@ -443,17 +437,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.openFile = (id) => {
         const item = allLetters.find(l => l.id === id);
-        if (!item || !item.file_path) { 
-            ui.toast("File PDF tidak tersedia", "error"); 
-            return; 
+        if (!item || !item.file_path) {
+            ui.toast("File PDF tidak tersedia", "error");
+            return;
         }
         const fileName = item.file_path.split(/[\\/]/).pop();
         const finalUrl = `/storage/documents/incoming_letters/${fileName}`;
-        
+
         viewTable.classList.add("hidden");
         viewForm.classList.add("hidden");
-        if(btnAdd) btnAdd.classList.add("hidden");
-        
+        if (btnAdd) btnAdd.classList.add("hidden");
+
         viewPdfFullscreen.classList.remove("hidden");
         viewPdfFullscreen.style.display = "flex";
         fullscreenPdfViewer.src = finalUrl;

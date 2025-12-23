@@ -29,8 +29,7 @@ def check_password(password: str) -> bool:
         raise ValueError("Password harus mengandung setidaknya satu huruf kecil (a-z)")
     if not re.search(r'[0-9]', password):
         raise ValueError("Password harus mengandung setidaknya satu angka (0-9)")
-    if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|`~]', password):
-        raise ValueError("Password harus mengandung setidaknya satu karakter spesial (!@#$%^&*)")
+
     return True
 
 def validate_password_change(old_password_hash: str, new_password_plain: str) -> bool:
