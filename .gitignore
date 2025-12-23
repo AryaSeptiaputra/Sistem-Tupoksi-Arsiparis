@@ -6,6 +6,7 @@ __pycache__/
 
 database/backups/*
 storage/documents/*
+logs/
 
 !database/backups/.gitkeep
 !storage/documents/.gitkeep

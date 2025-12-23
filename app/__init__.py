@@ -1,5 +1,6 @@
 import os
 import atexit # Untuk mematikan scheduler saat app stop
+import logging
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -40,6 +41,30 @@ def create_app():
     # Konfigurasi JWT
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
     JWTManager(app)
+
+    # ==========================================================================
+    # 📝 KONFIGURASI LOGGING
+    # ==========================================================================
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    if settings.LOG_FILE_PATH:
+        os.makedirs(os.path.dirname(settings.LOG_FILE_PATH), exist_ok=True)
+        handler = logging.FileHandler(settings.LOG_FILE_PATH)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(handler)
+    app.logger.info("Application started")
+
+    # ==========================================================================
+    # ❌ ERROR HANDLERS
+    # ==========================================================================
+    @app.errorhandler(500)
+    def internal_error(error):
+        app.logger.error(f"Internal server error: {error}")
+        return {"error": "Internal server error"}, 500
+
+    @app.errorhandler(404)
+    def not_found(error):
+        app.logger.warning(f"Page not found: {error}")
+        return {"error": "Not found"}, 404
 
     # Create Database Tables
     Base.metadata.create_all(bind=engine)

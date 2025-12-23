@@ -185,5 +185,30 @@ Aturan main untuk semua developer (Backend & Frontend):
 
 -----
 
+## 🔧 Production Deployment & Sustainability
+
+### Environment Setup
+- Copy `.env.example` to `.env` and fill in the actual values.
+- Use virtual environment: `python -m venv venv` and `venv\Scripts\activate` (Windows).
+
+### Running in Production
+- For development: `python main.py`
+- For production: `python serve.py` (uses Waitress WSGI server)
+
+### Docker
+- Build: `docker build -t arsiparis-app .`
+- Run: `docker run -p 8080:8080 arsiparis-app`
+
+### Testing
+- Run tests: `pytest`
+
+### Logging
+- Logs are configured to console and optionally to file specified in `.env`.
+
+### CI/CD
+- GitHub Actions runs tests on push/PR to main.
+
+-----
+
 **Happy Coding, Team\! 🚀**
 Jika ada kendala koneksi antara Frontend dan Backend, segera diskusikan di grup.

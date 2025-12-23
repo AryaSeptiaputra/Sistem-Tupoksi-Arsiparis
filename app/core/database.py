@@ -10,7 +10,12 @@ for all database interactions within the application. It serves as the
 central point for database connectivity.
 """
 
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,  # Check connection health before use
+    pool_recycle=3600,   # Recycle connections after 1 hour
+    echo=False           # Set to True for SQL logging in development
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
