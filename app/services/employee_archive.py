@@ -51,3 +51,22 @@ def delete_employee_archive(db: Session, archive_id: int) -> EmployeeArchive | N
 
 def get_all_employee_archives(db: Session) -> list[EmployeeArchive]:
     return db.query(EmployeeArchive).all()
+
+def get_employee_archives_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data employee archive dengan pagination.
+    Mengembalikan dict dengan keys: 'employee_archives', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(EmployeeArchive)
+    total = query.count()
+    employee_archives = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'employee_archives': employee_archives,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }

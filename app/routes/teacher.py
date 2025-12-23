@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys
+from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_paginated, get_teachers_by_keys
 from app.services.log import create_log
 from app import db
 
@@ -120,10 +120,27 @@ def delete_teacher_route():
 
 @teacher_bp.route('/get_all', methods=['GET'])
 def get_all_teachers_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session: Session = db.SessionLocal()
     try:
-        teachers = get_all_teachers(db_session)
-        return jsonify([t.to_dict() for t in teachers]), 200
+        result = get_teachers_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'teachers': [t.to_dict() for t in result['teachers']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
     finally:
         db_session.close()
 

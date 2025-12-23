@@ -116,7 +116,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadData() {
         try {
-            allData = await api.teacher.getAll();
+            const response = await api.teacher.getAll();
+            allData = response.teachers || [];
             renderTable(allData);
         } catch (e) {
             console.error(e);

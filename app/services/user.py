@@ -92,6 +92,25 @@ def get_all_users(db: Session) -> list[User]:
     # Menggunakan join otomatis via relationship di Model
     return db.query(User).all()
 
+def get_users_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data user dengan pagination.
+    Mengembalikan dict dengan keys: 'users', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(User)
+    total = query.count()
+    users = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'users': users,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }
+
 def get_users_by_keys(db: Session, filters: dict) -> list[User]:
     query = db.query(User).join(Teacher)
     

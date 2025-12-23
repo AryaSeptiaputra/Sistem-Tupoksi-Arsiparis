@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.services.user import create_user, update_user, delete_user, get_all_users, get_users_by_keys
+from app.services.user import create_user, update_user, delete_user, get_all_users, get_users_paginated, get_users_by_keys
 from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
@@ -126,10 +126,27 @@ def delete_user_route():
 
 @user_bp.route('/get_all', methods=['GET'])
 def get_all_users_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session: Session = db.SessionLocal()
     try:
-        users = get_all_users(db_session)
-        return jsonify([user.to_dict() for user in users]), 200
+        result = get_users_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'users': [user.to_dict() for user in result['users']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
     finally:
         db_session.close()
 

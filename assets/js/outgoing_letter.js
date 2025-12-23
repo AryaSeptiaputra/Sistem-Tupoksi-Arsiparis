@@ -164,7 +164,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadClassifications() {
         try {
-            const data = await api.classification.getAll();
+            const response = await api.classification.getAll();
+            const data = response.classifications || [];
             if(inputClassId) inputClassId.innerHTML = '<option value="">-- Pilih Klasifikasi --</option>';
             if(elFilterClass) elFilterClass.innerHTML = '<option value="">Semua Klasifikasi</option>';
             data.forEach(c => {
@@ -177,7 +178,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadStorageLocations() {
         try {
-            const data = await api.storageLocation.getAll();
+            const response = await api.storageLocation.getAll();
+            const data = response.storage_locations || [];
             if(inputStorageId) {
                 inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
                 data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
@@ -187,7 +189,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadLetters() {
         try {
-            allLetters = await api.outgoingLetter.getAll();
+            const response = await api.outgoingLetter.getAll();
+            allLetters = response.outgoing_letters || [];
             allLetters.sort((a, b) => new Date(b.sent_date) - new Date(a.sent_date));
             renderTable(allLetters);
         } catch (e) {

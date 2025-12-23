@@ -58,6 +58,25 @@ def delete_outgoing_letter(db: Session, letter_id: int) -> OutgoingLetter | None
 def get_all_outgoing_letters(db: Session) -> list[OutgoingLetter]:
     return db.query(OutgoingLetter).all()
 
+def get_outgoing_letters_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data outgoing letter dengan pagination.
+    Mengembalikan dict dengan keys: 'outgoing_letters', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(OutgoingLetter)
+    total = query.count()
+    outgoing_letters = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'outgoing_letters': outgoing_letters,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }
+
 def get_outgoing_letters_by_keys(db: Session, filters: dict) -> list[OutgoingLetter]:
     query = db.query(OutgoingLetter)
     

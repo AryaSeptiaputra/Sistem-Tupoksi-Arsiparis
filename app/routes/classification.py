@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.services.classification import (
     create_classification, update_classification, delete_classification, 
-    get_all_classifications, get_classifications_by_keys
+    get_all_classifications, get_classifications_paginated, get_classifications_by_keys
 )
 from app.services.log import create_log
 from app.services.teacher import get_teachers_by_keys # Untuk logging actor
@@ -85,10 +85,27 @@ def delete_classification_route():
 
 @classification_bp.route('/get_all', methods=['GET'])
 def get_all_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session: Session = db.SessionLocal()
     try:
-        results = get_all_classifications(db_session)
-        return jsonify([r.to_dict() for r in results]), 200
+        result = get_classifications_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'classifications': [r.to_dict() for r in result['classifications']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
     finally:
         db_session.close()
 

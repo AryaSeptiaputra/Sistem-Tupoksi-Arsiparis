@@ -3,4 +3,16 @@
 @import url('components.css');
 @import url('layout.css');
 @import url('pages.css');
+@import url('classification.css');
+@import url('diploma.css');
+@import url('disposal.css');
+@import url('log.css');
+@import url('master_reference.css');
+@import url('outgoing_letter.css');
+@import url('storage_location.css');
+@import url('teacher.css');
+@import url('user.css');
 @import url('variabels.css');
+@import url('employee_archive.css');
+@import url('finance_archive.css');
+@import url('incoming_letter.css');

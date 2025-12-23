@@ -45,19 +45,31 @@ Bagian ini khusus untuk tim yang mengurus API, Logic, dan Database.
 
 Ikuti langkah ini untuk menyiapkan environment lokal:
 
+#### Opsi A: Setup Manual (Linux/Mac)
 ```bash
 # 1. Clone & Masuk Direktori
-git clone [https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git)
+git clone https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git
 cd Sistem-Tupoksi-Arsiparis
 
 # 2. Setup Virtual Environment (Wajib!)
 python -m venv .venv
-# Windows: venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
+# Windows: .venv\Scripts\activate
+# Mac/Linux: source .venv/bin/activate
 
 # 3. Install Dependencies
 pip install -r requirements.txt
 ```
+
+#### Opsi B: Setup Otomatis (Windows - Recommended)
+```bash
+# Jalankan file setup.bat untuk setup otomatis
+setup.bat
+```
+
+> 📝 **File Batch (.bat) tersedia:**
+> - `setup.bat` - Setup lengkap produksi dengan virtual environment
+> - `run.bat` - Menjalankan server produksi
+> - `dev.bat` - Menjalankan server development dengan debug mode
 
 #### 4\. Konfigurasi Environment (.env)
 
@@ -99,7 +111,43 @@ Sebelum push, pastikan tidak ada error logic:
 ```bash
 python test_api.py
 ```
+### 4. Fitur Pagination (v2.0)
 
+Sistem ini telah dioptimalkan untuk menangani data dalam jumlah besar dengan fitur pagination. Semua endpoint `/get_all` sekarang mendukung parameter query:
+
+```bash
+# Contoh penggunaan pagination
+GET /teacher/get_all?page=1&per_page=20
+
+# Response format:
+{
+  "teachers": [...],
+  "pagination": {
+    "total": 15000,
+    "page": 1,
+    "per_page": 20,
+    "total_pages": 750
+  }
+}
+```
+
+**Endpoint yang mendukung pagination:**
+- `/teacher/get_all`
+- `/incoming_letter/get_all`
+- `/outgoing_letter/get_all`
+- `/employee_archive/get_all`
+- `/finance_archive/get_all`
+- `/diploma/get_all`
+- `/classification/get_all`
+- `/storage_location/get_all`
+- `/log/get_all`
+- `/user/get_all`
+
+**Parameter:**
+- `page`: Nomor halaman (default: 1)
+- `per_page`: Data per halaman (default: 10, max: 100)
+
+> 🚀 **Keuntungan:** Aplikasi tetap responsif meski data mencapai 10.000+ records!
 -----
 
 ## 🎨 Panduan Frontend (HTML, CSS, JS)

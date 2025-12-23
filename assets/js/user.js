@@ -76,7 +76,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
         try {
-            allUsers = await api.user.getAll();
+            const response = await api.user.getAll();
+            allUsers = response.users || [];
             renderTable(allUsers);
         } catch (e) {
             console.error(e);

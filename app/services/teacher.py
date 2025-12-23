@@ -62,6 +62,25 @@ def delete_teacher(db: Session, teacher_id: int) -> Teacher | None:
 def get_all_teachers(db: Session) -> list[Teacher]:
     return db.query(Teacher).all()
 
+def get_teachers_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data teacher dengan pagination.
+    Mengembalikan dict dengan keys: 'teachers', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(Teacher)
+    total = query.count()
+    teachers = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'teachers': teachers,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }
+
 def get_teachers_by_keys(db: Session, filters: dict) -> list[Teacher]:
     query = db.query(Teacher)
     

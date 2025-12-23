@@ -155,7 +155,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadClassifications() {
         try {
-            const data = await api.classification.getAll();
+            const response = await api.classification.getAll();
+            const data = response.classifications || [];
             inputClassId.innerHTML = '<option value="">-- Pilih Klasifikasi --</option>';
             data.forEach(c => inputClassId.add(new Option(`${c.code} - ${c.name}`, c.id)));
         } catch (e) { console.error("Gagal load klasifikasi", e); }
@@ -163,7 +164,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadStorageLocations() {
         try {
-            const data = await api.storageLocation.getAll();
+            const response = await api.storageLocation.getAll();
+            const data = response.storage_locations || [];
             inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
             data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
         } catch (e) { console.error("Gagal load lokasi", e); }
@@ -171,7 +173,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadArchives() {
         try {
-            allArchives = await api.financeArchive.getAll();
+            const response = await api.financeArchive.getAll();
+            allArchives = response.finance_archives || [];
             
             // Sorting: Tahun Descending, lalu Bulan Descending
             allArchives.sort((a, b) => {

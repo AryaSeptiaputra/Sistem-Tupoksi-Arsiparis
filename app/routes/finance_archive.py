@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.models.finance_archive import FinanceArchive
 from app.services.finance_archive import (
     create_finance_archive, update_finance_archive, 
-    delete_finance_archive, get_all_finance_archives
+    delete_finance_archive, get_all_finance_archives,
+    get_finance_archives_paginated
 )
 from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
@@ -123,6 +124,26 @@ def delete_route():
 
 @finance_bp.route('/get_all', methods=['GET'])
 def get_all_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session = db.SessionLocal()
-    try: return jsonify([x.to_dict() for x in get_all_finance_archives(db_session)]), 200
-    finally: db_session.close()
+    try:
+        result = get_finance_archives_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'finance_archives': [x.to_dict() for x in result['finance_archives']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
+    finally:
+        db_session.close()

@@ -8,7 +8,8 @@ from app.models.employee_archive import EmployeeArchive
 from app.models.teacher import Teacher
 from app.services.employee_archive import (
     create_employee_archive, update_employee_archive, 
-    delete_employee_archive, get_all_employee_archives
+    delete_employee_archive, get_all_employee_archives,
+    get_employee_archives_paginated
 )
 from app.services.teacher import get_teachers_by_keys # Untuk Log Actor
 from app.services.log import create_log
@@ -112,6 +113,26 @@ def delete_route():
 
 @employee_archive_bp.route('/get_all', methods=['GET'])
 def get_all_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session = db.SessionLocal()
-    try: return jsonify([x.to_dict() for x in get_all_employee_archives(db_session)]), 200
-    finally: db_session.close()
+    try:
+        result = get_employee_archives_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'employee_archives': [x.to_dict() for x in result['employee_archives']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
+    finally:
+        db_session.close()

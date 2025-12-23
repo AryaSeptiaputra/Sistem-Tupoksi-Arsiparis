@@ -62,7 +62,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadUsersForFilter() {
         try {
             // Kita butuh list user agar admin bisa filter "Siapa yang melakukan aksi ini?"
-            const users = await api.user.getAll();
+            const response = await api.user.getAll();
+            const users = response.users || [];
             
             // Bersihkan dan isi ulang opsi
             filterUser.innerHTML = '<option value="">Semua Pengguna</option>';
@@ -83,7 +84,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         tbody.innerHTML = `<tr><td colspan="3" class="loading-text" style="text-align:center; padding:20px;">Memuat data log...</td></tr>`;
         
         try {
-            allLogs = await api.log.getAll();
+            const response = await api.log.getAll();
+            allLogs = response.logs || [];
             
             // Urutkan dari yang terbaru (Descending by timestamp)
             allLogs.sort((a, b) => {

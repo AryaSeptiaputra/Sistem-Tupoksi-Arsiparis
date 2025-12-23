@@ -140,7 +140,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadStorageLocations() {
         try {
-            const data = await api.storageLocation.getAll();
+            const response = await api.storageLocation.getAll();
+            const data = response.storage_locations || [];
             if(inputStorageId) {
                 inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
                 data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
@@ -150,7 +151,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadData() {
         try {
-            allDiplomas = await api.diploma.getAll();
+            const response = await api.diploma.getAll();
+            allDiplomas = response.diplomas || [];
             renderTable(allDiplomas);
         } catch (e) {
             console.error(e);

@@ -46,3 +46,22 @@ def delete_storage_location(db: Session, location_id: int) -> StorageLocation | 
 def get_all_storage_locations(db: Session) -> list[StorageLocation]:
     """Retrieves all storage locations."""
     return db.query(StorageLocation).all()
+
+def get_storage_locations_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data storage location dengan pagination.
+    Mengembalikan dict dengan keys: 'storage_locations', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(StorageLocation)
+    total = query.count()
+    storage_locations = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'storage_locations': storage_locations,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }

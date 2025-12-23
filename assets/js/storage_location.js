@@ -75,7 +75,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         tbody.innerHTML = `<tr><td colspan="4" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
         
         try {
-            allLocations = await api.storageLocation.getAll();
+            const response = await api.storageLocation.getAll();
+            allLocations = response.storage_locations || [];
             // Sort A-Z
             allLocations.sort((a, b) => a.name.localeCompare(b.name));
             renderTable(allLocations);

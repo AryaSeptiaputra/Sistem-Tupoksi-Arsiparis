@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.services.incoming_letter import (
     create_incoming_letter, update_incoming_letter, 
     delete_incoming_letter, get_all_incoming_letters, 
-    get_incoming_letters_by_keys
+    get_incoming_letters_paginated, get_incoming_letters_by_keys
 )
 from app.services.user import get_users_by_keys
 from app.services.log import create_log
@@ -140,9 +140,29 @@ def delete_incoming_letter_route():
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
 def get_all_incoming_letters_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session = db.SessionLocal()
-    try: return jsonify([l.to_dict() for l in get_all_incoming_letters(db_session)]), 200
-    finally: db_session.close()
+    try:
+        result = get_incoming_letters_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'incoming_letters': [l.to_dict() for l in result['incoming_letters']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
+    finally:
+        db_session.close()
 
 @incoming_letter_bp.route('/get_by_keys', methods=['POST'])
 def get_incoming_by_keys_route():

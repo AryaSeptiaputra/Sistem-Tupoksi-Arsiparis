@@ -63,3 +63,22 @@ def delete_finance_archive(db: Session, archive_id: int) -> FinanceArchive | Non
 
 def get_all_finance_archives(db: Session) -> list[FinanceArchive]:
     return db.query(FinanceArchive).order_by(FinanceArchive.fiscal_year.desc(), FinanceArchive.created_at.desc()).all()
+
+def get_finance_archives_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data finance archive dengan pagination.
+    Mengembalikan dict dengan keys: 'finance_archives', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(FinanceArchive).order_by(FinanceArchive.fiscal_year.desc(), FinanceArchive.created_at.desc())
+    total = query.count()
+    finance_archives = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'finance_archives': finance_archives,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }

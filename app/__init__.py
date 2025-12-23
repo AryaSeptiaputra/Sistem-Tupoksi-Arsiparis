@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler # <--- [BARU 1
 
 from .core.config import settings
 from .core.database import engine, Base
+from .core.middleware import register_error_handlers, add_security_headers, add_request_logging
 # Import logic scheduler yang baru dibuat
 from .services.retention_scheduler import check_and_deactivate_archives # <--- [BARU 2] Import Fungsi Logic
 
@@ -83,6 +84,7 @@ def create_app():
     from .routes.disposal import disposal_bp 
     from .routes.teacher import teacher_bp
     from .routes.master_reference import reference_bp
+    from .routes.health import health_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
@@ -100,9 +102,17 @@ def create_app():
     app.register_blueprint(disposal_bp, url_prefix="/disposal")
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(reference_bp)
+    app.register_blueprint(health_bp, url_prefix="/health")
 
     # ==========================================================================
-    # 🔗 ROUTES REDIRECT
+    # �️ MIDDLEWARE & ERROR HANDLING (SUSTAINABILITY)
+    # ==========================================================================
+    register_error_handlers(app)
+    add_security_headers(app)
+    add_request_logging(app)
+
+    # ==========================================================================
+    # �🔗 ROUTES REDIRECT
     # ==========================================================================
     @app.route('/')
     def index():

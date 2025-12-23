@@ -4,6 +4,8 @@ COLOR 0B
 
 echo ======================================================
 echo   MEMULAI SETUP PRODUKSI SISTEM ARSIP SMKN 7
+echo   Sistem Tupoksi Arsiparis v2.0
+echo   Dengan dukungan Pagination untuk performa optimal
 echo ======================================================
 
 :: 1. Membuat file .env jika belum ada
@@ -39,13 +41,35 @@ if not exist .venv (
 )
 
 :: 3. Aktivasi Venv dan Install Dependencies
-echo [3/6] Menginstal pustaka dari requirements.txt...
+echo [3/7] Menginstal pustaka dari requirements.txt...
 call .venv\Scripts\activate
+if %errorlevel% neq 0 (
+    echo ERROR: Gagal mengaktifkan virtual environment.
+    pause
+    exit /b 1
+)
+
 pip install --upgrade pip
 pip install -r requirements.txt
 
+if %errorlevel% neq 0 (
+    echo ERROR: Gagal menginstal dependencies.
+    echo Periksa koneksi internet dan file requirements.txt
+    pause
+    exit /b 1
+)
+
+:: 3.1 Verifikasi instalasi dependencies penting
+echo [3.1/7] Memverifikasi instalasi dependencies...
+python -c "import flask, sqlalchemy, flask_jwt_extended; print('Dependencies OK')" 2>nul
+if %errorlevel% neq 0 (
+    echo ERROR: Dependencies tidak terinstall dengan benar.
+    pause
+    exit /b 1
+)
+
 :: 4. Membuat Folder Penyimpanan (Storage)
-echo [4/6] Membuat struktur folder penyimpanan arsip...
+echo [4/7] Membuat struktur folder penyimpanan arsip...
 if not exist storage\documents\incoming_letters mkdir storage\documents\incoming_letters
 if not exist storage\documents\outgoing_letters mkdir storage\documents\outgoing_letters
 if not exist storage\documents\employee_archives mkdir storage\documents\employee_archives
@@ -54,14 +78,19 @@ if not exist storage\documents\diplomas mkdir storage\documents\diplomas
 if not exist logs mkdir logs
 
 :: 5. Seeding Data Master dan Admin
-echo [5/6] Memasukkan data referensi dan akun admin ke database...
+echo [5/7] Memasukkan data referensi dan akun admin ke database...
 python seed_master.py
 python seed_admin.py
 
 :: 6. Selesai
-echo [6/6] Setup selesai!
+echo [6/7] Setup selesai!
 echo ======================================================
-echo   Aplikasi siap digunakan. 
-echo   Gunakan jalankan_arsip.bat untuk memulai server.
+echo   Aplikasi siap digunakan.
+echo   Gunakan run.bat untuk memulai server.
+echo.
+echo   FITUR BARU v2.0:
+echo   - Pagination untuk performa optimal pada data besar
+echo   - Mendukung hingga 10.000+ data per model
+echo   - API endpoints dengan parameter page & per_page
 echo ======================================================
 pause

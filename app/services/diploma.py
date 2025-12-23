@@ -64,6 +64,25 @@ def delete_diploma(db: Session, diploma_id: int) -> Diploma | None:
 def get_all_diplomas(db: Session) -> list[Diploma]:
     return db.query(Diploma).all()
 
+def get_diplomas_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data diploma dengan pagination.
+    Mengembalikan dict dengan keys: 'diplomas', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(Diploma)
+    total = query.count()
+    diplomas = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'diplomas': diplomas,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }
+
 def get_diplomas_by_keys(db: Session, filters: dict) -> list[Diploma]:
     query = db.query(Diploma)
     

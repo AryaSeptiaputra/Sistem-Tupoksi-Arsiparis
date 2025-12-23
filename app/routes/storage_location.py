@@ -6,7 +6,8 @@ from app.services.storage_location import (
     create_storage_location, 
     update_storage_location, 
     delete_storage_location, 
-    get_all_storage_locations
+    get_all_storage_locations,
+    get_storage_locations_paginated
 )
 from app import db
 
@@ -71,9 +72,26 @@ def delete_route():
 @storage_location_bp.route('/get_all', methods=['GET'])
 @jwt_required()
 def get_all_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session: Session = db.SessionLocal()
     try:
-        locations = get_all_storage_locations(db_session)
-        return jsonify([loc.to_dict() for loc in locations]), 200
+        result = get_storage_locations_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'storage_locations': [loc.to_dict() for loc in result['storage_locations']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
     finally:
         db_session.close()

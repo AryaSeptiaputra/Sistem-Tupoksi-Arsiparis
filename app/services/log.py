@@ -38,6 +38,25 @@ def get_all_logs(db: Session) -> list[Log]:
     """
     return db.query(Log).all()
 
+def get_logs_paginated(db: Session, page: int = 1, per_page: int = 10) -> dict:
+    """
+    Mengambil data log dengan pagination, diurutkan berdasarkan waktu terbaru.
+    Mengembalikan dict dengan keys: 'logs', 'total', 'page', 'per_page', 'total_pages'
+    """
+    query = db.query(Log).order_by(Log.created_at.desc())
+    total = query.count()
+    logs = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    return {
+        'logs': logs,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages
+    }
+
 def get_logs_by_keys(db: Session, filters: dict) -> list[Log]:
     """
     Retrieves activity logs filtered by specific attributes.

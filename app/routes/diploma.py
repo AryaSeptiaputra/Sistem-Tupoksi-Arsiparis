@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from app.services.diploma import (
     create_diploma, update_diploma, 
-    delete_diploma, get_all_diplomas, get_diplomas_by_keys
+    delete_diploma, get_all_diplomas, get_diplomas_paginated, get_diplomas_by_keys
 )
 from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
@@ -138,9 +138,29 @@ def delete_diploma_route():
 
 @diploma_bp.route('/get_all', methods=['GET'])
 def get_all_diplomas_route():
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        if page < 1 or per_page < 1 or per_page > 100:
+            return jsonify({"error": "Invalid page or per_page parameters"}), 400
+    except ValueError:
+        return jsonify({"error": "Page and per_page must be integers"}), 400
+    
     db_session = db.SessionLocal()
-    try: return jsonify([d.to_dict() for d in get_all_diplomas(db_session)]), 200
-    finally: db_session.close()
+    try:
+        result = get_diplomas_paginated(db_session, page=page, per_page=per_page)
+        return jsonify({
+            'diplomas': [d.to_dict() for d in result['diplomas']],
+            'pagination': {
+                'total': result['total'],
+                'page': result['page'],
+                'per_page': result['per_page'],
+                'total_pages': result['total_pages']
+            }
+        }), 200
+    finally:
+        db_session.close()
 
 @diploma_bp.route('/get_by_keys', methods=['POST'])
 def get_diplomas_by_keys_route():

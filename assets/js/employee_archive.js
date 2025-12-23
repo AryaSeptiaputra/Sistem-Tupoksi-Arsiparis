@@ -56,7 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- NEW: Load Classifications ---
     async function loadClassifications() {
         try {
-            const data = await api.classification.getAll();
+            const response = await api.classification.getAll();
+            const data = response.classifications || [];
             
             // Populate Form
             if(inputClassId) {
@@ -94,7 +95,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadTeachers() {
         try {
-            const teachers = await api.teacher.getAll(); 
+            const response = await api.teacher.getAll();
+            const teachers = response.teachers || [];
             if(inputOwnerId) {
                 inputOwnerId.innerHTML = '<option value="">-- Pilih Guru / Pegawai --</option>';
                 teachers.forEach(t => inputOwnerId.add(new Option(t.full_name, t.id)));
@@ -108,7 +110,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadStorageLocations() {
         try {
-            const data = await api.storageLocation.getAll();
+            const response = await api.storageLocation.getAll();
+            const data = response.storage_locations || [];
             const elStore = document.getElementById("storage_location_id");
             if(elStore) {
                 elStore.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
@@ -119,7 +122,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadDocuments() {
         try {
-            allDocs = await api.employeeArchive.getAll();
+            const response = await api.employeeArchive.getAll();
+            allDocs = response.employee_archives || [];
             renderTable(allDocs);
         } catch (e) { console.error(e); }
     }
