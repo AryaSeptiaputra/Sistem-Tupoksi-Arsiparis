@@ -176,8 +176,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadLetters() {
         try {
-            allLetters = await api.incomingLetter.getAll();
-            allLetters.sort((a, b) => new Date(b.received_date) - new Date(a.received_date));
+            const resp = await api.incomingLetter.getAll();
+
+            // Backend sekarang mengembalikan bentuk { success, message, data, pagination }
+            // jadi kita ambil array-nya dari resp.data (atau langsung resp jika sudah array)
+            const items = Array.isArray(resp)
+                ? resp
+                : (Array.isArray(resp?.data) ? resp.data : (resp?.items || []));
+
+            allLetters = items;
+
+            if (Array.isArray(allLetters)) {
+                allLetters.sort((a, b) => new Date(b.received_date) - new Date(a.received_date));
+            }
+
             renderTable(allLetters);
         } catch (e) {
             document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;

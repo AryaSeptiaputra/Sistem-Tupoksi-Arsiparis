@@ -4,6 +4,7 @@ import logging
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_compress import Compress  # <--- [BARU] Import Compression
 from apscheduler.schedulers.background import BackgroundScheduler # <--- [BARU 1] Import Scheduler
 
 from .core.config import settings
@@ -26,6 +27,14 @@ def create_app():
     static_dir = os.path.join(app_dir, 'assets')
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+
+    # ==========================================================================
+    # 🔧 PERFORMANCE OPTIMIZATION
+    # ==========================================================================
+    # Enable gzip compression untuk response besar
+    Compress(app)
+    app.config['COMPRESS_LEVEL'] = 6  # Compression level 1-9 (higher = better, slower)
+    app.config['COMPRESS_MIN_SIZE'] = 1024  # Minimum size untuk compress (1KB)
 
     # ==========================================================================
     # 🔥 KONFIGURASI KEAMANAN (PRODUCTION)

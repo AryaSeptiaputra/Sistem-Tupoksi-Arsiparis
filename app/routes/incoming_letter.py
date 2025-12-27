@@ -12,6 +12,8 @@ from app.services.user import get_users_by_keys
 from app.services.log import create_log
 from app import db
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
 
@@ -28,7 +30,7 @@ def create_incoming_letter_route():
     
     for field in required_fields:
         if not data.get(field):
-            return jsonify({"error": f"{field} is required"}), 400
+            return error_response(f"{field} is required", 400)
             
     # Handle File
     file = request.files.get('file')
@@ -38,7 +40,7 @@ def create_incoming_letter_route():
             attachment_path, full_path = handle_file_upload(file, 'incoming_letters')
             data['attachment_path'] = attachment_path
         except Exception as e:
-            return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
+            return error_response(f"Failed to save file: {str(e)}", 500)
     
     # Handle optional storage_location_id
     if not data.get('storage_location_id'):
@@ -49,18 +51,18 @@ def create_incoming_letter_route():
         current_user = get_current_user_obj(db_session)
         if not current_user:
             if full_path and os.path.exists(full_path): os.remove(full_path)
-            return jsonify({"error": "User authentication failed"}), 401
+            return error_response("User authentication failed", 401)
         
         # [PERBAIKAN UTAMA DI SINI]: Hapus parameter user_id
         new_letter = create_incoming_letter(db_session, data)
         
         create_log(db_session, current_user.id, f"Tambah surat masuk No: '{new_letter.number}'")
-        return jsonify(new_letter.to_dict()), 201
+        return success_response(new_letter.to_dict(), "Incoming letter created successfully", 201)
 
     except Exception as e:
         db_session.rollback()
         if full_path and os.path.exists(full_path): os.remove(full_path)
-        return jsonify({"error": str(e)}), 500
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 
@@ -71,12 +73,12 @@ def update_incoming_letter_route():
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     letter_id = data.get('id')
     
-    if not letter_id: return jsonify({"error": "ID wajib ada"}), 400
+    if not letter_id: return error_response("ID wajib ada", 400)
 
     # Type Conversion
     if data.get('classification_id'):
         try: data['classification_id'] = int(data['classification_id'])
-        except: return jsonify({"error": "Invalid classification_id"}), 400
+        except: return error_response("Invalid classification_id", 400)
         
     if data.get('storage_location_id'):
         try: data['storage_location_id'] = int(data['storage_location_id'])
@@ -85,7 +87,7 @@ def update_incoming_letter_route():
     db_session: Session = db.SessionLocal()
     try:
         existing = get_incoming_letters_by_keys(db_session, {'id': letter_id})
-        if not existing: return jsonify({"error": "Letter not found"}), 404
+        if not existing: return error_response("Letter not found", 404)
         old_path = existing[0].attachment_path
 
         # Handle File Upload
@@ -95,7 +97,7 @@ def update_incoming_letter_route():
                 attachment_path, _ = handle_file_upload(file, 'incoming_letters')
                 data['attachment_path'] = attachment_path
             except Exception as e:
-                return jsonify({"error": str(e)}), 500
+                return error_response(str(e), 500)
 
         updated_letter = update_incoming_letter(db_session, letter_id, data)
 
@@ -107,10 +109,10 @@ def update_incoming_letter_route():
         if current_user:
             create_log(db_session, current_user.id, f"Update surat masuk No: '{updated_letter.number}'")
 
-        return jsonify(updated_letter.to_dict()), 200
+        return success_response(updated_letter.to_dict(), "Incoming letter updated successfully", 200)
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 
@@ -123,7 +125,7 @@ def delete_incoming_letter_route():
     db_session: Session = db.SessionLocal()
     try:
         deleted_letter = delete_incoming_letter(db_session, letter_id)
-        if not deleted_letter: return jsonify({"error": "Not found"}), 404
+        if not deleted_letter: return error_response("Not found", 404)
 
         if deleted_letter.attachment_path:
             delete_physical_file(deleted_letter.attachment_path)
@@ -132,22 +134,74 @@ def delete_incoming_letter_route():
         if current_user:
             create_log(db_session, current_user.id, f"Hapus surat masuk No: '{deleted_letter.number}'")
 
-        return jsonify(deleted_letter.to_dict()), 200
+        return success_response(deleted_letter.to_dict(), "Incoming letter deleted successfully", 200)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
 def get_all_incoming_letters_route():
+    """
+    Get all incoming letters dengan pagination support
+    
+    Query parameters:
+    - page: Page number (default 1)
+    - per_page: Items per page (default 20, max 100)
+    - sort_by: Column to sort by (default 'id')
+    - sort_order: 'asc' or 'desc' (default 'asc')
+    
+    Example: GET /incoming_letter/get_all?page=1&per_page=50&sort_order=desc
+    """
     db_session = db.SessionLocal()
-    try: return jsonify([l.to_dict() for l in get_all_incoming_letters(db_session)]), 200
-    finally: db_session.close()
+    try:
+        pagination = get_pagination_params(request.args)
+        result = get_all_incoming_letters(db_session, pagination)
+        return success_response(result, "Incoming letters retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
+    finally:
+        db_session.close()
 
 @incoming_letter_bp.route('/get_by_keys', methods=['POST'])
 def get_incoming_by_keys_route():
+    """
+    Get incoming letters dengan filter dan pagination
+    
+    POST body:
+    {
+        "filters": {
+            "number": "...",
+            "sender": "...",
+            "classification_id": 1,
+            "archive_status": "active"
+        },
+        "page": 1,
+        "per_page": 20
+    }
+    """
     data = request.json or {}
-    filters = data.get('filters')
+    filters = data.get('filters', {})
+    
+    db_session = db.SessionLocal()
+    try:
+        # Extract pagination params dari request body atau query params
+        page = data.get('page') or request.args.get('page', 1, type=int)
+        per_page = data.get('per_page') or request.args.get('per_page', 20, type=int)
+        
+        pagination = get_pagination_params({
+            'page': page,
+            'per_page': per_page,
+            'sort_by': data.get('sort_by', 'id'),
+            'sort_order': data.get('sort_order', 'desc')
+        })
+        
+        result = get_incoming_letters_by_keys(db_session, filters, pagination)
+        return success_response(result, "Incoming letters retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
+    finally:
+        db_session.close()
     if not filters: return jsonify({"error": "filters required"}), 400
     db_session = db.SessionLocal()
     try: return jsonify([l.to_dict() for l in get_incoming_letters_by_keys(db_session, filters)]), 200

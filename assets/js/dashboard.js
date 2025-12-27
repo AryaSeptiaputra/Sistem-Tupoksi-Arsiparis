@@ -154,10 +154,20 @@ async function loadStatsData() {
 
 async function loadDocuments() {
     try {
-        const [incoming, outgoing] = await Promise.all([
-            api.incomingLetter.getAll() || [],
-            api.outgoingLetter.getAll() || []
+        const unwrap = (resp) => {
+            if (Array.isArray(resp)) return resp;
+            if (Array.isArray(resp?.data)) return resp.data;
+            if (Array.isArray(resp?.items)) return resp.items;
+            return [];
+        };
+
+        const [incomingResp, outgoingResp] = await Promise.all([
+            api.incomingLetter.getAll().catch(() => []),
+            api.outgoingLetter.getAll().catch(() => [])
         ]);
+
+        const incoming = unwrap(incomingResp);
+        const outgoing = unwrap(outgoingResp);
 
         // --- A. RINGKASAN & SIDEBAR ---
         renderOverviewChart(incoming, outgoing); // Chart Batang Perbandingan
