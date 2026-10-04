@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 TITLE Setup Produksi - Sistem Arsip SMKN 7 Bandung
 COLOR 0B
 
-set PORT=8000
+set PORT=6001
 
 echo ======================================================
 echo   MEMULAI SETUP PRODUKSI SISTEM ARSIP SMKN 7
@@ -49,12 +49,29 @@ if not exist .venv (
 :: 3. Aktivasi Venv dan Install Dependencies
 echo [3/6] Menginstal pustaka dari requirements.txt...
 call .venv\Scripts\activate
+
+:: Upgrade pip (tidak critical jika gagal, lanjutkan)
+echo Upgrade pip...
 pip install --upgrade pip
-if %errorlevel% neq 0 goto :err
+if %errorlevel% neq 0 (
+    echo [WARNING] Pip upgrade gagal, lanjutkan dengan versi saat ini...
+)
+
+:: Install requirements
 pip install -r requirements.txt
-if %errorlevel% neq 0 goto :err
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Gagal install requirements.txt
+    goto :err
+)
+
+:: Install waitress
 pip install waitress
-if %errorlevel% neq 0 goto :err
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Gagal install waitress
+    goto :err
+)
 
 :: 4. Membuat Folder Penyimpanan (Storage)
 echo [4/6] Membuat struktur folder penyimpanan arsip...
@@ -86,4 +103,6 @@ goto :eof
 
 :err
 echo Terjadi kegagalan pada langkah sebelumnya. Periksa pesan di atas.
+echo.
+pause
 exit /b 1

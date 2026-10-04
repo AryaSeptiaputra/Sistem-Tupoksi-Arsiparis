@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.teacher import Teacher
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_teacher(db: Session, data: dict) -> Teacher:
@@ -59,8 +60,13 @@ def delete_teacher(db: Session, teacher_id: int) -> Teacher | None:
     db.commit()
     return existing_teacher
 
-def get_all_teachers(db: Session) -> list[Teacher]:
-    return db.query(Teacher).all()
+def get_all_teachers(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Teacher]:
+    query = db.query(Teacher).order_by(Teacher.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_teachers_by_keys(db: Session, filters: dict) -> list[Teacher]:
     query = db.query(Teacher)

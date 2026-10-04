@@ -22,9 +22,9 @@ from app.core import database as db
 def create_app():
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    # Setup folder template & static
-    template_dir = os.path.join(app_dir, 'assets', 'html')
-    static_dir = os.path.join(app_dir, 'assets')
+    # Setup folder template & static (moved to app/static/)
+    template_dir = os.path.join(app_dir, 'app', 'static', 'html')
+    static_dir = os.path.join(app_dir, 'app', 'static')
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
@@ -49,6 +49,7 @@ def create_app():
 
     # Konfigurasi JWT
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 43200  # 12 jam (43200 detik)
     JWTManager(app)
 
     # ==========================================================================
@@ -85,21 +86,21 @@ def create_app():
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         scheduler = BackgroundScheduler()
         
-        # 🟢 MODE PRODUKSI: Jalan setiap hari jam 00:01 WIB
-        # Ini ringan dan tidak membebani server sekolah
+        # [PRODUCTION MODE] Run daily at 00:01 WIB
+        # Lightweight and doesn't burden school server
         scheduler.add_job(func=check_and_deactivate_archives, trigger="cron", hour=0, minute=1)
         
-        # 🔴 MODE TESTING (Hanya nyalakan ini jika sedang demo ke dosen)
+        # [TESTING MODE] Only enable this when demonstrating to lecturer
         # scheduler.add_job(func=check_and_deactivate_archives, trigger="interval", seconds=10)
         
         scheduler.start()
-        print("✅ Scheduler Retensi Arsip Berjalan (Mode Harian)...")
+        print("[SCHEDULER] Archive Retention running (Daily Mode)")
         
-        # Matikan scheduler saat app berhenti
+        # Shutdown scheduler when app stops
         atexit.register(lambda: scheduler.shutdown())
 
     # ==========================================================================
-    # 🔌 REGISTER BLUEPRINTS
+    # REGISTER BLUEPRINTS
     # ==========================================================================
     from .routes.auth import auth_bp
     from .routes.user import user_bp

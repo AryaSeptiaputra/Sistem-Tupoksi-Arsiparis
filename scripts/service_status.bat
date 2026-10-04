@@ -15,12 +15,11 @@ echo.
 
 :: Cek NSSM
 if not exist "%APP_DIR%\nssm.exe" (
-    echo [INFO] NSSM tidak ditemukan. Menggunakan sc query...
-    echo.
-    sc query %SERVICE_NAME%
+    echo [ERROR] NSSM tidak ditemukan!
+    echo Install service terlebih dahulu dengan: scripts\install_service.bat
     echo.
     pause
-    exit /b 0
+    exit /b 1
 )
 
 :: Cek service dengan NSSM
@@ -30,21 +29,16 @@ if %errorlevel% neq 0 (
     echo.
     echo Install service dengan: scripts\install_service.bat
 ) else (
-    echo Service Name : %SERVICE_NAME%
-    echo Status       : 
+    echo Service Name    : %SERVICE_NAME%
+    echo Status          : 
     "%APP_DIR%\nssm.exe" status %SERVICE_NAME%
-    echo.
-    echo Detail lengkap:
-    sc query %SERVICE_NAME%
     echo.
     echo Log Output:
     echo   - Output: logs\service_output.log
     echo   - Error : logs\service_error.log
+    echo.
+    echo Perintah lain:
+    echo   - Restart : scripts\restart_service.bat
+    echo   - Uninstall : scripts\uninstall_service.bat
 )
-
-echo.
-echo Perintah lain:
-echo   - Restart : scripts\restart_service.bat
-echo   - Uninstall : scripts\uninstall_service.bat
-echo.
 pause

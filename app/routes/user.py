@@ -6,6 +6,8 @@ from app.services.user import create_user, update_user, delete_user, get_all_use
 from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 user_bp = Blueprint('user', __name__)
 
@@ -128,8 +130,12 @@ def delete_user_route():
 def get_all_users_route():
     db_session: Session = db.SessionLocal()
     try:
-        users = get_all_users(db_session)
-        return jsonify([user.to_dict() for user in users]), 200
+        pagination = get_pagination_params(request.args)
+        result = get_all_users(db_session, pagination)
+        result.items = [user.to_dict() for user in result.items]
+        return success_response(result, "Users retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 

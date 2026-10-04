@@ -9,6 +9,8 @@ from app.services.classification import (
 from app.services.log import create_log
 from app.services.teacher import get_teachers_by_keys # Untuk logging actor
 from app import db
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 classification_bp = Blueprint('classification', __name__)
 
@@ -87,8 +89,12 @@ def delete_classification_route():
 def get_all_route():
     db_session: Session = db.SessionLocal()
     try:
-        results = get_all_classifications(db_session)
-        return jsonify([r.to_dict() for r in results]), 200
+        pagination = get_pagination_params(request.args)
+        result = get_all_classifications(db_session, pagination)
+        result.items = [r.to_dict() for r in result.items]
+        return success_response(result, "Classifications retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 

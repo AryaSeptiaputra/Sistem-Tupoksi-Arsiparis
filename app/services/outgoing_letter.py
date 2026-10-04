@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.outgoing_letter import OutgoingLetter
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_outgoing_letter(db: Session, letter_data: dict) -> OutgoingLetter:
@@ -55,8 +56,13 @@ def delete_outgoing_letter(db: Session, letter_id: int) -> OutgoingLetter | None
     db.commit()
     return existing_letter
 
-def get_all_outgoing_letters(db: Session) -> list[OutgoingLetter]:
-    return db.query(OutgoingLetter).all()
+def get_all_outgoing_letters(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[OutgoingLetter]:
+    query = db.query(OutgoingLetter).order_by(OutgoingLetter.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_outgoing_letters_by_keys(db: Session, filters: dict) -> list[OutgoingLetter]:
     query = db.query(OutgoingLetter)

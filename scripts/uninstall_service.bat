@@ -27,6 +27,7 @@ set SERVICE_NAME=ArsipSMKN7
 if not exist "%APP_DIR%\nssm.exe" (
     echo [ERROR] nssm.exe tidak ditemukan!
     echo Tidak dapat menghapus service tanpa NSSM.
+    echo.
     pause
     exit /b 1
 )
@@ -71,6 +72,7 @@ if %errorlevel% equ 0 (
     echo.
     echo [ERROR] Gagal menghapus service!
     echo Coba restart komputer lalu jalankan script ini lagi.
+    echo.
 )
 
 echo.

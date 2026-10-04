@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let allLetters = [];
     let isEditMode = false;
     let currentEditId = null;
+    let removeAttachmentFlag = false;  // Track if user wants to remove attachment
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -49,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
+    const btnRemoveFile = document.getElementById("btn-remove-file");
 
     // --- FILTER REFERENCES ---
     const elSearch = document.getElementById("searchInput");
@@ -89,6 +91,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
     if(btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
+    if(btnRemoveFile) btnRemoveFile.addEventListener("click", () => {
+        removeAttachmentFlag = true;
+        resetFilePreview();
+    });
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
 
     // Filter Listeners
@@ -376,6 +382,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (inputFile.files[0]) {
             formData.append('file', inputFile.files[0]);
         }
+        
+        // Send remove_attachment flag jika user klik hapus file
+        if (removeAttachmentFlag) formData.append('remove_attachment', 'true');
 
         const btn = e.target;
         const originalText = btn.textContent;
@@ -399,6 +408,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
+            removeAttachmentFlag = false;  // Reset flag setelah submit
         }
     }
 

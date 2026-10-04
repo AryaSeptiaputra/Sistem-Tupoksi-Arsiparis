@@ -35,6 +35,7 @@ echo [1/3] Memeriksa status service...
 if %errorlevel% neq 0 (
     echo [ERROR] Service %SERVICE_NAME% tidak ditemukan!
     echo Install service terlebih dahulu dengan: scripts\install_service.bat
+    echo.
     pause
     exit /b 1
 )
@@ -43,6 +44,7 @@ echo [2/3] Merestart service...
 "%APP_DIR%\nssm.exe" restart %SERVICE_NAME%
 if %errorlevel% neq 0 (
     echo [ERROR] Gagal restart service!
+    echo.
     pause
     exit /b 1
 )
@@ -59,6 +61,6 @@ echo   SERVICE BERHASIL DIRESTART!
 echo ======================================================
 echo.
 echo Service: %SERVICE_NAME%
-echo Akses : http://127.0.0.1:8000
+echo Akses : http://127.0.0.1:6001
 echo.
 pause

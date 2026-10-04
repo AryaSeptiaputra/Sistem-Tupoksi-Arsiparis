@@ -5,6 +5,8 @@ from sqlalchemy.exc import IntegrityError
 from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 # Inisialisasi Blueprint
 teacher_bp = Blueprint('teacher', __name__)
@@ -122,8 +124,12 @@ def delete_teacher_route():
 def get_all_teachers_route():
     db_session: Session = db.SessionLocal()
     try:
-        teachers = get_all_teachers(db_session)
-        return jsonify([t.to_dict() for t in teachers]), 200
+        pagination = get_pagination_params(request.args)
+        result = get_all_teachers(db_session, pagination)
+        result.items = [t.to_dict() for t in result.items]
+        return success_response(result, "Teachers retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally:
         db_session.close()
 

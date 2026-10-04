@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.classification import Classification
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_classification(db: Session, data: dict) -> Classification:
@@ -42,8 +43,13 @@ def delete_classification(db: Session, cls_id: int) -> Classification | None:
     db.commit()
     return cls
 
-def get_all_classifications(db: Session) -> list[Classification]:
-    return db.query(Classification).all()
+def get_all_classifications(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Classification]:
+    query = db.query(Classification).order_by(Classification.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_classifications_by_keys(db: Session, filters: dict) -> list[Classification]:
     query = db.query(Classification)

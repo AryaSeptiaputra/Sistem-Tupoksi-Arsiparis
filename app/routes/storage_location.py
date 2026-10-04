@@ -9,6 +9,8 @@ from app.services.storage_location import (
     get_all_storage_locations
 )
 from app import db
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 storage_location_bp = Blueprint('storage_location', __name__)
 
@@ -73,7 +75,11 @@ def delete_route():
 def get_all_route():
     db_session: Session = db.SessionLocal()
     try:
-        locations = get_all_storage_locations(db_session)
-        return jsonify([loc.to_dict() for loc in locations]), 200
+        pagination = get_pagination_params(request.args)
+        result = get_all_storage_locations(db_session, pagination)
+        result.items = [loc.to_dict() for loc in result.items]
+        return success_response(result, "Storage locations retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally:
         db_session.close()

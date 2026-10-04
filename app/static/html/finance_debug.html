@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Finance Archive Debug Test</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
+        #console { background: #252526; padding: 15px; border-radius: 5px; height: 600px; overflow-y: auto; border: 1px solid #3e3e42; }
+        .log { margin: 4px 0; }
+        .debug { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .warn { color: #dcdcaa; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007acc; color: white; border: none; cursor: pointer; border-radius: 3px; }
+        button:hover { background: #005a9e; }
+    </style>
+</head>
+<body>
+    <h2>Finance Archive - Debug Console</h2>
+    <p>This simulates what happens when finance_archive.js loads</p>
+    
+    <div id="console"></div>
+    
+    <button onclick="runTest()">Run Simulation Test</button>
+    <button onclick="document.getElementById('console').innerHTML = ''">Clear</button>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        
+        function log(msg, type = 'debug') {
+            const className = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'debug';
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[DEBUG]';
+            const line = document.createElement('div');
+            line.className = `log ${className}`;
+            line.textContent = `${prefix} ${msg}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        async function runTest() {
+            consoleDiv.innerHTML = '';
+            log('Starting Finance Archive simulation test...');
+            
+            // Simulate DOM setup
+            log('Checking DOM elements...');
+            const requiredElements = [
+                'table-body',
+                'btn-add-new',
+                'searchInput',
+                'filterYear',
+                'filterMonth',
+                'filterCategory',
+                'filterStatus',
+                'btnResetFilter'
+            ];
+            
+            const missingElements = [];
+            requiredElements.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) {
+                    missingElements.push(id);
+                    log(`✗ Element NOT found: ${id}`, 'error');
+                } else {
+                    log(`✓ Element found: ${id}`);
+                }
+            });
+            
+            if (missingElements.length > 0) {
+                log(`Missing ${missingElements.length} critical DOM elements!`, 'error');
+                log('These are required for the page to work:', 'error');
+                missingElements.forEach(id => log(`  - ${id}`, 'error'));
+                return;
+            }
+            
+            log('\nDOM check passed. Now testing API calls...');
+            
+            // Test Finance Archive API
+            log('\nFetching /finance_archive/get_all...');
+            try {
+                const response = await fetch('/finance_archive/get_all');
+                const data = await response.json();
+                log(`Response status: ${response.status}`);
+                log(`Data type: ${typeof data}`);
+                log(`Is array: ${Array.isArray(data)}`);
+                if (Array.isArray(data)) {
+                    log(`Array length: ${data.length}`);
+                    if (data.length > 0) {
+                        log(`First item keys: ${Object.keys(data[0]).join(', ')}`);
+                        log(`Sample data (id=${data[0].id}): title="${data[0].title}"`);
+                    }
+                } else {
+                    log(`Response structure: ${JSON.stringify(Object.keys(data))}`, 'warn');
+                }
+            } catch (e) {
+                log(`API call failed: ${e.message}`, 'error');
+            }
+            
+            // Test Master References API
+            log('\nFetching /api/references/finance_category...');
+            try {
+                const response = await fetch('/api/references/finance_category');
+                const data = await response.json();
+                log(`Response status: ${response.status}`);
+                log(`Has 'data' field: ${'data' in data}`);
+                if (data.data) {
+                    log(`References count: ${data.data.length}`);
+                    if (data.data.length > 0) {
+                        log(`Sample ref: code="${data.data[0].code}", name="${data.data[0].name}"`);
+                    }
+                }
+            } catch (e) {
+                log(`API call failed: ${e.message}`, 'error');
+            }
+            
+            log('\nFetching /api/references/archive_status...');
+            try {
+                const response = await fetch('/api/references/archive_status');
+                const data = await response.json();
+                log(`Response status: ${response.status}`);
+                log(`References count: ${data.data ? data.data.length : 0}`);
+            } catch (e) {
+                log(`API call failed: ${e.message}`, 'error');
+            }
+            
+            log('\n=== Test Complete ===');
+        }
+        
+        // Auto-run if page is from /finance_archive
+        if (window.location.href.includes('/finance_archive')) {
+            log('Page is from /finance_archive');
+            log('Will check for actual elements on this page...');
+            setTimeout(runTest, 1000);
+        }
+    </script>
+</body>
+</html>

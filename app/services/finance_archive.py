@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.finance_archive import FinanceArchive
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 # [UBAH] Hapus user_id dari parameter
@@ -61,5 +62,10 @@ def delete_finance_archive(db: Session, archive_id: int) -> FinanceArchive | Non
     db.commit()
     return archive
 
-def get_all_finance_archives(db: Session) -> list[FinanceArchive]:
-    return db.query(FinanceArchive).order_by(FinanceArchive.fiscal_year.desc(), FinanceArchive.created_at.desc()).all()
+def get_all_finance_archives(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[FinanceArchive]:
+    query = db.query(FinanceArchive).order_by(FinanceArchive.fiscal_year.desc(), FinanceArchive.created_at.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()

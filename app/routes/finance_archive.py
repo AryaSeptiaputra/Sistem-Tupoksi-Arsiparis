@@ -13,6 +13,9 @@ from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.response import handle_database_error
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 finance_bp = Blueprint('finance_archive', __name__)
 
@@ -55,7 +58,7 @@ def create_route():
         return jsonify(new_data.to_dict()), 201
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return handle_database_error(e, "menyimpan")
     finally:
         db_session.close()
 
@@ -74,16 +77,22 @@ def update_route():
         old_path = curr.attachment_path
 
         file = request.files.get('file')
+        remove_attachment = data.get('remove_attachment', 'false').lower() == 'true'
+        
         if file:
             try:
                 path, _ = handle_file_upload(file, 'finance_archives')
                 data['attachment_path'] = path
             except Exception as e: return jsonify({"error": str(e)}), 500
+        elif remove_attachment:
+            # User ingin hapus file tanpa ganti file baru
+            data['attachment_path'] = None
+        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
 
         updated = update_finance_archive(db_session, archive_id, data)
         
-        # Hapus file lama
-        if file and old_path and old_path != updated.attachment_path:
+        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        if old_path and (file or remove_attachment) and old_path != updated.attachment_path:
             delete_physical_file(old_path)
 
         actor_id = get_current_actor_id(db_session)
@@ -93,7 +102,7 @@ def update_route():
         return jsonify(updated.to_dict()), 200
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return handle_database_error(e, "memperbarui")
     finally:
         db_session.close()
 
@@ -124,5 +133,11 @@ def delete_route():
 @finance_bp.route('/get_all', methods=['GET'])
 def get_all_route():
     db_session = db.SessionLocal()
-    try: return jsonify([x.to_dict() for x in get_all_finance_archives(db_session)]), 200
+    try:
+        pagination = get_pagination_params(request.args)
+        result = get_all_finance_archives(db_session, pagination)
+        result.items = [x.to_dict() for x in result.items]
+        return success_response(result, "Finance archives retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally: db_session.close()

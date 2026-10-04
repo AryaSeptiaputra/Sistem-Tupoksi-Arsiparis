@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let isEditMode = false;
     let currentEditId = null;
     let refDocTypes = [];
+    let removeAttachmentFlag = false;  // Track if user wants to remove attachment
 
     // --- DOM ---
     const viewTable = document.getElementById("view-table");
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
+    const btnRemoveFile = document.getElementById("btn-remove-file");
 
     // Filters
     const elSearch = document.getElementById("searchInput");
@@ -143,10 +145,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             const typeLabel = refDocTypes.find(r => r.code === item.document_type)?.name || item.document_type;
             const hasFile = !!item.file_path;
             
-            // Badge Klasifikasi
-            const classBadge = item.classification_code 
-                ? `<span style="background:#eef2ff; color:#4338ca; padding:2px 6px; border-radius:4px; font-size:10px; border:1px solid #c7d2fe; margin-right:4px;">${item.classification_code}</span>` 
-                : '';
+            // Klasifikasi untuk kolom terpisah
+            const classificationText = item.classification_code 
+                ? `<span style="background:#eef2ff; color:#4338ca; padding:4px 8px; border-radius:6px; font-size:11px; border:1px solid #c7d2fe; font-weight:600;">${item.classification_code}</span>` 
+                : '<span style="color:#9ca3af; font-style:italic; font-size:12px;">-</span>';
 
             // --- PERBAIKAN LOGIKA TOMBOL VIEW DI SINI ---
             // Jika ada file: pakai class 'btn-view-file' (Oranye). Jika tidak: default (Abu-abu)
@@ -158,9 +160,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             tr.innerHTML = `
                 <td>
                     <div style="font-weight:600; color:var(--primary);">${item.document_name}</div>
-                    <div style="margin-top:2px;">
-                        ${classBadge}
-                        <span style="font-size:11px; color:#666;">Tahun: ${item.document_year || '-'}</span>
+                    <div style="margin-top:4px; font-size:11px; color:#666;">
+                        <span style="color:#9ca3af;">Tahun:</span> ${item.document_year || '-'}
                     </div>
                 </td>
                 <td><span class="badge-doc doc-lain">${typeLabel}</span></td>
@@ -168,6 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <div style="font-weight:500;">${item.owner_name}</div>
                     <div style="font-size:11px; color:#999;">${item.owner_identity || '-'}</div>
                 </td>
+                <td>${classificationText}</td>
                 <td>
                     <div style="font-size:12px; margin-bottom:4px;">📍 ${item.storage_location_name || '-'}</div>
                     <span class="status-pill ${statusClass}">${item.archive_status}</span>
@@ -238,6 +240,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         formData.append('storage_location_id', document.getElementById("storage_location_id").value);
         
         if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+        
+        // Send remove_attachment flag jika user klik hapus file
+        if (removeAttachmentFlag) formData.append('remove_attachment', 'true');
 
         try {
             if (isEditMode) {
@@ -250,6 +255,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             showTableMode();
             loadDocuments();
         } catch (err) { ui.alert("Gagal", err.message, "error"); }
+        finally { removeAttachmentFlag = false; }  // Reset flag setelah submit
     }
 
     // --- Filters ---
@@ -322,6 +328,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     
     btnCancelUpload.addEventListener("click", resetFilePreview);
+    if(btnRemoveFile) btnRemoveFile.addEventListener("click", () => {
+        removeAttachmentFlag = true;
+        resetFilePreview();
+    });
 
     window.triggerEdit = (id) => { const item = allDocs.find(d => d.id === id); if(item) showFormMode(true, item); };
 

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.diploma import Diploma
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 # [UBAH] Hapus parameter user_id
@@ -61,8 +62,13 @@ def delete_diploma(db: Session, diploma_id: int) -> Diploma | None:
     db.commit()
     return existing
 
-def get_all_diplomas(db: Session) -> list[Diploma]:
-    return db.query(Diploma).all()
+def get_all_diplomas(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Diploma]:
+    query = db.query(Diploma).order_by(Diploma.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_diplomas_by_keys(db: Session, filters: dict) -> list[Diploma]:
     query = db.query(Diploma)

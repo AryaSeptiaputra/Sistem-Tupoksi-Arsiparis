@@ -33,7 +33,48 @@ iframe { width: 100%; height: 100%; border: none; }
 
 /* Action buttons */
 .btn-action-group { display: flex; gap: 6px; justify-content: center; }
-.btn-action-view { padding: 6px 12px; border: none; border-radius: 8px; background: #e0f2fe; color: #0ea5e9; cursor: pointer; font-size: 12px; }
-.btn-edit { background: #fef9c3; color: #a16207; }
-.btn-delete { background: #fee2e2; color: #b91c1c; }
-.btn-action-view:hover { filter: brightness(0.95); }
+.btn-action-view { 
+    width: 34px; height: 34px; 
+    background: var(--primary); 
+    border-radius: 8px; 
+    border: none;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: white; 
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(255, 138, 92, 0.3); 
+    transition: 0.2s;
+    font-size: 14px;
+}
+.btn-edit { 
+    width: 34px; height: 34px;
+    background: #3b82f6; 
+    border: none;
+    border-radius: 8px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+    transition: 0.2s;
+    font-size: 14px;
+}
+.btn-delete { 
+    width: 34px; height: 34px;
+    background: #ef4444; 
+    border: none;
+    border-radius: 8px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+    transition: 0.2s;
+    font-size: 14px;
+}
+.btn-action-view:hover { transform: scale(1.05); background: var(--primary-hover); }
+.btn-edit:hover { transform: scale(1.05); background: #2563eb; }
+.btn-delete:hover { transform: scale(1.05); background: #dc2626; }

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.log import Log
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_log(db: Session, user_id: int, action: str) -> Log:
@@ -26,7 +27,7 @@ def create_log(db: Session, user_id: int, action: str) -> Log:
     db.refresh(new_log)
     return new_log
 
-def get_all_logs(db: Session) -> list[Log]:
+def get_all_logs(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Log]:
     """
     Retrieves all activity log entries.
 
@@ -36,7 +37,12 @@ def get_all_logs(db: Session) -> list[Log]:
     Returns:
         list[Log]: A list of all activity logs recorded in the system.
     """
-    return db.query(Log).all()
+    query = db.query(Log).order_by(Log.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_logs_by_keys(db: Session, filters: dict) -> list[Log]:
     """

@@ -93,3 +93,49 @@ def server_error_response(message: str = "Internal server error",
         message=message,
         status_code=500
     )
+
+
+def handle_database_error(exception: Exception, operation: str = "menyimpan") -> tuple:
+    """
+    Handle database errors dengan pesan user-friendly
+    
+    Args:
+        exception: Exception yang ditangkap
+        operation: Operasi yang sedang dilakukan (menyimpan, memperbarui, menghapus)
+    
+    Returns:
+        Tuple of (jsonified response, status_code)
+    """
+    error_msg = str(exception)
+    
+    # Handle duplicate entry
+    if "Duplicate entry" in error_msg or "1062" in error_msg:
+        if "number" in error_msg or "nomor" in error_msg.lower():
+            return error_response("Nomor dokumen sudah ada. Harap gunakan nomor yang berbeda.", 400)
+        elif "nuptk" in error_msg.lower():
+            return error_response("NUPTK sudah terdaftar dalam sistem.", 400)
+        elif "email" in error_msg.lower():
+            return error_response("Email sudah terdaftar dalam sistem.", 400)
+        else:
+            return error_response("Data yang Anda masukkan sudah ada dalam sistem.", 400)
+    
+    # Handle foreign key constraint
+    if "foreign key constraint" in error_msg.lower() or "1451" in error_msg or "1452" in error_msg:
+        if "1451" in error_msg:  # Cannot delete or update a parent row
+            return error_response("Data tidak dapat dihapus karena masih digunakan oleh data lain.", 400)
+        else:  # Cannot add or update a child row
+            return error_response("Data terkait tidak ditemukan. Pastikan semua data referensi valid.", 400)
+    
+    # Handle data too long
+    if "Data too long" in error_msg or "1406" in error_msg:
+        return error_response("Data yang dimasukkan terlalu panjang. Harap kurangi jumlah karakter.", 400)
+    
+    # Handle null constraint
+    if "cannot be null" in error_msg.lower() or "1048" in error_msg:
+        return error_response("Ada field wajib yang belum diisi. Harap lengkapi semua data.", 400)
+    
+    # Generic database error
+    return error_response(
+        f"Gagal {operation} data. Silakan periksa kembali data yang diisi.",
+        500
+    )

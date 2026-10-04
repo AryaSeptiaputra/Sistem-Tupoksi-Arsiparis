@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.employee_archive import EmployeeArchive
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_employee_archive(db: Session, data: dict) -> EmployeeArchive:
@@ -49,5 +50,10 @@ def delete_employee_archive(db: Session, archive_id: int) -> EmployeeArchive | N
     db.commit()
     return archive
 
-def get_all_employee_archives(db: Session) -> list[EmployeeArchive]:
-    return db.query(EmployeeArchive).all()
+def get_all_employee_archives(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[EmployeeArchive]:
+    query = db.query(EmployeeArchive).order_by(EmployeeArchive.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()

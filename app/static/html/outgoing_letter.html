@@ -272,14 +272,17 @@
                 <div id="upload-box" class="upload-state">
                     <div style="font-size:48px; margin-bottom:12px;">📄</div>
                     <h3 style="font-size:14px; font-weight:600;">Upload Scan (PDF)</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Max 5MB</p>
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Max 10MB</p>
                     <label
                         style="padding:8px 16px; background:var(--primary); color:white; border-radius:99px; font-size:12px; cursor:pointer;">
                         Pilih File <input type="file" id="fileInput" accept="application/pdf" style="display:none;">
                     </label>
                 </div>
                 <div id="preview-box" class="preview-state">
-                    <button class="btn-remove-file" id="btn-cancel-upload"><span>✖</span> Ganti File</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-remove-file" id="btn-cancel-upload"><span>✖</span> Ganti File</button>
+                        <button class="btn-remove-file" id="btn-remove-file" style="background: #dc2626;"><span>🗑</span> Hapus File</button>
+                    </div>
                     <iframe id="pdf-viewer" src=""></iframe>
                 </div>
             </section>

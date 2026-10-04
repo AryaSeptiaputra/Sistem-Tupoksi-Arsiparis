@@ -58,6 +58,9 @@ def handle_file_upload(file_obj, subfolder):
         
     Returns:
         tuple: (db_relative_path, full_system_path)
+        
+    Raises:
+        ValueError: Jika ukuran file melebihi 10 MB
     """
     if not file_obj:
         return None, None
@@ -66,22 +69,32 @@ def handle_file_upload(file_obj, subfolder):
     original_filename = secure_filename(file_obj.filename)
     file_extension = os.path.splitext(original_filename)[1].lower() # .pdf, .jpg, dll
 
-    # 2. [BARU] Generate Nama Unik (UUID)
+    # 2. Validasi Ukuran File (Maksimal 10 MB)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB dalam bytes
+    file_obj.seek(0, os.SEEK_END)  # Pindah ke akhir file
+    file_size = file_obj.tell()  # Dapatkan ukuran file
+    file_obj.seek(0)  # Kembali ke awal
+    
+    if file_size > MAX_FILE_SIZE:
+        size_mb = file_size / (1024 * 1024)
+        raise ValueError(f"Ukuran file terlalu besar ({size_mb:.2f} MB). Maksimal file yang diperbolehkan adalah 10 MB.")
+
+    # 3. [BARU] Generate Nama Unik (UUID)
     # Contoh hasil: 'a1b2c3d4-1234-5678.pdf'
     unique_filename = f"{uuid.uuid4().hex}{file_extension}"
 
-    # 3. Tentukan folder tujuan (Masuk ke app/static agar bisa diakses browser)
+    # 4. Tentukan folder tujuan (Masuk ke app/static agar bisa diakses browser)
     # Struktur: /app/static/storage/documents/{subfolder}/
     base_upload_dir = os.path.join(os.getcwd(), 'storage', 'documents', subfolder)
     
     if not os.path.exists(base_upload_dir):
         os.makedirs(base_upload_dir)
 
-    # 4. Simpan File dengan Nama Baru
+    # 5. Simpan File dengan Nama Baru
     full_path = os.path.join(base_upload_dir, unique_filename)
     file_obj.save(full_path)
     
-    # 5. Path untuk Database (Relative terhadap folder static)
+    # 6. Path untuk Database (Relative terhadap folder static)
     # Menggunakan forward slash (/) agar kompatibel dengan URL HTML
     db_path = f"storage/documents/{subfolder}/{unique_filename}"
     

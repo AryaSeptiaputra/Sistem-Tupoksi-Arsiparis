@@ -10,3 +10,15 @@ logs/
 
 !database/backups/.gitkeep
 !storage/documents/.gitkeep
+
+# Local scripts and notes containing credentials or tokens
+check_password.py
+create_admin.py
+database/seeders/seed_admin.py
+test_*.py
+test_*.html
+DEBUGGING_INSTRUCTIONS.md
+DEBUG_INSTRUCTIONS.md
+FINANCE_ARCHIVE_DEBUG.md
+query
+nssm.exe

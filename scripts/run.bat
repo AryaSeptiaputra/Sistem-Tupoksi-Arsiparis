@@ -11,4 +11,11 @@ if not exist .env (
 )
 
 REM Gunakan waitress untuk serving produksi di Windows
-waitress-serve --host=127.0.0.1 --port=8000 serve:app
+waitress-serve --host=0.0.0.0 --port=6001 serve:app
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server gagal berjalan. Periksa error di atas.
+    pause
+    exit /b 1
+)

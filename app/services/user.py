@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.teacher import Teacher
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 from app.utils.hash import get_password_hash
 from app.utils.password import check_password, validate_password_change
 import datetime
@@ -88,9 +89,14 @@ def delete_user(db: Session, user_id: int) -> User | None:
     db.commit()
     return existing_user
 
-def get_all_users(db: Session) -> list[User]:
+def get_all_users(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[User]:
     # Menggunakan join otomatis via relationship di Model
-    return db.query(User).all()
+    query = db.query(User).order_by(User.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()
 
 def get_users_by_keys(db: Session, filters: dict) -> list[User]:
     query = db.query(User).join(Teacher)

@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
+    console.log("[DEBUG] DOMContentLoaded event fired - finance_archive.js starting");
 
     // --- 0. SETUP NAVIGASI & AUTH ---
     document.querySelectorAll("[data-route]").forEach(el => {
@@ -6,13 +7,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const token = localStorage.getItem("access_token");
-    if (!token) { window.location.href = "/page/login"; return; }
+    console.log("[DEBUG] Token check:", token ? "Found" : "Not found");
+    if (!token) { 
+        console.log("[DEBUG] Redirecting to login");
+        window.location.href = "/page/login"; 
+        return; 
+    }
 
     // --- STATE VARIABLES ---
     let allArchives = [];
     let isEditMode = false;
     let currentEditId = null;
+    let removeAttachmentFlag = false;  // Track if user wants to remove attachment
     const monthNames = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+    console.log("[DEBUG] State variables initialized");
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -47,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
+    const btnRemoveFile = document.getElementById("btn-remove-file");
 
     // Filters
     const elSearch = document.getElementById("searchInput");
@@ -55,8 +65,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elFilterCat = document.getElementById("filterCategory"); // Dynamic
     const elFilterStatus = document.getElementById("filterStatus"); // Dynamic
 
+    // Check critical elements
+    console.log("[DEBUG] DOM element check:");
+    console.log("  - viewTable:", !!viewTable);
+    console.log("  - btnAdd:", !!btnAdd);
+    console.log("  - elSearch:", !!elSearch);
+    console.log("  - elFilterYear:", !!elFilterYear);
+    console.log("  - elFilterMonth:", !!elFilterMonth);
+    console.log("  - elFilterCat:", !!elFilterCat);
+    console.log("  - elFilterStatus:", !!elFilterStatus);
+    console.log("  - inputCategory:", !!inputCategory);
+    console.log("  - inputArchiveStatus:", !!inputArchiveStatus);
+
     // --- INITIALIZATION ---
+    console.log("[DEBUG] Calling initPage()");
     await initPage();
+    console.log("[DEBUG] initPage() completed");
 
     // --- EVENT LISTENERS ---
     
@@ -73,6 +97,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if(btnSave) btnSave.addEventListener("click", handleSaveData);
     if(btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
+    if(btnRemoveFile) btnRemoveFile.addEventListener("click", () => {
+        removeAttachmentFlag = true;
+        resetFilePreview();
+    });
 
     if(inputFile) {
         inputFile.addEventListener("change", (e) => {
@@ -110,24 +138,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- FUNCTIONS ---
 
     async function initPage() {
+        console.log("[DEBUG] initPage started");
         const tbody = document.getElementById("table-body");
+        if (!tbody) {
+            console.error("[ERROR] table-body not found on page!");
+            alert("CRITICAL ERROR: Elemen table-body tidak ditemukan!");
+            return;
+        }
         tbody.innerHTML = `<tr><td colspan="7" class="loading-text" style="text-align:center;">Memuat data...</td></tr>`;
 
         // [BARU] Load References untuk Kategori & Status
-        await Promise.all([
-            loadReferences(),
-            loadClassifications(),
-            loadStorageLocations(),
-            loadArchives()
-        ]);
+        try {
+            const results = await Promise.allSettled([
+                loadReferences(),
+                loadClassifications(),
+                loadStorageLocations(),
+                loadArchives()
+            ]);
+            
+            console.log("[DEBUG] All async operations completed");
+            let hasError = false;
+            results.forEach((result, index) => {
+                const names = ['loadReferences', 'loadClassifications', 'loadStorageLocations', 'loadArchives'];
+                if (result.status === 'rejected') {
+                    console.error(`[ERROR] ${names[index]} failed:`, result.reason);
+                    hasError = true;
+                } else {
+                    console.log(`[DEBUG] ${names[index]} completed`);
+                }
+            });
+            
+            // If loading archives failed, show error message in table
+            if (hasError && allArchives.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:red;">Gagal memuat data. Silakan refresh halaman atau cek console.</td></tr>`;
+            }
+        } catch (e) {
+            console.error("[ERROR] initPage failed:", e);
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:red;">Error: ${e.message}</td></tr>`;
+        }
     }
 
     // [BARU] Load Master References (Category & Status)
     async function loadReferences() {
         try {
+            console.log("[DEBUG] loadReferences() called");
             // Helper pengisi dropdown
             const populate = (element, data, placeholder) => {
-                if(!element) return;
+                if(!element) {
+                    console.warn("[WARN] Element not found for populate");
+                    return;
+                }
                 element.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
                 data.forEach(item => {
                     element.add(new Option(item.name, item.code));
@@ -135,43 +195,97 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
 
             // 1. Finance Category
+            console.log("[DEBUG] Fetching finance_category references");
             const respCat = await api.reference.getByCategory('finance_category');
+            console.log("[DEBUG] Finance category response:", respCat);
             if(respCat && respCat.data) {
+                console.log("[DEBUG] Populating category filter with", respCat.data.length, "items");
                 populate(elFilterCat, respCat.data, "Semua Kategori");
                 populate(inputCategory, respCat.data, null); // Required form input
+            } else {
+                console.warn("[WARN] No finance_category data in response");
             }
 
             // 2. Archive Status
+            console.log("[DEBUG] Fetching archive_status references");
             const respStat = await api.reference.getByCategory('archive_status');
+            console.log("[DEBUG] Archive status response:", respStat);
             if(respStat && respStat.data) {
+                console.log("[DEBUG] Populating status filter with", respStat.data.length, "items");
                 populate(elFilterStatus, respStat.data, "Semua Status");
                 populate(inputArchiveStatus, respStat.data, null);
+            } else {
+                console.warn("[WARN] No archive_status data in response");
             }
-
+            console.log("[DEBUG] loadReferences completed");
         } catch (e) {
-            console.error("Gagal load references:", e);
+            console.error("[ERROR] loadReferences failed:", e);
         }
     }
 
     async function loadClassifications() {
         try {
-            const data = await api.classification.getAll();
+            console.log("[DEBUG] loadClassifications() called");
+            const response = await api.classification.getAll();
+            let data = response;
+            if (response && response.data && Array.isArray(response.data)) {
+                data = response.data;
+            } else if (!Array.isArray(response)) {
+                console.warn("[WARN] Classification response format:", response);
+                data = [];
+            }
+            console.log("[DEBUG] Loaded", data.length, "classifications");
+            if (!inputClassId) {
+                console.error("[ERROR] inputClassId element not found");
+                return;
+            }
             inputClassId.innerHTML = '<option value="">-- Pilih Klasifikasi --</option>';
-            data.forEach(c => inputClassId.add(new Option(`${c.code} - ${c.name}`, c.id)));
-        } catch (e) { console.error("Gagal load klasifikasi", e); }
+            if (Array.isArray(data)) {
+                data.forEach(c => inputClassId.add(new Option(`${c.code} - ${c.name}`, c.id)));
+            }
+            console.log("[DEBUG] loadClassifications completed");
+        } catch (e) { 
+            console.error("[ERROR] loadClassifications failed:", e);
+        }
     }
 
     async function loadStorageLocations() {
         try {
-            const data = await api.storageLocation.getAll();
+            console.log("[DEBUG] loadStorageLocations() called");
+            const response = await api.storageLocation.getAll();
+            let data = response;
+            if (response && response.data && Array.isArray(response.data)) {
+                data = response.data;
+            } else if (!Array.isArray(response)) {
+                console.warn("[WARN] StorageLocation response format:", response);
+                data = [];
+            }
+            console.log("[DEBUG] Loaded", data.length, "storage locations");
+            if (!inputStorageId) {
+                console.error("[ERROR] inputStorageId element not found");
+                return;
+            }
             inputStorageId.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
-            data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
-        } catch (e) { console.error("Gagal load lokasi", e); }
+            if (Array.isArray(data)) {
+                data.forEach(l => inputStorageId.add(new Option(l.name, l.id)));
+            }
+            console.log("[DEBUG] loadStorageLocations completed");
+        } catch (e) { 
+            console.error("[ERROR] loadStorageLocations failed:", e);
+        }
     }
 
     async function loadArchives() {
         try {
+            console.log("[DEBUG] loadArchives() called");
             allArchives = await api.financeArchive.getAll();
+            console.log("[DEBUG] API returned:", allArchives);
+            console.log("[DEBUG] Data type:", typeof allArchives, "Is array:", Array.isArray(allArchives));
+            
+            if (!Array.isArray(allArchives)) {
+                console.error("[ERROR] allArchives is not an array:", allArchives);
+                allArchives = [];
+            }
             
             // Sorting: Tahun Descending, lalu Bulan Descending
             allArchives.sort((a, b) => {
@@ -179,22 +293,33 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return (b.period_month || 0) - (a.period_month || 0);
             });
             
+            console.log("[DEBUG] After sorting:", allArchives.length, "items");
             populateYearFilter();
             renderTable(allArchives);
         } catch (e) {
+            console.error("[ERROR] loadArchives exception:", e);
             document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
         }
     }
 
     function renderTable(data) {
+        console.log("[DEBUG] renderTable called with data:", data);
         const tbody = document.getElementById("table-body");
+        
+        if (!tbody) {
+            console.error("[ERROR] table-body element not found!");
+            return;
+        }
+        
         tbody.innerHTML = "";
         
         if(!data || data.length === 0) {
+            console.log("[DEBUG] No data to render");
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>`;
             return;
         }
 
+        console.log("[DEBUG] Rendering", data.length, "items");
         const user = api.auth.getUserData();
         const isAdmin = user && user.role === 'admin';
         const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
@@ -359,6 +484,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
+        
+        // Send remove_attachment flag jika user klik hapus file
+        if (removeAttachmentFlag) formData.append('remove_attachment', 'true');
 
         const btn = e.target;
         const originalText = btn.textContent;
@@ -382,6 +510,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
+            removeAttachmentFlag = false;  // Reset flag setelah submit
         }
     }
 

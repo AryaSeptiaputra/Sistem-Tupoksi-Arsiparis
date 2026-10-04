@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let allLetters = [];
     let isEditMode = false;
     let currentEditId = null;
+    let removeAttachmentFlag = false;  // Track if user wants to remove attachment
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -43,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const previewBox = document.getElementById("preview-box");
     const pdfViewer = document.getElementById("pdf-viewer");
     const btnCancelUpload = document.getElementById("btn-cancel-upload");
+    const btnRemoveFile = document.getElementById("btn-remove-file");
 
     // --- FILTER REFERENCES ---
     const elSearch = document.getElementById("searchInput");
@@ -84,6 +86,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (btnCancelUpload) btnCancelUpload.addEventListener("click", resetFilePreview);
+    if (btnRemoveFile) btnRemoveFile.addEventListener("click", () => {
+        removeAttachmentFlag = true;
+        resetFilePreview();
+    });
     if (btnSave) btnSave.addEventListener("click", handleSaveData);
 
     // Apply filters listener
@@ -381,8 +387,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
 
-        if (!inputNumber.value || !inputSender.value || !inputClassId.value) {
-            ui.alert("Data Belum Lengkap", "Harap lengkapi Nomor Surat, Pengirim, dan Klasifikasi!", "warning");
+        // Validasi lebih spesifik dengan pesan user-friendly
+        if (!inputNumber.value.trim()) {
+            ui.alert("Nomor Surat Kosong", "Harap isi Nomor Surat terlebih dahulu!", "warning");
+            inputNumber.focus();
+            return;
+        }
+
+        if (!inputSender.value.trim()) {
+            ui.alert("Pengirim Kosong", "Harap isi Pengirim surat terlebih dahulu!", "warning");
+            inputSender.focus();
+            return;
+        }
+
+        if (!inputLetterDate.value) {
+            ui.alert("Tanggal Surat Kosong", "Harap pilih Tanggal Surat terlebih dahulu!", "warning");
+            inputLetterDate.focus();
+            return;
+        }
+
+        if (!inputReceivedDate.value) {
+            ui.alert("Tanggal Diterima Kosong", "Harap pilih Tanggal Diterima terlebih dahulu!", "warning");
+            inputReceivedDate.focus();
+            return;
+        }
+
+        if (!inputClassId.value) {
+            ui.alert("Klasifikasi Belum Dipilih", "Harap pilih Klasifikasi surat terlebih dahulu!", "warning");
+            inputClassId.focus();
             return;
         }
 
@@ -402,6 +434,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (inputFile.files[0]) formData.append('file', inputFile.files[0]);
+        
+        // Send remove_attachment flag jika user klik hapus file
+        if (removeAttachmentFlag) formData.append('remove_attachment', 'true');
 
         const btn = e.target;
         const originalText = btn.textContent;
@@ -424,6 +459,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
+            removeAttachmentFlag = false;  // Reset flag setelah submit
         }
     }
 

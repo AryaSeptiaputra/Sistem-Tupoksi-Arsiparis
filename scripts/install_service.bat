@@ -82,7 +82,7 @@ if %errorlevel% equ 0 (
 )
 
 echo [3/6] Menginstall service...
-"%APP_DIR%\nssm.exe" install %SERVICE_NAME% "%WAITRESS_EXE%" --host=127.0.0.1 --port=8000 serve:app
+"%APP_DIR%\nssm.exe" install %SERVICE_NAME% "%PYTHON_EXE%" serve.py
 if %errorlevel% neq 0 goto :err
 
 echo [4/6] Mengatur konfigurasi service...
@@ -107,6 +107,10 @@ if %errorlevel% neq 0 goto :err
 "%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppStdout "%APP_DIR%\logs\service_output.log"
 "%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppStderr "%APP_DIR%\logs\service_error.log"
 
+:: Set environment variables untuk menangani Unicode
+"%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppEnvironmentExtra PYTHONIOENCODING=utf-8
+"%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppEnvironmentExtra PYTHONUTF8=1
+
 :: Set restart on failure
 "%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppExit Default Restart
 "%APP_DIR%\nssm.exe" set %SERVICE_NAME% AppRestartDelay 5000
@@ -130,7 +134,7 @@ echo.
 echo Service Name    : %SERVICE_NAME%
 echo Status          : RUNNING
 echo Startup Type    : Automatic
-echo Port            : 8000 (localhost only)
+echo Port            : 6001 (localhost only)
 echo Log Output      : logs\service_output.log
 echo Log Error       : logs\service_error.log
 echo.
@@ -141,7 +145,7 @@ echo   - Restart service : nssm restart %SERVICE_NAME%
 echo   - Status service  : nssm status %SERVICE_NAME%
 echo   - Hapus service   : scripts\uninstall_service.bat
 echo.
-echo Akses aplikasi: http://127.0.0.1:8000
+echo Akses aplikasi: http://127.0.0.1:6001
 echo Untuk akses via domain, setup reverse proxy (lihat docs\REVERSE_PROXY_SETUP.md)
 echo.
 pause

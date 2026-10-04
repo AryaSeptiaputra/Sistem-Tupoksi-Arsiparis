@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Finance Archive Debug</title>
+</head>
+<body>
+    <h1>Finance Archive Debug Console</h1>
+    <div id="output" style="background: #f0f0f0; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre; overflow-x: auto; height: 500px; overflow-y: auto;"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        // Capture console logs
+        console.log = function(...args) {
+            output.textContent += '✓ ' + args.join(' ') + '\n';
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            output.textContent += '✗ ERROR: ' + args.join(' ') + '\n';
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            output.textContent += '⚠ WARNING: ' + args.join(' ') + '\n';
+            originalWarn.apply(console, args);
+        };
+        
+        // Test the API call
+        console.log("Starting API test...");
+        
+        async function testAPI() {
+            try {
+                console.log("Fetching /finance_archive/get_all...");
+                const response = await fetch('/finance_archive/get_all', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                console.log("Response status:", response.status);
+                console.log("Response headers:", response.headers.get('Content-Type'));
+                
+                if (!response.ok) {
+                    console.error("Response not OK:", response.statusText);
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log("Response data type:", typeof data);
+                console.log("Is array:", Array.isArray(data));
+                console.log("Data length:", data.length);
+                console.log("Sample data:", data[0]);
+                
+            } catch (e) {
+                console.error("Exception:", e.message);
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>

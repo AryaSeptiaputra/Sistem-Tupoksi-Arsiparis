@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from app.core.database import SessionLocal
 from app.models.master_reference import MasterReference
 import datetime

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.storage_location import StorageLocation
+from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 def create_storage_location(db: Session, data: dict) -> StorageLocation:
@@ -43,6 +44,11 @@ def delete_storage_location(db: Session, location_id: int) -> StorageLocation | 
     db.commit()
     return location
 
-def get_all_storage_locations(db: Session) -> list[StorageLocation]:
+def get_all_storage_locations(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[StorageLocation]:
     """Retrieves all storage locations."""
-    return db.query(StorageLocation).all()
+    query = db.query(StorageLocation).order_by(StorageLocation.id.desc())
+
+    if pagination:
+        return paginate_query(query, pagination)
+
+    return query.all()

@@ -13,7 +13,7 @@ from app.services.log import create_log
 from app import db
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.pagination import get_pagination_params
-from app.utils.response import success_response, error_response
+from app.utils.response import success_response, error_response, handle_database_error
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
 
@@ -26,11 +26,19 @@ def get_current_user_obj(db_session):
 @jwt_required()
 def create_incoming_letter_route():
     data = request.form.to_dict()
-    required_fields = ['number', 'letter_date', 'received_date', 'sender', 'classification_id']
     
-    for field in required_fields:
+    # Validasi field required dengan pesan user-friendly
+    field_labels = {
+        'number': 'Nomor Surat',
+        'letter_date': 'Tanggal Surat',
+        'received_date': 'Tanggal Diterima',
+        'sender': 'Pengirim',
+        'classification_id': 'Klasifikasi'
+    }
+    
+    for field, label in field_labels.items():
         if not data.get(field):
-            return error_response(f"{field} is required", 400)
+            return error_response(f"{label} wajib diisi", 400)
             
     # Handle File
     file = request.files.get('file')
@@ -62,7 +70,7 @@ def create_incoming_letter_route():
     except Exception as e:
         db_session.rollback()
         if full_path and os.path.exists(full_path): os.remove(full_path)
-        return error_response(str(e), 500)
+        return handle_database_error(e, "menyimpan")
     finally:
         db_session.close()
 
@@ -92,17 +100,23 @@ def update_incoming_letter_route():
 
         # Handle File Upload
         file = request.files.get('file')
+        remove_attachment = data.get('remove_attachment', 'false').lower() == 'true'
+        
         if file:
             try:
                 attachment_path, _ = handle_file_upload(file, 'incoming_letters')
                 data['attachment_path'] = attachment_path
             except Exception as e:
                 return error_response(str(e), 500)
+        elif remove_attachment:
+            # User ingin hapus file tanpa ganti file baru
+            data['attachment_path'] = None
+        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
 
         updated_letter = update_incoming_letter(db_session, letter_id, data)
 
-        # Cleanup old file
-        if file and old_path and old_path != updated_letter.attachment_path:
+        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        if old_path and (file or remove_attachment) and old_path != updated_letter.attachment_path:
             delete_physical_file(old_path)
 
         current_user = get_current_user_obj(db_session)
@@ -112,7 +126,7 @@ def update_incoming_letter_route():
         return success_response(updated_letter.to_dict(), "Incoming letter updated successfully", 200)
     except Exception as e:
         db_session.rollback()
-        return error_response(str(e), 500)
+        return handle_database_error(e, "memperbarui")
     finally:
         db_session.close()
 

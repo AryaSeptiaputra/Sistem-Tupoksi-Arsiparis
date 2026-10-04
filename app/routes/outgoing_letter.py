@@ -11,6 +11,9 @@ from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.response import handle_database_error
+from app.utils.pagination import get_pagination_params
+from app.utils.response import success_response, error_response
 
 outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
 
@@ -48,10 +51,17 @@ def create_outgoing_letter_route():
     except ValueError:
             return jsonify({"error": "ID Klasifikasi/Lokasi harus berupa angka"}), 400
 
-    required_fields = ['number', 'letter_date', 'sent_date', 'destination']
-    for field in required_fields:
+    # Validasi field required dengan pesan user-friendly
+    field_labels = {
+        'number': 'Nomor Surat',
+        'letter_date': 'Tanggal Surat',
+        'sent_date': 'Tanggal Kirim',
+        'destination': 'Tujuan'
+    }
+    
+    for field, label in field_labels.items():
         if not data.get(field):
-            return jsonify({"error": f"{field} is required"}), 400
+            return jsonify({"error": f"{label} wajib diisi"}), 400
     
     # File Upload
     file = request.files.get('file')
@@ -77,7 +87,7 @@ def create_outgoing_letter_route():
 
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return handle_database_error(e, "menyimpan")
     finally:
         db_session.close()
 
@@ -112,16 +122,23 @@ def update_outgoing_letter_route():
         old_file_path = existing_letters[0].attachment_path 
 
         file = request.files.get('file')
+        remove_attachment = data.get('remove_attachment', 'false').lower() == 'true'
+        
         if file:
             try:
                 attachment_path, _ = handle_file_upload(file, 'outgoing_letters')
                 data['attachment_path'] = attachment_path
             except Exception as e:
                 return jsonify({"error": f"Gagal upload file: {str(e)}"}), 500
+        elif remove_attachment:
+            # User ingin hapus file tanpa ganti file baru
+            data['attachment_path'] = None
+        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
         
         updated_letter = update_outgoing_letter(db_session, letter_id, data)
         
-        if file and old_file_path and old_file_path != updated_letter.attachment_path:
+        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        if old_file_path and (file or remove_attachment) and old_file_path != updated_letter.attachment_path:
             delete_physical_file(old_file_path)
 
         actor_id = get_current_actor_id(db_session)
@@ -132,7 +149,7 @@ def update_outgoing_letter_route():
 
     except Exception as e:
         db_session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return handle_database_error(e, "memperbarui")
     finally:
         db_session.close()
 
@@ -163,7 +180,13 @@ def delete_outgoing_letter_route():
 @outgoing_letter_bp.route('/get_all', methods=['GET'])
 def get_all_outgoing_letters_route():
     db_session = db.SessionLocal()
-    try: return jsonify([l.to_dict() for l in get_all_outgoing_letters(db_session)]), 200
+    try:
+        pagination = get_pagination_params(request.args)
+        result = get_all_outgoing_letters(db_session, pagination)
+        result.items = [l.to_dict() for l in result.items]
+        return success_response(result, "Outgoing letters retrieved successfully", 200)
+    except Exception as e:
+        return error_response(str(e), 500)
     finally: db_session.close()
 
 @outgoing_letter_bp.route('/get_by_keys', methods=['POST'])

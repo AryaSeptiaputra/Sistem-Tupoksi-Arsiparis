@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistem Arsip - Keuangan</title>
+    <title>Sistem Arsip - Kepegawaian</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/finance_archive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee_archive.css') }}">
 </head>
 
 <script src="{{ url_for('static', filename='js/user_avatar.js') }}"></script>
@@ -114,8 +114,8 @@
     <main class="main-content">
         <div class="header-page">
             <div class="header-title">
-                <h1>Arsip Keuangan</h1>
-                <p>Kelola dokumen SPJ, Laporan BOS, dan bukti transaksi.</p>
+                <h1>Arsip Kepegawaian</h1>
+                <p>Kelola dokumen digital dan JRA (Jadwal Retensi Arsip) pegawai.</p>
             </div>
             <div class="header-tools">
                 {% if session.get('role') == 'admin' %}
@@ -129,50 +129,39 @@
 
         <section id="view-table" class="content-card">
             <div class="search-container">
-                <input type="text" class="search-input" placeholder="Cari Judul, Keterangan, atau Kategori..."
+                <i class='bx bx-search search-icon'></i>
+                <input type="text" class="search-input" placeholder="Cari nama dokumen atau pegawai..."
                     id="searchInput">
             </div>
 
             <div class="filter-row">
-                <select id="filterYear" class="filter-select">
-                    <option value="">Semua Tahun</option>
+                <select id="filterType" class="filter-select">
+                    <option value="">Semua Jenis</option>
                 </select>
-                <select id="filterMonth" class="filter-select">
-                    <option value="">Semua Bulan</option>
-                    <option value="1">Januari</option>
-                    <option value="2">Februari</option>
-                    <option value="3">Maret</option>
-                    <option value="4">April</option>
-                    <option value="5">Mei</option>
-                    <option value="6">Juni</option>
-                    <option value="7">Juli</option>
-                    <option value="8">Agustus</option>
-                    <option value="9">September</option>
-                    <option value="10">Oktober</option>
-                    <option value="11">November</option>
-                    <option value="12">Desember</option>
+
+                <select id="filterClassification" class="filter-select">
+                    <option value="">Semua Klasifikasi</option>
                 </select>
-                
-                <select id="filterCategory" class="filter-select">
-                    </select>
-                
+
+                <select id="filterEmployee" class="filter-select">
+                    <option value="">Semua Pegawai</option>
+                </select>
                 <select id="filterStatus" class="filter-select">
-                    </select>
-                
+                    <option value="">Semua Status</option>
+                </select>
                 <button id="btnResetFilter" class="filter-btn">🔄 Reset</button>
             </div>
 
             <div class="table-responsive">
-                <table id="financeTable">
+                <table>
                     <thead>
                         <tr>
-                            <th width="8%">Periode</th>
-                            <th width="18%">Judul & Keterangan</th>
-                            <th width="15%">Kategori</th>
-                            <th width="15%">Nominal (Rp)</th>
-                            <th width="13%">Klasifikasi</th>
-                            <th width="15%">Lokasi & Status</th>
-                            <th style="text-align:center;">Aksi</th>
+                            <th width="25%">Nama Dokumen</th>
+                            <th width="13%">Jenis</th>
+                            <th width="18%">Pemilik</th>
+                            <th width="12%">Klasifikasi</th>
+                            <th width="20%">Lokasi & Status</th>
+                            <th width="12%" style="text-align:center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="table-body"></tbody>
@@ -182,138 +171,104 @@
 
         <div id="view-form" class="layout-split hidden">
             <section class="card-form">
-                <h3 id="form-title" style="font-size:16px; font-weight:600; margin-bottom:16px;">📝 Tambah Arsip
-                    Keuangan</h3>
-
+                <h3 id="form-title" style="margin-bottom: 20px;">📝 Detail Dokumen</h3>
                 <form id="form-entry" class="form-scroll-area">
                     <input type="hidden" id="entry-id">
 
                     <div class="form-group">
-                        <label>Judul Dokumen <span>*</span></label>
+                        <label>Nama Dokumen *</label>
+                        <div class="input-control"><input id="document_name" required type="text"
+                                placeholder="Contoh: SK CPNS 2024"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Klasifikasi Surat *</label>
                         <div class="input-control">
-                            <input id="title" required type="text" placeholder="Contoh: Laporan SPJ BOS Tahap 1">
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label>Tahun Anggaran <span>*</span></label>
-                            <div class="input-control">
-                                <input type="number" id="fiscal_year" required placeholder="2024">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Bulan (Opsional)</label>
-                            <div class="input-control">
-                                <select id="period_month">
-                                    <option value="">-- Pilih --</option>
-                                    <option value="1">Januari</option>
-                                    <option value="2">Februari</option>
-                                    <option value="3">Maret</option>
-                                    <option value="4">April</option>
-                                    <option value="5">Mei</option>
-                                    <option value="6">Juni</option>
-                                    <option value="7">Juli</option>
-                                    <option value="8">Agustus</option>
-                                    <option value="9">September</option>
-                                    <option value="10">Oktober</option>
-                                    <option value="11">November</option>
-                                    <option value="12">Desember</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label>Kategori Dana</label>
-                            <div class="input-control">
-                                <select id="category">
-                                    </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Nominal (Rp)</label>
-                            <div class="input-control">
-                                <input type="number" id="amount" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label>Klasifikasi</label>
-                            <div class="input-control">
-                                <select id="classification_id" required>
-                                    <option value="">Memuat...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Lokasi Simpan</label>
-                            <div class="input-control">
-                                <select id="storage_location_id">
-                                    <option value="">-- Pilih Lokasi --</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group hidden" id="group-archive-status">
-                        <label>Status Arsip</label>
-                        <select id="archive_status" class="filter-select" style="width:100%">
+                            <select id="classification_id" required style="width:100%">
+                                <option value="">-- Pilih Klasifikasi --</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pemilik (Pegawai) *</label>
+                        <div class="input-control"><select id="owner_id" required></select></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div class="form-group">
+                            <label>Jenis Dokumen</label>
+                            <div class="input-control"><select id="document_type"></select></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Tahun Dokumen</label>
+                            <div class="input-control"><input type="number" id="document_year" placeholder="2024"></div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div class="form-group">
+                            <label>Status Arsip (JRA)</label>
+                            <div class="input-control"><select id="archive_status" required></select></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Lokasi Fisik</label>
+                            <div class="input-control"><select id="storage_location_id"></select></div>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Keterangan Tambahan</label>
-                        <div class="input-control">
-                            <textarea id="description" rows="3" placeholder="Catatan detail..."></textarea>
-                        </div>
+                        <div class="input-control"><textarea id="description" rows="3"
+                                placeholder="Catatan..."></textarea></div>
                     </div>
                 </form>
-
-                <div style="padding-top:16px; border-top:1px solid #f3f4f6;">
-                    <button id="btn-save-data"
-                        style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Simpan
-                        Data</button>
-                </div>
+                <button id="btn-save-data" class="btn-primary"
+                    style="width:100%; padding:14px; border-radius:10px; border:none; background:var(--primary); color:white; font-weight:600; cursor:pointer;">
+                    💾 Simpan Data
+                </button>
             </section>
 
             <section class="card-preview">
                 <div id="upload-box" class="upload-state">
-                    <div style="font-size:48px; margin-bottom:12px;">💰</div>
-                    <h3 style="font-size:14px; font-weight:600;">Upload Bukti (PDF)</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Max 10MB</p>
+                    <i class='bx bxs-file-pdf' style="font-size: 48px; color: #d1d5db;"></i>
+                    <h3 style="margin-top: 15px;">Unggah Scan Dokumen</h3>
+                    <p style="font-size: 12px; color: #6b7280;">Format PDF (Maks. 10MB)</p>
                     <label
-                        style="padding:8px 16px; background:var(--primary); color:white; border-radius:99px; font-size:12px; cursor:pointer;">
+                        style="background:var(--primary); color:white; padding:10px 20px; border-radius:25px; cursor:pointer; font-size:13px; margin-top:15px; font-weight: 500;">
                         Pilih File <input type="file" id="fileInput" accept="application/pdf" style="display:none;">
                     </label>
                 </div>
                 <div id="preview-box" class="preview-state">
-                    <button class="btn-remove-file" id="btn-cancel-upload"><span>✖</span> Ganti File</button>
-                    <iframe id="pdf-viewer" src=""></iframe>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-remove-file" id="btn-cancel-upload">✖ Ganti File</button>
+                        <button class="btn-remove-file" id="btn-remove-file" style="background: #dc2626;">🗑 Hapus File</button>
+                    </div>
+                    <iframe id="pdf-viewer"></iframe>
                 </div>
             </section>
         </div>
+
         <section id="view-pdf-fullscreen" class="content-card hidden"
             style="height: calc(100vh - 140px); display: flex; flex-direction: column; padding: 0;">
             <div
-                style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin:0; font-size: 16px;">📄 Pratinjau Dokumen</h3>
+                style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: white;">
+                <h3 style="margin:0; font-size: 16px; font-weight: 600;">📄 Pratinjau Dokumen Penuh</h3>
                 <button id="btn-close-preview-mode"
-                    style="background: #e5e7eb; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">✖
-                    Tutup</button>
+                    style="background: #f3f4f6; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; color: #374151;">
+                    ✖ Tutup
+                </button>
             </div>
-            <div style="flex: 1; background: #525659; position: relative;">
+            <div style="flex: 1; background: #525659;">
                 <iframe id="fullscreen-pdf-viewer" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
         </section>
+
     </main>
 
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/finance_archive.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/employee_archive.js') }}"></script>
 </body>
 
 </html>
