@@ -2,7 +2,7 @@
 
 ## Rencana refactoring besar-besaran
 
-Branch `refactor/besar-besaran` dipakai untuk merombak Sistem Tupoksi Arsiparis di tiga area:
+Branch `refactor/major-overhaul` dipakai untuk merombak Sistem Tupoksi Arsiparis di tiga area:
 
 1. **Desain tabel database** — merancang ulang skema tabel, relasi, constraint, dan migrasinya.
 2. **Framework front-end** — mengganti front-end yang sekarang dengan framework baru.
