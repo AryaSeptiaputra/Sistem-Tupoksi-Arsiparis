@@ -7,6 +7,8 @@ __pycache__/
 database/backups/*
 storage/documents/*
 logs/
+data/
+outputs/
 
 !database/backups/.gitkeep
 !storage/documents/.gitkeep
@@ -15,7 +17,7 @@ logs/
 check_password.py
 create_admin.py
 database/seeders/seed_admin.py
-test_*.py
+/test_*.py
 test_*.html
 DEBUGGING_INSTRUCTIONS.md
 DEBUG_INSTRUCTIONS.md

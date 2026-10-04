@@ -25,6 +25,9 @@ logs/
 database/backups/
 storage/
 tests/
+evaluation/
+data/
+outputs/
 README.md
 .gitignore
 .env.example
