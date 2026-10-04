@@ -2,5 +2,5 @@
 
 | No | Judul | Fase | a · Desain sistem | b · Rencana pembangunan | Pembangunan | Status |
 |---|---|---|---|---|---|---|
-| 001 | Desain ulang basis data | Dev | [disetujui 2026-10-04](rancangan/001a_2026-10-04_dev-desain-ulang-basis-data.md) | — | — | siap disusun |
+| 001 | Desain ulang basis data | Dev | [disetujui 2026-10-04](rancangan/001a_2026-10-04_dev-desain-ulang-basis-data.md) | [disetujui 2026-10-04](rancangan/001b_2026-10-04_dev-desain-ulang-basis-data.md) | 0 dari 11 | sedang dibangun |
 | 002 | Rancang evaluasi basis data | Dev | [disetujui 2026-10-04](rancangan/002a_2026-10-04_dev-rancang-evaluasi-basis-data.md) | [disetujui 2026-10-04](rancangan/002b_2026-10-04_dev-rancang-evaluasi-basis-data.md) | 0 dari 10 | sedang dibangun |
