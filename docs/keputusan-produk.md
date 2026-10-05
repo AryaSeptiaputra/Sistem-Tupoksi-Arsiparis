@@ -2,10 +2,10 @@
 
 Produk: Sistem Tupoksi Arsiparis SMKN 7 Bandung
 Jenis: Aplikasi bisnis (web, Flask + MySQL)
-Fase: Dev — refactor area 1: desain ulang basis data (rancangan 001)
-Data: tingkat 0 untuk data asli — database lama saat ini seluruhnya berisi data dummy buatan tim pengembang (konfirmasi Arya, 2026-10-04) dan aman dibaca atau dikirim ke AI; ada tidaknya data arsip nyata belum pasti; data uji: dump database dummy; mode data rahasia tidak aktif
+Fase: Dev — refactor area 1: desain ulang basis data (rancangan 001); data uji evaluasi (rancangan 003)
+Data: tingkat 0 — belum ada data arsip sama sekali. Database aplikasi `arsiparis_smk7` hanya berisi data pengembangan: 1 akun, 1 pegawai, 203 log, 35 master_reference, 1 klasifikasi, dan 0 baris di kelima tabel arsip serta storage_location (hasil baseline dan information_schema Arya, 2026-10-05). Data uji Dev-A: salinan D1 `tupoksi_d1` + seed deterministik buatan pink-chan (keputusan Arya, 2026-10-05; rincian di docs/rencana-evaluasi.md DS1–DS7). Mode data rahasia tidak aktif
 Status: siap dikerjakan
-Diperbarui: 2026-10-04
+Diperbarui: 2026-10-05
 
 ## Ringkasan
 Sistem pencatatan dan penyusutan arsip sekolah (surat masuk, surat keluar, ijazah, keuangan, dokumen kepegawaian, dan arsip lain yang ber-JRA) yang dipakai oleh satu operator, yaitu arsiparis. Rancangan ini mengganti 12 tabel lama dengan satu tabel induk `archive` beserta tabel rincian per jenis arsip. Retensi dihitung dari tahun berkas dinyatakan selesai, dan penyusutan mengikuti alur usulan → persetujuan → berita acara sesuai aturan kearsipan pemerintah daerah provinsi. Data lama dipindah sekali jalan ke database baru lewat skrip ETL, sedangkan skema baru dikelola Alembic.
@@ -53,14 +53,15 @@ Sistem pencatatan dan penyusutan arsip sekolah (surat masuk, surat keluar, ijaza
 | Sekolah tidak berwenang memusnahkan sendiri arsip pemda provinsi ber-retensi ≥ 10 tahun [S11] | Pemusnahan hanya bisa dieksekusi setelah persetujuan tercatat (`approval_reference`). Siapa yang berwenang tidak dikunci di skema (Belum pasti) |
 | JRA Pergub Jabar sudah ditemukan tetapi isinya tidak terbaca [S9, S10] | Skema tidak memuat angka retensi apa pun. Operator mengisi `classification` dari dokumen resmi; placeholder IJZ memakai `assess` (TP8) |
 | Retensi dihitung dari berkas selesai, tetapi data lama tidak punya informasi kapan berkas selesai | ETL mengisi `closed_year` = tahun dokumen (perilaku lama tetap), kecuali ijazah belum diambil = kosong |
-| ETL dirancang untuk data lama, padahal yang ada saat ini hanya data dummy | ETL tetap dibangun dan dievaluasi di dump dummy (Dev-A, docs/rencana-evaluasi.md). Dijalankan atau tidaknya saat cutover bergantung pada ada tidaknya data nyata; kalau tidak ada, cutover ke database baru kosong + data master (diputuskan di rancangan back-end) |
+| (Diubah 2026-10-05) ETL dirancang untuk data lama, padahal database lama belum berisi arsip | ETL tetap dibangun dan dievaluasi di D1 + seed deterministik (Dev-A, docs/rencana-evaluasi.md DS1–DS7). Dijalankan atau tidaknya saat cutover bergantung pada ada tidaknya data nyata; kalau tidak ada, cutover ke database baru kosong + data master (diputuskan di rancangan back-end). Klasifikasi seed `DMY-*` bukan JRA dan tidak boleh terbawa ke cutover |
+| Seed data uji dan ETL ditulis agent yang sama (keputusan Arya, 2026-10-05; menyimpang dari aturan tanpa konten tiruan agent di product-design) | Dev-A hanya bukti mekanik; label D3 tetap manual Arya; isi seed struktural berpenanda DUMMY; angka Dev-A tidak pernah dipakai sebagai angka final |
 
 ## Asumsi
 - A1. Aplikasi hanya dipakai satu operator (arsiparis), tanpa role.
 - A2. `approval_status` surat keluar dipertahankan sebagai catatan status tanda tangan, tanpa penyetuju.
 - A3. Arsip pegawai tidak difilter per pemilik.
 - A4. MySQL 8.0.16 atau lebih baru [S1].
-- A5. (Diubah 2026-10-04) Database lama saat ini hanya berisi data dummy. Kalau sebelum cutover ada data arsip nyata di aplikasi lama, data itu harus dipertahankan dan dipindahkan lewat ETL.
+- A5. (Diubah 2026-10-05) Database lama belum berisi data arsip; isinya hanya akun, pegawai, log, referensi, dan satu klasifikasi dari masa pengembangan. Kalau sebelum cutover ada data arsip nyata di aplikasi lama, data itu harus dipertahankan dan dipindahkan lewat ETL.
 - A6. Retensi dihitung per tahun dari `closed_year` (tahun berkas dinyatakan selesai), lewat setelah 31 Desember. `closed_year` kosong berarti berkas masih terbuka dan tidak diproses [S12].
 - A7. Perubahan masa retensi di JRA berlaku surut.
 - A8. Nomor surat keluar unik; surat masuk unik per (pengirim, nomor).
@@ -71,7 +72,7 @@ Sistem pencatatan dan penyusutan arsip sekolah (surat masuk, surat keluar, ijaza
 
 ## Belum pasti
 - Ada tidaknya data arsip nyata (di server sekolah atau di tempat lain) sebelum cutover; kalau ada, apakah boleh dibaca atau dikirim ke AI.
-- Profil data nyata (jumlah arsip per jenis per tahun, jumlah pegawai, jumlah lampiran) untuk target kinerja di rancangan back-end.
+- Profil data nyata (jumlah arsip per jenis per tahun, jumlah pegawai, jumlah lampiran) untuk target kinerja di rancangan back-end, dan untuk menyesuaikan preset volume seed.
 - Versi MySQL di server sekolah (`SELECT VERSION()`).
 - Isi baris JRA yang berlaku untuk sekolah dari Pergub Jabar 38/2019 (substantif) dan 75/2020 (fasilitatif keuangan, kepegawaian, umum): masa aktif, masa inaktif, dan keterangan untuk ijazah, buku induk, SPJ/BOS, berkas pegawai, dan persuratan. Teks resminya tidak bisa dibaca saat riset.
 - Kode klasifikasi Permendagri 83/2022 yang dipakai sekolah untuk tiap jenis arsip (menggantikan placeholder `IJZ` dan `TANPA-KLAS`).
@@ -80,6 +81,7 @@ Sistem pencatatan dan penyusutan arsip sekolah (surat masuk, surat keluar, ijaza
 - Dasar `closed_year` untuk surat: tahun surat, atau tahun urusan surat itu selesai.
 - Ada tidaknya nomor surat keluar ganda di data lama.
 - Hak user MySQL untuk membuat database baru.
+- (2026-10-05) Perlakuan ETL untuk arsip lama berstatus destroyed yang masih punya `attachment_path`. Pola ini tidak dicakup B4 maupun pra-cek K7; CHECK `ck_archive_destroyed_file` membuat ETL gagal dengan error database (terlihat, bukan diam-diam). Diputuskan kalau data nyata ada.
 
 ## Ditunda
 | Topik | Ditunda sampai |
@@ -107,14 +109,15 @@ Sistem pencatatan dan penyusutan arsip sekolah (surat masuk, surat keluar, ijaza
 | Scheduler retensi ✎ | Satu `UPDATE ... JOIN` harian untuk active → inactive berdasarkan `closed_year` (K5) | `archive`, `classification`, `activity_log` |
 | Penyusutan ✎ | Kandidat dari rumus K5 → usulan → persetujuan → berita acara → arsip destroyed (K4) | `archive`, `disposal`, `disposal_item`, `activity_log` |
 | Backup/restore (tidak berubah) | mysqldump database aktif; riwayat di `backup_logs.json` | Database baru setelah cutover |
+| Seed data uji Dev-A ★ (rancangan 003; alat evaluasi, bukan bagian aplikasi) | Mengisi salinan D1 dengan arsip dummy deterministik + baris anomali B4 | D1 `tupoksi_d1`, folder lampiran D1; rincian di docs/rencana-evaluasi.md |
 
 ## Keputusan
 | # | Keputusan | Rancangan | Alasan | Label |
 |---|---|---|---|---|
 | D1 | Pengguna | Satu operator (arsiparis) dengan kemampuan teknis awam; tanpa role | Jawaban Arya | — |
 | D2 | Cakupan | Dikerjakan: skema baru, migrasi Alembic, skrip ETL, model ORM baru, fungsi domain transisi status dan rumus retensi beserta testnya. Tidak dikerjakan: service/route, keamanan, front-end. Aplikasi tetap memakai database lama sampai cutover | Arya memilih desain database lebih dulu | — |
-| D3 | Sumber data | Database MySQL lama (12 tabel), dibaca sekali oleh ETL. Saat ini isinya data dummy buatan tim; data arsip nyata belum pasti. File lampiran tetap di `storage/`; isi JRA dimasukkan operator dari Pergub Jabar | Kondisi sekarang + A5, A11 | — |
-| D4 | Tanda berhasil | (1) Jumlah baris per jenis arsip, pegawai, klasifikasi, dan lokasi sama dengan database lama. (2) Laporan ETL tidak berisi nilai status tetap yang gagal dipetakan. (3) Setelah scheduler baru dijalankan sekali, kandidat musnah dari K5 identik 100% dengan `/disposal/check` lama untuk semua jenis kecuali ijazah (ijazah sengaja 0 kandidat, TP8). (4) Akun admin lama bisa login dengan username = NIP lama. Diukur di dump dummy (bukti mekanik) dan diulang di dump data nyata kalau ada (docs/rencana-evaluasi.md) | Bisa dicek dengan query dan satu kali login | — |
+| D3 | Sumber data | Database MySQL lama (12 tabel), dibaca sekali oleh ETL. Saat ini belum berisi arsip (hanya akun, pegawai, log, referensi pengembangan); data arsip nyata belum pasti. Untuk evaluasi Dev-A, salinan D1 diisi seed deterministik (rancangan 003). File lampiran tetap di `storage/`; isi JRA dimasukkan operator dari Pergub Jabar | Kondisi sekarang + A5, A11 | — |
+| D4 | Tanda berhasil | (1) Jumlah baris per jenis arsip, pegawai, klasifikasi, dan lokasi sama dengan database lama. (2) Laporan ETL tidak berisi nilai status tetap yang gagal dipetakan. (3) Setelah scheduler baru dijalankan sekali, kandidat musnah dari K5 identik 100% dengan `/disposal/check` lama untuk semua jenis kecuali ijazah (ijazah sengaja 0 kandidat, TP8). (4) Akun admin lama bisa login dengan username = NIP lama. Diukur di D1 Dev-A (salinan DB aplikasi + seed; bukti mekanik) dan diulang di dump data nyata kalau ada (docs/rencana-evaluasi.md) | Bisa dicek dengan query dan satu kali login | — |
 | K1 | Akun operator | `app_user` tanpa role dan tanpa relasi ke pegawai | A1 | Umum |
 | K2 | Struktur arsip | Class Table Inheritance: `archive` + 5 tabel rincian + jenis `other` tanpa rincian (TP1, TP7) | Satu tempat untuk siklus hidup arsip; semua arsip ber-JRA bisa dicatat | Umum |
 | K3 | Nilai pilihan | 6 tabel lookup per kategori; status yang menggerakkan logika dikunci dengan CHECK (TP2) | Integritas di level database | Umum |
@@ -296,7 +299,7 @@ Skrip ETL sekali jalan [S4]:
   5. log → activity_log: user_id NULL, action 'legacy', summary = teks lama, created_at = timestamp lama.
   6. Lampiran: buang awalan "storage/"; file yang hilang dicatat.
   7. Laporan verifikasi: D4 butir 1–2, pemetaan, file hilang.
-Cutover (di rancangan back-end): backup database lama → ETL → verifikasi D4 → ganti DATABASE_URL. Jalan kembali: DATABASE_URL lama [S2]. Kalau saat cutover database lama hanya berisi data dummy, cutover memakai database baru kosong + data master (keputusan di rancangan back-end).
+Cutover (di rancangan back-end): backup database lama → ETL → verifikasi D4 → ganti DATABASE_URL. Jalan kembali: DATABASE_URL lama [S2]. Kalau saat cutover database lama belum berisi data arsip nyata, cutover memakai database baru kosong + data master (keputusan di rancangan back-end). Baris seed Dev-A (penanda DUMMY, klasifikasi `DMY-*`) hanya ada di D1 dan tidak pernah ikut cutover.
 Metrik: D4 butir 1–3; ETL ulang di database kosong memberi hasil yang sama.
 Alternatif ditolak:
 | Pendekatan | Ditolak karena |
@@ -339,3 +342,4 @@ Alternatif ditolak:
 | 2026-10-04 | TP1–TP4 dijawab Arya (semua a). Revisi setelah riset aturan kearsipan sekolah: `closed_year` sebagai dasar retensi; alur disposal usulan → persetujuan → berita acara dengan `disposal_item` (ganti `archive.disposal_id`); jenis `other`; `classification.code` VARCHAR(30) + `legal_basis`; placeholder IJZ dari destroy menjadi assess; D4 butir 3 mengecualikan ijazah; TP5–TP8 baru | Koreksi Arya: cek aturan tupoksi arsiparis SMK di Indonesia sebelum skema dikunci |
 | 2026-10-04 | Rancangan 001 disetujui Arya; TP5–TP8 dijawab (semua a). Status → siap dikerjakan. Arsip: docs/rancangan/001a_2026-10-04_dev-desain-ulang-basis-data.md | Persetujuan Arya |
 | 2026-10-04 | Koreksi status data setelah disetujui: baris Data (tingkat 3 produksi → tingkat 0 data asli, database lama berisi dummy, aman dibaca AI); A5 diubah; D3 dan D4 diberi keterangan dummy/nyata; satu bentrokan baru (ETL vs data dummy); dua butir Belum pasti baru; catatan cutover di K7. Struktur skema, keputusan K1–K8, dan pilihan titik periksa tidak berubah. Kepala file 001a (Data: tingkat 3) sudah usang; yang berlaku adalah dokumen ini | Informasi Arya: seluruh data di database saat ini adalah dummy |
+| 2026-10-05 | Rancangan 003 disetujui (data uji Dev-A dari seed). Baris Data, A5, D3, D4 diperbarui: database lama belum berisi arsip; data uji Dev-A = D1 + seed deterministik. Bentrokan "ETL vs dummy" diubah; bentrokan baru seed dan ETL ditulis agent yang sama; Belum pasti: profil data untuk preset volume, ETL untuk arsip destroyed berlampiran; Gambaran sistem + baris seed; catatan K7 tentang baris seed. Skema, K1–K8, dan titik periksa 001 tidak berubah. Arsip: docs/rancangan/003a_2026-10-05_dev-rancang-evaluasi-data-seed.md | Hasil baseline dan information_schema Arya: database hampir kosong; keputusan Arya: data uji dibuat lewat script seed pink-chan |
