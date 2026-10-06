@@ -111,3 +111,30 @@ def validate_target_state(archive_counts: dict[str, int], has_marked_rows: bool,
                  for name in REQUIRED_REFERENCE_CATEGORIES if name not in categories]
     if problems:
         raise SeedGuardError("Seed dihentikan sebelum menulis: " + "; ".join(problems))
+
+
+def validate_plan_columns(rows_by_table: dict[str, list[Row]], column_names: dict[str, set[str]],
+                          column_lengths: dict[tuple[str, str], int]) -> None:
+    """Memastikan setiap kolom plan ada di D1 dan setiap teks muat di kolomnya, sebelum menulis.
+
+    Args:
+        rows_by_table: Nilai kolom plan per tabel.
+        column_names: Nama kolom D1 per tabel (hasil reflect).
+        column_lengths: Panjang maksimal kolom teks D1 per (tabel, kolom).
+
+    Raises:
+        SeedGuardError: Kalau ada kolom yang tidak dikenal atau teks yang terlalu panjang;
+            pesan menyebut tabel, kolom, dan panjangnya, tanpa isi nilai.
+    """
+    problems: list[str] = []
+    for table, rows in rows_by_table.items():
+        unknown = sorted({column for row in rows for column in row} - column_names.get(table, set()))
+        problems += [f"kolom {table}.{column} tidak ada di D1" for column in unknown]
+        for (length_table, column), limit in column_lengths.items():
+            if length_table != table:
+                continue
+            longest = max((len(row[column]) for row in rows if isinstance(row.get(column), str)), default=0)
+            if longest > limit:
+                problems.append(f"{table}.{column} butuh {longest} karakter, kolom D1 hanya {limit}")
+    if problems:
+        raise SeedGuardError("Plan seed tidak cocok dengan skema D1: " + "; ".join(problems))

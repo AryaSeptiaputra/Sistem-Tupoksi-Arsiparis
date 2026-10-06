@@ -34,13 +34,16 @@ def to_hashable_value(value: object) -> object:
     return value
 
 
-def _ordered_select(table: Table) -> tuple[Select, list[str]]:
+def _ordered_select(table: Table, id_limit: int | None) -> tuple[Select, list[str]]:
     columns = sorted(table.columns, key=lambda col: col.name)
     order = list(table.primary_key.columns) or columns
-    return select(*columns).order_by(*order), [col.name for col in columns]
+    statement = select(*columns).order_by(*order)
+    if id_limit is not None:
+        statement = statement.where(table.c.id <= id_limit)
+    return statement, [col.name for col in columns]
 
 
-def hash_table_rows(engine: Engine, tables: list[str]) -> dict[str, str]:
+def hash_table_rows(engine: Engine, tables: list[str], id_limits: dict[str, int] | None = None) -> dict[str, str]:
     """Menghitung hash SHA-256 berurutan atas semua baris setiap tabel.
 
     Baris diurutkan menurut primary key dan kolom diurutkan menurut nama, sehingga
@@ -49,6 +52,8 @@ def hash_table_rows(engine: Engine, tables: list[str]) -> dict[str, str]:
     Args:
         engine: Engine database yang dibaca.
         tables: Nama tabel yang di-hash.
+        id_limits: Kalau diisi, hanya baris dengan `id` ≤ batas per tabel yang di-hash
+            (baris yang sudah ada sebelum seed, SY8). Tabel tanpa batas di-hash seluruhnya.
 
     Returns:
         Hash hex per nama tabel.
@@ -61,7 +66,8 @@ def hash_table_rows(engine: Engine, tables: list[str]) -> dict[str, str]:
     try:
         with engine.connect() as conn:
             for name in tables:
-                statement, column_names = _ordered_select(Table(name, metadata, autoload_with=conn))
+                statement, column_names = _ordered_select(
+                    Table(name, metadata, autoload_with=conn), (id_limits or {}).get(name))
                 digest = hashlib.sha256(json.dumps(column_names).encode("utf-8"))
                 for row in conn.execute(statement):
                     line = json.dumps([to_hashable_value(value) for value in row], ensure_ascii=False)
