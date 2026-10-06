@@ -7,6 +7,8 @@ os.environ["JWT_SECRET_KEY"] = "kunci-palsu-test"
 os.environ["EVAL_OLD_DB_URL"] = ""
 os.environ["EVAL_STORAGE_ROOT"] = "storage-test-tidak-dipakai"
 os.environ["EVAL_OUTPUT_DIR"] = "outputs-test-tidak-dipakai"
+os.environ["EVAL_SEED_DB_URL"] = ""
+os.environ["EVAL_SEED_STORAGE_ROOT"] = ""
 
 from dataclasses import dataclass  # noqa: E402
 from datetime import datetime  # noqa: E402
@@ -161,3 +163,44 @@ def old_db(tmp_path: Path) -> OldDatabase:
     (storage_root / "documents" / "incoming").mkdir(parents=True)
     (storage_root / "documents" / "incoming" / "ada.pdf").write_bytes(b"%PDF palsu")
     return OldDatabase(url=url, storage_root=storage_root)
+
+
+def _seed_development_rows(session: Session) -> None:
+    from app.models.log import Log
+    from app.models.master_reference import MasterReference
+    from app.models.teacher import Teacher
+    from app.models.user import User
+
+    session.add(Teacher(id=1, identity_number="100000000000000001", full_name="Admin Pengembang", gender="L",
+                        employment_status="PNS", rank=None, status="Aktif"))
+    session.flush()
+    session.add(User(id=1, teacher_id=1, password="hash-palsu", role="admin", status="active"))
+    session.flush()
+    session.add_all([Log(id=n, action=f"Login {n}", user_id=1, timestamp=datetime(2026, 9, n)) for n in (1, 2, 3)])
+    session.add_all([
+        MasterReference(id=1, category="school_major", code="TKJ", name="Teknik Komputer dan Jaringan"),
+        MasterReference(id=2, category="school_major", code="RPL", name="Rekayasa Perangkat Lunak"),
+        MasterReference(id=3, category="teacher_emp_status", code="PNS", name="Pegawai Negeri Sipil"),
+        MasterReference(id=4, category="teacher_active_status", code="aktif", name="Aktif"),
+        MasterReference(id=5, category="finance_category", code="bos_reguler", name="BOS Reguler"),
+        MasterReference(id=6, category="emp_doc_type", code="sk", name="Surat Keputusan"),
+        MasterReference(id=7, category="archive_status", code="active", name="Aktif"),
+    ])
+
+
+@pytest.fixture
+def empty_d1(tmp_path: Path) -> OldDatabase:
+    """D1 seperti keadaan 2026-10-05: skema lama, 1 akun, 1 pegawai, log, master_reference, 0 arsip.
+
+    Lima kategori wajib ada, `teacher_rank` sengaja tidak ada (opsional menurut 003a DS1).
+    """
+    from app.core.database import Base as LegacyBase
+
+    url = f"sqlite:///{tmp_path / 'd1.db'}"
+    engine = create_engine(url)
+    LegacyBase.metadata.create_all(engine)
+    with Session(engine) as session:
+        _seed_development_rows(session)
+        session.commit()
+    engine.dispose()
+    return OldDatabase(url=url, storage_root=tmp_path / "storage_d1")

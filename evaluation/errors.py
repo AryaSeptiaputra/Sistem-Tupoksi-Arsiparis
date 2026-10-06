@@ -12,3 +12,7 @@ class LegacyCodeError(EvaluationError):
 
 class OutputError(EvaluationError):
     """Hasil evaluasi tidak bisa disimpan."""
+
+
+class SeedGuardError(EvaluationError):
+    """Penjaga seed menolak target atau isi D1; tidak ada yang ditulis."""
