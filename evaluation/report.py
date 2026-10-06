@@ -149,18 +149,19 @@ class ResultWriter:
             writer.writerows([[_to_cell(row.get(name)) for name in columns] for row in stored])
         return self._write_text(f"{name}.csv", buffer.getvalue())
 
-    def save_meta(self, meta: Row) -> Path:
-        """Menyimpan keterangan putaran sebagai `meta.json`.
+    def save_meta(self, meta: Row, name: str = "meta") -> Path:
+        """Menyimpan keterangan putaran sebagai `<name>.json`.
 
         Args:
             meta: Keterangan putaran; URL database harus sudah tanpa kata sandi.
+            name: Nama berkas tanpa ekstensi; default `meta` (baseline).
 
         Returns:
-            Path berkas `meta.json`.
+            Path berkas JSON.
 
         Raises:
             OutputError: Kalau berkas tidak bisa ditulis.
         """
         content = json.dumps({**meta, "sumber": self._source}, ensure_ascii=False, indent=2, default=_to_cell)
-        return self._write_text("meta.json", content + "\n")
+        return self._write_text(f"{name}.json", content + "\n")
 

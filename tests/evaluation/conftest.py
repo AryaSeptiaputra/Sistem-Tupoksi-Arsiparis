@@ -10,6 +10,7 @@ os.environ["EVAL_OUTPUT_DIR"] = "outputs-test-tidak-dipakai"
 os.environ["EVAL_SEED_DB_URL"] = ""
 os.environ["EVAL_SEED_STORAGE_ROOT"] = ""
 
+from collections.abc import Callable  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
 from datetime import datetime  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -171,36 +172,51 @@ def _seed_development_rows(session: Session) -> None:
     from app.models.teacher import Teacher
     from app.models.user import User
 
+    # Jejak waktu tetap, supaya dua salinan D1 identik sampai ke created_at (SY7)
+    stamp = {"created_at": datetime(2026, 9, 1, 8, 0), "updated_at": datetime(2026, 9, 1, 8, 0)}
     session.add(Teacher(id=1, identity_number="100000000000000001", full_name="Admin Pengembang", gender="L",
-                        employment_status="PNS", rank=None, status="Aktif"))
+                        employment_status="PNS", rank=None, status="Aktif", **stamp))
     session.flush()
-    session.add(User(id=1, teacher_id=1, password="hash-palsu", role="admin", status="active"))
+    session.add(User(id=1, teacher_id=1, password="hash-palsu", role="admin", status="active", **stamp))
     session.flush()
     session.add_all([Log(id=n, action=f"Login {n}", user_id=1, timestamp=datetime(2026, 9, n)) for n in (1, 2, 3)])
-    session.add_all([
-        MasterReference(id=1, category="school_major", code="TKJ", name="Teknik Komputer dan Jaringan"),
-        MasterReference(id=2, category="school_major", code="RPL", name="Rekayasa Perangkat Lunak"),
-        MasterReference(id=3, category="teacher_emp_status", code="PNS", name="Pegawai Negeri Sipil"),
-        MasterReference(id=4, category="teacher_active_status", code="aktif", name="Aktif"),
-        MasterReference(id=5, category="finance_category", code="bos_reguler", name="BOS Reguler"),
-        MasterReference(id=6, category="emp_doc_type", code="sk", name="Surat Keputusan"),
-        MasterReference(id=7, category="archive_status", code="active", name="Aktif"),
-    ])
+    references = [
+        (1, "school_major", "TKJ", "Teknik Komputer dan Jaringan"),
+        (2, "school_major", "RPL", "Rekayasa Perangkat Lunak"),
+        (3, "teacher_emp_status", "PNS", "Pegawai Negeri Sipil"),
+        (4, "teacher_active_status", "aktif", "Aktif"),
+        (5, "finance_category", "bos_reguler", "BOS Reguler"),
+        (6, "emp_doc_type", "sk", "Surat Keputusan"),
+        (7, "archive_status", "active", "Aktif"),
+    ]
+    session.add_all([MasterReference(id=ref_id, category=category, code=code, name=name, **stamp)
+                     for ref_id, category, code, name in references])
 
 
-@pytest.fixture
-def empty_d1(tmp_path: Path) -> OldDatabase:
-    """D1 seperti keadaan 2026-10-05: skema lama, 1 akun, 1 pegawai, log, master_reference, 0 arsip.
-
-    Lima kategori wajib ada, `teacher_rank` sengaja tidak ada (opsional menurut 003a DS1).
+def create_empty_d1(folder: Path) -> OldDatabase:
+    """Membuat D1 seperti keadaan 2026-10-05 di `folder`: skema lama, 1 akun, 1 pegawai, log,
+    master_reference, 0 arsip. Lima kategori wajib ada, `teacher_rank` sengaja tidak ada (opsional, 003a DS1).
     """
     from app.core.database import Base as LegacyBase
 
-    url = f"sqlite:///{tmp_path / 'd1.db'}"
+    folder.mkdir(parents=True, exist_ok=True)
+    url = f"sqlite:///{folder / 'd1.db'}"
     engine = create_engine(url)
     LegacyBase.metadata.create_all(engine)
     with Session(engine) as session:
         _seed_development_rows(session)
         session.commit()
     engine.dispose()
-    return OldDatabase(url=url, storage_root=tmp_path / "storage_d1")
+    return OldDatabase(url=url, storage_root=folder / "storage_d1")
+
+
+@pytest.fixture
+def empty_d1(tmp_path: Path) -> OldDatabase:
+    """Satu D1 kosong di folder sementara test."""
+    return create_empty_d1(tmp_path)
+
+
+@pytest.fixture
+def make_empty_d1(tmp_path: Path) -> Callable[[str], OldDatabase]:
+    """Pembuat beberapa salinan D1 kosong yang identik (SY7)."""
+    return lambda name: create_empty_d1(tmp_path / name)

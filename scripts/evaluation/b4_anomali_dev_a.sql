@@ -1,4 +1,13 @@
 -- =====================================================================
+-- USANG (rancangan 003a DS6, 2026-10-05) — JANGAN DIJALANKAN.
+-- Baris anomali B4 sekarang dibuat oleh seed:
+--   python -m scripts.evaluation.seed_d1 --skala penuh --anomali
+-- File ini disimpan hanya sebagai riwayat. Penjaga di bawah langsung
+-- menghentikan mysql dengan ERROR 1242 sebelum perintah lain dijalankan.
+-- =====================================================================
+SET @usang_003a_ds6 = (SELECT 1 FROM DUAL UNION ALL SELECT 2 FROM DUAL);
+
+-- =====================================================================
 -- Kerangka baris anomali B4 untuk salinan D1 (rencana evaluasi 002, TP6 / E6)
 --
 -- Versi terisi dari b4_anomali_template.sql. Atas permintaan Arya
