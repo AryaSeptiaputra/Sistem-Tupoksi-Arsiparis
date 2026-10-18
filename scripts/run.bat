@@ -10,8 +10,8 @@ if not exist .env (
   exit /b 1
 )
 
-REM Gunakan waitress untuk serving produksi di Windows
-waitress-serve --host=0.0.0.0 --port=6001 serve:app
+REM Jalur start yang sama dengan service NSSM: serve.py (waitress, 4 thread, port 6001)
+python serve.py
 
 if %errorlevel% neq 0 (
     echo.

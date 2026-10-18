@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # dan Python 3.8 (target Windows 7) belum mendukung operator `|` pada tipe.
     LOG_FILE_PATH: Optional[str] = None
     LOG_FORMAT: str = "text"
+    # Level kompresi 1-9; 1 paling ringan untuk CPU device lama, 0 mematikan kompresi
+    COMPRESS_LEVEL: int = 1
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -44,10 +44,13 @@ SHORT_URL_REDIRECTS = {
 }
 
 def _configure_app(app: Flask) -> None:
-    # Kompresi gzip untuk respons di atas 1 KB, level 6 dari 1-9
-    Compress(app)
-    app.config['COMPRESS_LEVEL'] = 6
-    app.config['COMPRESS_MIN_SIZE'] = 1024
+    # Kompresi gzip untuk respons di atas 1 KB; level dari .env, 0 berarti mati.
+    # Hanya gzip: zstd tidak dikenal Chrome 109 dan brotli lebih berat di CPU lama.
+    if settings.COMPRESS_LEVEL > 0:
+        app.config['COMPRESS_ALGORITHM'] = 'gzip'
+        app.config['COMPRESS_LEVEL'] = settings.COMPRESS_LEVEL
+        app.config['COMPRESS_MIN_SIZE'] = 1024
+        Compress(app)
 
     app.secret_key = settings.SECRET_KEY
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'

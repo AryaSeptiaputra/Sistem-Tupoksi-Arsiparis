@@ -11,8 +11,8 @@ if __name__ == "__main__":
     # Gunakan 127.0.0.1 jika hanya ingin akses lokal
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', 6001))
-    # Increase default threads to reduce waitress queue depth warnings under light bursts
-    threads = int(os.environ.get('THREADS', 12))
+    # 4 thread cukup untuk satu operator di LAN dan hemat memori di device lama
+    threads = int(os.environ.get('THREADS', 4))
     
     print("[SERVER] Production running at http://{}:{}".format(host, port))
     print("[INFO] Akses dari device lain: http://<IP-Komputer-Ini>:{}".format(port))

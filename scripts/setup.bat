@@ -29,6 +29,8 @@ if not exist .env (
         echo FLASK_DEBUG=0
         echo PORT=%PORT%
         echo.
+        echo COMPRESS_LEVEL=1
+        echo.
         echo # --- LOGGING ---
         echo LOG_FILE_PATH=%cd%\logs\production.log
     ) > .env
@@ -73,14 +75,6 @@ if %errorlevel% neq 0 (
     goto :err
 )
 
-:: Install waitress
-pip install waitress
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] Gagal install waitress
-    goto :err
-)
-
 :: 4. Membuat Folder Penyimpanan (Storage)
 echo [4/6] Membuat struktur folder penyimpanan arsip...
 if not exist storage\documents\incoming_letters mkdir storage\documents\incoming_letters
@@ -90,7 +84,13 @@ if not exist storage\documents\finance_archives mkdir storage\documents\finance_
 if not exist storage\documents\diplomas mkdir storage\documents\diplomas
 if not exist logs mkdir logs
 
-:: 5. Seeding Data Master dan Admin (opsional)
+:: 5. Data dari MySQL lama (opsional)
+echo Punya data dari aplikasi versi MySQL? Pindahkan dengan:
+echo   pip install PyMySQL==1.1.2
+echo   python scripts\migrate_mysql_to_sqlite.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
+echo Kalau sudah memindahkan data, jawab N pada pertanyaan seeding berikut.
+
+:: Seeding Data Master dan Admin (opsional)
 echo [5/6] Menjalankan seeding master/admin? (Y/N)
 choice /C YN /M "Jalankan seeding sekarang"
 if errorlevel 2 goto :skipseed
