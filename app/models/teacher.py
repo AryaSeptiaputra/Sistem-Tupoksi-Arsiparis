@@ -36,10 +36,7 @@ class Teacher(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # --- RELASI ---
-    # 1. Relasi ke Akun Login (Tetap ada untuk login)
-    user_account = relationship("User", back_populates="teacher", uselist=False, cascade="all, delete-orphan")
-
-    # 2. Relasi ke Arsip Pribadi (Milik Guru Ini) - Cascade Delete
+    # Relasi ke Arsip Pribadi (Milik Guru Ini) - Cascade Delete
     my_archives = relationship("EmployeeArchive", back_populates="owner", cascade="all, delete-orphan")
 
     def to_dict(self):

@@ -1,149 +1,109 @@
 /**
  * static/js/user_profile.js
- * Versi waras: data murni dari model User
+ * Halaman Akun Saya: satu akun operator, tanpa role.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadUserProfile();
+    loadAccount();
 
-    const form = document.getElementById('form-profile');
-    if (form) {
-        form.addEventListener('submit', handleUpdate);
-    }
+    const profileForm = document.getElementById('form-profile');
+    if (profileForm) profileForm.addEventListener('submit', handleProfileUpdate);
 
-    const toggleBtn = document.getElementById('btn-toggle-pass');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', togglePassVisibility);
+    const passwordForm = document.getElementById('form-password');
+    if (passwordForm) passwordForm.addEventListener('submit', handlePasswordChange);
+
+    const toggle = document.getElementById('toggle-password');
+    if (toggle) {
+        toggle.addEventListener('change', () => {
+            document.querySelectorAll('.pw-field').forEach(input => {
+                input.type = toggle.checked ? 'text' : 'password';
+            });
+        });
     }
 
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            api.auth.logout();
-        });
+        logoutBtn.addEventListener("click", () => api.auth.logout());
     }
 });
 
-/**
- * Load data user dari JWT (User model only)
- */
-function loadUserProfile() {
-    const user = api.auth.getUserData();
-
-    if (!user) {
-        alert("Sesi habis, silakan login kembali.");
-        window.location.href = '/page/login';
-        return;
+async function loadAccount() {
+    try {
+        const account = await api.user.getMe();
+        if (account) renderAccount(account);
+    } catch (error) {
+        ui.toast("Gagal memuat akun: " + error.message, "error");
     }
+}
 
-    // =====================
-    // AVATAR & CARD KIRI
-    // =====================
-    const initial = user.full_name
-        ? user.full_name.charAt(0).toUpperCase()
-        : '?';
+function renderAccount(account) {
+    const name = account.display_name || account.username || '?';
+    const initial = name.charAt(0).toUpperCase();
 
     setText('profile-avatar-big', initial);
     setText('header-avatar', initial);
+    setText('display-name', name);
+    setText('display-username', '@' + account.username);
+    setText('display-last-login', formatDateTime(account.last_login_at));
+    setText('display-updated', formatDateTime(account.updated_at));
+    setText('display-joined', formatDateTime(account.created_at));
 
-    setText('display-username', user.full_name || 'Unknown');
-    setText('display-nuptk', `NUPTK: ${user.identity_number || '-'}`);
-    setText('display-joined', user.created_at || '-');
+    setValue('input-display-name', account.display_name);
+    setValue('input-username', account.username);
 
-    // =====================
-    // FORM KANAN (INI YANG KURANG)
-    // =====================
-    setValue('input-id', user.id);
-
-    // NUPTK (readonly)
-    setValue('input-nuptk', user.identity_number);
-
-    // Username → Full Name (readonly / disabled)
-    setValue('input-username', user.full_name);
-
-    // Hidden
-    setValue('input-role', user.role);
-    setValue('input-status', user.status);
-
-    // =====================
-    // ROLE BADGE
-    // =====================
-    const roleEl = document.getElementById('display-role');
-    if (roleEl) {
-        roleEl.innerText = user.role;
-        roleEl.className = 'role-badge';
-
-        if (user.role === 'admin') roleEl.classList.add('role-admin');
-        else if (user.role === 'headmaster') roleEl.classList.add('role-headmaster');
-        else roleEl.classList.add('role-teacher');
-    }
-
-    // =====================
-    // STATUS
-    // =====================
     const statusDot = document.getElementById('status-indicator');
     const statusText = document.getElementById('display-status-text');
-
     if (statusDot && statusText) {
-        statusDot.className = 'status-dot';
-        statusText.className = 'status-text';
-        statusText.innerText = user.status.toUpperCase();
-
-        if (user.status === 'active') {
-            statusDot.classList.add('status-active');
-            statusText.classList.add('text-active');
-        } else {
-            statusDot.classList.add('status-inactive');
-            statusText.classList.add('text-inactive');
-        }
+        statusDot.className = 'status-dot ' + (account.is_active ? 'status-active' : 'status-inactive');
+        statusText.className = 'status-text ' + (account.is_active ? 'text-active' : 'text-inactive');
+        statusText.innerText = account.is_active ? 'Aktif' : 'Nonaktif';
     }
 }
 
-/**
- * Update password user
- */
-/**
- * Update data user (Nama & Password opsional)
- */
-async function handleUpdate(event) {
+async function handleProfileUpdate(event) {
     event.preventDefault();
 
-    const id = document.getElementById('input-id').value;
-    const fullName = document.getElementById('input-username').value; // Ambil nilai input
-    const password = document.getElementById('input-password').value;
-
-    // Payload wajib menyertakan full_name agar service di backend bisa menangkapnya
-    let payload = {
-        id: id,
-        full_name: fullName 
+    const payload = {
+        display_name: document.getElementById('input-display-name').value.trim(),
+        username: document.getElementById('input-username').value.trim()
     };
 
-    // Password hanya dikirim jika diisi
-    if (password) {
-        payload.password = password;
+    try {
+        const result = await api.user.update(payload);
+        renderAccount(result.data);
+        ui.toast("Informasi akun tersimpan. Login ulang untuk memperbarui nama di semua halaman.", "success");
+    } catch (error) {
+        ui.alert("Gagal menyimpan", error.message || "Error Server", "error");
+    }
+}
+
+async function handlePasswordChange(event) {
+    event.preventDefault();
+
+    const oldPassword = document.getElementById('input-old-password').value;
+    const newPassword = document.getElementById('input-new-password').value;
+    const confirmPassword = document.getElementById('input-confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+        ui.alert("Gagal mengganti", "Kata sandi baru tidak sama.", "error");
+        return;
     }
 
     try {
-        await api.user.update(payload);
-
-        if (password) {
-            alert("Password berhasil diperbarui. Silakan login ulang.");
-            api.auth.logout();
-        } else {
-            alert("Profil berhasil diperbarui.");
-            loadUserProfile(); // Refresh data di layar
-            document.getElementById('input-password').value = "";
-        }
+        await api.user.changePassword(oldPassword, newPassword);
+        await ui.alert("Berhasil", "Kata sandi diganti. Silakan login ulang.", "success");
+        api.auth.logout();
     } catch (error) {
-        alert("Gagal update: " + (error.message || "Error Server"));
+        ui.alert("Gagal mengganti", error.message || "Error Server", "error");
     }
 }
 
-function togglePassVisibility() {
-    const input = document.getElementById('input-password');
-    if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
-    }
+function formatDateTime(value) {
+    if (!value) return '-';
+    // Contoh hasil: 18 Okt 2026, 07.52
+    return new Date(value).toLocaleString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
 }
 
 function setText(id, text) {

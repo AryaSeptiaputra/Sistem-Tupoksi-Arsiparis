@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleLogin() {
-    const nuptkInput = document.getElementById('nuptk').value; 
+    const usernameInput = document.getElementById('username').value.trim();
     const passInput = document.getElementById('password').value;
     const btnLogin = document.querySelector('.btn-login');
     const originalText = btnLogin.textContent;
@@ -24,7 +24,7 @@ async function handleLogin() {
         btnLogin.disabled = true;
 
         // 2. Panggil API Login
-        const result = await api.auth.login(nuptkInput, passInput);
+        const result = await api.auth.login(usernameInput, passInput);
         
         // 3. JIKA SUKSES:
         if (result && result.access_token) {
@@ -46,7 +46,7 @@ async function handleLogin() {
         // Menggantikan alert() biasa
         await ui.alert(
             "Gagal Masuk", 
-            error.message || "Periksa kembali NUPTK dan Password Anda.", 
+            error.message || "Periksa kembali username dan kata sandi Anda.", 
             "error"
         );
 

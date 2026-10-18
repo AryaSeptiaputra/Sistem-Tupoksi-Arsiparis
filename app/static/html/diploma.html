@@ -41,7 +41,6 @@
             <i class='bx bxs-paper-plane'></i> Surat Keluar
         </a>
 
-        {% if session.get('role') in ['admin', 'headmaster'] %}
 
         <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
@@ -52,14 +51,12 @@
             class="nav-item {% if request.path.startswith(url_for('view.finance_archive')) %}active{% endif %}">
             <i class='bx bxs-wallet'></i> Arsip Keuangan
         </a>
-        {% endif %}
 
         <a href="{{ url_for('view.employee_archive') }}" data-route="{{ url_for('view.employee_archive') }}"
             class="nav-item {% if request.path.startswith(url_for('view.employee_archive')) %}active{% endif %}">
             <i class='bx bxs-user-badge'></i> Arsip Pegawai
         </a>
 
-        {% if session.get('role') == 'admin' %}
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
 
         <a href="{{ url_for('view.teacher') }}" data-route="{{ url_for('view.teacher') }}"
@@ -84,10 +81,6 @@
 
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
 
-        <a href="{{ url_for('view.user_page') }}" data-route="{{ url_for('view.user_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.user_page')) %}active{% endif %}">
-            <i class='bx bxs-group'></i> Pengguna
-        </a>
 
         <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
@@ -103,7 +96,11 @@
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
         </a>
-        {% endif %}
+
+        <a href="{{ url_for('view.user_profile') }}" data-route="{{ url_for('view.user_profile') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.user_profile')) %}active{% endif %}">
+            <i class='bx bxs-user-circle'></i> Akun Saya
+        </a>
 
         <div style="margin-top: auto;">
             <a class="nav-item btn-logout-sidebar" id="btn-logout">
@@ -119,9 +116,7 @@
                 <p>Kelola pendataan dan arsip digital ijazah lulusan.</p>
             </div>
             <div class="header-tools">
-                {% if session.get('role') == 'admin' %}
                 <button class="btn-add" id="btn-add-new" title="Tambah Data Baru">+</button>
-                {% endif %}
                 <button class="btn-export hidden" id="btn-back-list" style="border:none; background: #e5e7eb;">↩
                     Kembali</button>
                 <div class="user-avatar" id="header-avatar">?</div>

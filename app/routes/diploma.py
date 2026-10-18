@@ -6,23 +6,15 @@ from app.services.diploma import (
     create_diploma, update_diploma, 
     delete_diploma, get_all_diplomas, get_diplomas_by_keys
 )
-from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.response import handle_database_error
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
 
 diploma_bp = Blueprint('diploma', __name__)
-
-def get_current_actor_id(db_session):
-    try:
-        identity_number = get_jwt_identity()
-        teachers = get_teachers_by_keys(db_session, {'identity_number': identity_number})
-        return teachers[0].id if teachers else None
-    except:
-        return None
 
 @diploma_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -58,7 +50,7 @@ def create_diploma_route():
         new_diploma = create_diploma(db_session, data)
         
         # Logging
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Menambah data Ijazah: {new_diploma.student_name}")
             
@@ -113,7 +105,7 @@ def update_diploma_route():
         if old_path and (file or remove_attachment) and old_path != updated.attachment_path:
             delete_physical_file(old_path)
 
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Update Ijazah: {updated.student_name}")
 
@@ -136,7 +128,7 @@ def delete_diploma_route():
         if deleted.attachment_path:
             delete_physical_file(deleted.attachment_path)
 
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Hapus Ijazah: {deleted.student_name}")
 

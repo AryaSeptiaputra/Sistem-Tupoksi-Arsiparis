@@ -7,24 +7,15 @@ from app.services.outgoing_letter import (
     delete_outgoing_letter, get_all_outgoing_letters, 
     get_outgoing_letters_by_keys
 )
-from app.services.teacher import get_teachers_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.response import handle_database_error
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
 
 outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
-
-def get_current_actor_id(db_session):
-    """Helper untuk mendapatkan ID Teacher dari user yang login (untuk logging)"""
-    try:
-        identity_number = get_jwt_identity()
-        teachers = get_teachers_by_keys(db_session, {'identity_number': identity_number})
-        return teachers[0].id if teachers else None
-    except:
-        return None
 
 @outgoing_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -79,7 +70,7 @@ def create_outgoing_letter_route():
         new_letter = create_outgoing_letter(db_session, data)
         
         # Logging
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Menambahkan surat keluar No: '{new_letter.number}'")
             
@@ -141,7 +132,7 @@ def update_outgoing_letter_route():
         if old_file_path and (file or remove_attachment) and old_file_path != updated_letter.attachment_path:
             delete_physical_file(old_file_path)
 
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Update surat keluar No: '{updated_letter.number}'")
 
@@ -167,7 +158,7 @@ def delete_outgoing_letter_route():
         if deleted_letter.attachment_path:
             delete_physical_file(deleted_letter.attachment_path)
 
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Hapus surat keluar No: '{deleted_letter.number}'")
 

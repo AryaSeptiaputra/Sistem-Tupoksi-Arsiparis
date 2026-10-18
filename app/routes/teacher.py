@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys
 from app.services.log import create_log
+from app.utils.current_user import get_current_user_id
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
@@ -32,12 +33,8 @@ def create_teacher_route():
         
         # --- Logging Logic ---
         try:
-            current_identity = get_jwt_identity()
-            # Cari ID aktor (Teacher) berdasarkan identity_number yang login
-            actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            if actor:
-                action = f"Menambahkan Guru/Pegawai baru: '{new_teacher.full_name}' ({new_teacher.identity_number})."
-                create_log(db_session, actor[0].id, action)
+            action = f"Menambahkan Guru/Pegawai baru: '{new_teacher.full_name}' ({new_teacher.identity_number})."
+            create_log(db_session, get_current_user_id(), action)
         except Exception as e:
             print(f"Warning Log Error: {e}")
         # ---------------------
@@ -73,10 +70,7 @@ def update_teacher_route():
         
         # --- Logging ---
         try:
-            current_identity = get_jwt_identity()
-            actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            if actor:
-                create_log(db_session, actor[0].id, f"Memperbarui data guru: {updated.full_name}")
+            create_log(db_session, get_current_user_id(), f"Memperbarui data guru: {updated.full_name}")
         except Exception:
             pass
         # ---------------
@@ -106,10 +100,7 @@ def delete_teacher_route():
         
         # --- Logging ---
         try:
-            current_identity = get_jwt_identity()
-            actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            if actor:
-                create_log(db_session, actor[0].id, f"Menghapus data guru: {deleted.full_name}")
+            create_log(db_session, get_current_user_id(), f"Menghapus data guru: {deleted.full_name}")
         except Exception:
             pass
         # ---------------

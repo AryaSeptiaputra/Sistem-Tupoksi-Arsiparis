@@ -5,15 +5,9 @@ from app import db
 # Pastikan import service benar
 from app.services.disposal import get_expired_archives, execute_disposal
 from app.services.log import create_log
-from app.services.user import get_users_by_keys
+from app.utils.current_user import get_current_user_id
 
 disposal_bp = Blueprint('disposal', __name__)
-
-def get_current_user_obj(db_session):
-    current = get_jwt_identity()
-    # Mengambil user berdasarkan NUPTK/ID dari token
-    users = get_users_by_keys(db_session, {'nuptk': current})
-    return users[0] if users else None
 
 @disposal_bp.route('/check', methods=['GET'])
 @jwt_required()
@@ -51,15 +45,12 @@ def execute_route():
             return jsonify({"error": "No items selected"}), 400
         # -------------------------------
 
-        current_user = get_current_user_obj(db_session)
-        if not current_user: 
-            return jsonify({"error": "Auth failed"}), 401
+        user_id = get_current_user_id()
 
         # Eksekusi Logic
-        count = execute_disposal(db_session, items, current_user.id)
-        
-        # Catat Log Admin
-        create_log(db_session, current_user.id, f"Melakukan Pemusnahan Arsip: {count} dokumen.")
+        count = execute_disposal(db_session, items, user_id)
+
+        create_log(db_session, user_id, f"Melakukan Pemusnahan Arsip: {count} dokumen.")
         
         db_session.commit() # Pastikan commit jika belum dilakukan di service
         return jsonify({"message": f"Berhasil memusnahkan {count} arsip.", "count": count}), 200

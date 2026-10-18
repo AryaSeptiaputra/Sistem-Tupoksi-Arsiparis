@@ -88,7 +88,7 @@ choice /C YN /M "Jalankan seeding sekarang"
 if errorlevel 2 goto :skipseed
 python database\seeders\seed_master.py
 if %errorlevel% neq 0 goto :err
-python database\seeders\seed_admin.py
+python scripts\akun.py buat --username arsiparis --nama "Operator Arsip"
 if %errorlevel% neq 0 goto :err
 :skipseed
 

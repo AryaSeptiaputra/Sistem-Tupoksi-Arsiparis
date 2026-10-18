@@ -320,8 +320,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         console.log("[DEBUG] Rendering", data.length, "items");
-        const user = api.auth.getUserData();
-        const isAdmin = user && user.role === 'admin';
         const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
         data.forEach(item => {
@@ -359,12 +357,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
             `;
 
-            if (isAdmin) {
-                actionButtons += `
-                    <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
-                    <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
-                `;
-            }
+            actionButtons += `
+                <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
+                <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+            `;
 
             tr.innerHTML = `
                 <td style="font-weight:600;">${periodText}</td>

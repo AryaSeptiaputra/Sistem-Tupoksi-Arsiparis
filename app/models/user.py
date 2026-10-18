@@ -1,29 +1,40 @@
-from sqlalchemy import Column, String, Enum, DateTime, func, Integer, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Boolean, DateTime, func, Integer
 from app.core.database import Base
 
 class User(Base):
-    __tablename__ = "user"
+    """
+    Akun operator tunggal aplikasi (rancangan 001a, K1).
+
+    Tidak ada role dan tidak ada relasi ke data pegawai. Baris lama dari
+    tabel `user` disalin ke sini dengan id yang sama oleh
+    `scripts/migrate_single_user.py`; hanya satu baris yang boleh aktif.
+
+    Attributes:
+        username (str): Nama login, unik. Awalnya NIP lama, bisa diganti.
+        password_hash (str): Hash argon2 atas prehash SHA-256 (`app/utils/hash.py`).
+        display_name (str): Nama yang tampil di header dan log aktivitas.
+        is_active (bool): Login ditolak bila False.
+        last_login_at (datetime | None): Waktu login terakhir yang berhasil.
+    """
+    __tablename__ = "app_user"
 
     id = Column(Integer, primary_key=True, index=True)
-    
-    # Relasi ke Teacher (Untuk Auth)
-    teacher_id = Column(Integer, ForeignKey("teacher.id"), unique=True, nullable=False)
-    teacher = relationship("Teacher", back_populates="user_account")
+    username = Column(String(50), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    display_name = Column(String(100), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    last_login_at = Column(DateTime, nullable=True)
 
-    password = Column(String(200), nullable=False)
-    role = Column(Enum('headmaster', 'admin', 'teacher', name='user_role'), nullable=False)
-    status = Column(Enum('active', 'inactive', name='user_status'), nullable=False)
-    
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "identity_number": self.teacher.identity_number if self.teacher else None,
-            "full_name": self.teacher.full_name if self.teacher else "Unknown",
-            "role": str(self.role),
-            "status": str(self.status),
-            "created_at": self.created_at
+            "username": self.username,
+            "display_name": self.display_name,
+            "is_active": bool(self.is_active),
+            "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

@@ -12,7 +12,7 @@ class Backup(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='SET NULL'), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey('app_user.id', ondelete='SET NULL'), nullable=True, index=True)
     user = relationship('User', backref='backup', lazy="joined")
 
     def to_dict(self):
@@ -21,5 +21,5 @@ class Backup(Base):
             "filename": self.filename,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "triggered_by": self.user.username if self.user else "SYSTEM"
+            "triggered_by": self.user.display_name if self.user else "SYSTEM"
         }

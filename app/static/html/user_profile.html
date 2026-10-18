@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profil Pengguna</title>
+    <title>Akun Saya</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
@@ -37,7 +37,6 @@
             <i class='bx bxs-paper-plane'></i> Surat Keluar
         </a>
 
-        {% if session.get('role') in ['admin', 'headmaster'] %}
 
         <a href="{{ url_for('view.diploma_page') }}" data-route="{{ url_for('view.diploma_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.diploma_page')) %}active{% endif %}">
@@ -48,14 +47,12 @@
             class="nav-item {% if request.path.startswith(url_for('view.finance_archive')) %}active{% endif %}">
             <i class='bx bxs-wallet'></i> Arsip Keuangan
         </a>
-        {% endif %}
 
         <a href="{{ url_for('view.employee_archive') }}" data-route="{{ url_for('view.employee_archive') }}"
             class="nav-item {% if request.path.startswith(url_for('view.employee_archive')) %}active{% endif %}">
             <i class='bx bxs-user-badge'></i> Arsip Pegawai
         </a>
 
-        {% if session.get('role') == 'admin' %}
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">Master Data</div>
 
         <a href="{{ url_for('view.teacher') }}" data-route="{{ url_for('view.teacher') }}"
@@ -80,10 +77,6 @@
 
         <div style="margin: 12px 16px 8px; font-size: 11px; font-weight: 600; color: #9ca3af;">System</div>
 
-        <a href="{{ url_for('view.user_page') }}" data-route="{{ url_for('view.user_page') }}"
-            class="nav-item {% if request.path.startswith(url_for('view.user_page')) %}active{% endif %}">
-            <i class='bx bxs-group'></i> Pengguna
-        </a>
 
         <a href="{{ url_for('view.log_page') }}" data-route="{{ url_for('view.log_page') }}"
             class="nav-item {% if request.path.startswith(url_for('view.log_page')) %}active{% endif %}">
@@ -99,7 +92,11 @@
             class="nav-item {% if request.path.startswith(url_for('view.backup')) %}active{% endif %}">
             <i class='bx bxs-data'></i> Backup Database
         </a>
-        {% endif %}
+
+        <a href="{{ url_for('view.user_profile') }}" data-route="{{ url_for('view.user_profile') }}"
+            class="nav-item {% if request.path.startswith(url_for('view.user_profile')) %}active{% endif %}">
+            <i class='bx bxs-user-circle'></i> Akun Saya
+        </a>
 
         <div style="margin-top: auto;">
             <a class="nav-item btn-logout-sidebar" id="btn-logout">
@@ -111,100 +108,103 @@
     <main class="main-content">
         <div class="header-page">
             <div class="header-title">
-                <h1>Profil Pengguna</h1>
-                <p>Kelola informasi akun Anda</p>
+                <h1>Akun Saya</h1>
+                <p>Satu akun operator untuk masuk ke Sistem Arsip Digital</p>
             </div>
             <div class="header-tools">
                 <div class="user-avatar" id="header-avatar">?</div>
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 320px 1fr; gap: 24px;">
+        <div style="display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start;">
 
-            <div class="content-card" style="text-align:center; padding:32px; border-radius:18px;">
+            <div class="content-card" style="text-align:center; padding:28px; border-radius:16px;">
                 <div style="
-                    width:120px; height:120px; border-radius:60px; 
-                    background:var(--primary); margin: 0 auto 20px; 
-                    display:flex; align-items:center; justify-content:center; 
-                    color:white; font-size:42px; font-weight:600;
-                    box-shadow: 0 10px 25px rgba(255, 138, 92, 0.4);
-                " id="profile-avatar-big">
-                    -
-                </div>
+                    width:96px; height:96px; border-radius:48px;
+                    background:var(--primary); margin: 0 auto 16px;
+                    display:flex; align-items:center; justify-content:center;
+                    color:white; font-size:36px; font-weight:600;
+                " id="profile-avatar-big">-</div>
 
-                <h2 style="font-size:20px; font-weight:600;" id="display-username">Loading...</h2>
+                <h2 style="font-size:19px; font-weight:600;" id="display-name">Memuat...</h2>
+                <p style="margin-top:4px; color:var(--text-muted); font-size:14px;" id="display-username">@-</p>
 
-                <p style="margin-top:6px; color:var(--text-muted); font-size:14px;" id="display-nuptk">
-                    NUPTK: -
-                </p>
-
-                <div style="margin:16px 0;">
-                    <span id="display-role" class="role-badge">Loading..</span>
-                </div>
-
-                <div style="margin-top:6px; font-size:14px;">
+                <div style="margin-top:12px; font-size:14px;">
                     <span id="status-indicator" class="status-dot"></span>
                     <span id="display-status-text" class="status-text">-</span>
                 </div>
 
-                <p style="margin-top:20px; color:var(--text-muted); font-size:13px;">
-                    📅 Bergabung: <span id="display-joined">-</span>
-                </p>
+                <div style="margin-top:20px; border-top:1px solid var(--border-color, #e5e7eb); padding-top:16px; text-align:left; display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Login terakhir</span><span id="display-last-login">-</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Diperbarui</span><span id="display-updated">-</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Akun dibuat</span><span id="display-joined">-</span></div>
+                </div>
             </div>
 
-            <div class="content-card" style="padding:32px; border-radius:18px;">
-                <h3 style="margin-bottom:20px; font-size:18px; font-weight:600;">
-                    Informasi Personal
-                </h3>
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <div class="content-card" style="padding:28px; border-radius:16px;">
+                    <h3 style="font-size:17px; font-weight:600;">Informasi akun</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin:4px 0 20px;">Nama tampilan muncul di header dan di log aktivitas.</p>
 
-                <form id="form-profile">
-                    <input type="hidden" id="input-id">
-                    <input type="hidden" id="input-role">
-                    <input type="hidden" id="input-status">
-
-                    <div style="margin-bottom:20px;">
-                        <label style="font-size:13px; font-weight:600;">NUPTK (Nomor Induk)</label>
-                        <div class="input-control">
-                            <input type="text" id="input-nuptk" style="background-color: #f3f4f6; cursor: not-allowed;"
-                                readonly>
-                            <span class="toggle-password">🔒</span>
+                    <form id="form-profile">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                            <div>
+                                <label for="input-display-name" style="font-size:13px; font-weight:600;">Nama tampilan</label>
+                                <div class="input-control">
+                                    <input type="text" id="input-display-name" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="input-username" style="font-size:13px; font-weight:600;">Username</label>
+                                <div class="input-control">
+                                    <input type="text" id="input-username" autocomplete="username" required>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div style="margin-bottom:20px;">
-                        <label style="font-size:13px; font-weight:600;">Username</label>
-                        <div class="input-control">
-                            <input type="text" id="input-username" required>
-                            <span class="toggle-password">✏️</span>
+                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                            <button type="submit" class="btn-profile-save" style="padding:11px 22px; background:var(--primary); border:none; border-radius:10px; color:white; font-weight:600; font-family:inherit; cursor:pointer;">Simpan</button>
                         </div>
-                    </div>
+                    </form>
+                </div>
 
-                    <div style="margin-bottom:20px;">
-                        <label style="font-size:13px; font-weight:600;">Password Baru (Opsional)</label>
-                        <div class="input-control">
-                            <input type="password" id="input-password"
-                                placeholder="Isi hanya jika ingin mengubah password">
-                            <span class="toggle-password" id="btn-toggle-pass" style="cursor: pointer;">👁️</span>
+                <div class="content-card" style="padding:28px; border-radius:16px;">
+                    <h3 style="font-size:17px; font-weight:600;">Ganti kata sandi</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin:4px 0 20px;">Masukkan kata sandi lama untuk konfirmasi. Minimal 8 karakter, berisi huruf besar, huruf kecil, dan angka.</p>
+
+                    <form id="form-password">
+                        <div style="margin-bottom:16px;">
+                            <label for="input-old-password" style="font-size:13px; font-weight:600;">Kata sandi lama</label>
+                            <div class="input-control">
+                                <input type="password" id="input-old-password" class="pw-field" autocomplete="current-password" required>
+                            </div>
                         </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                            <div>
+                                <label for="input-new-password" style="font-size:13px; font-weight:600;">Kata sandi baru</label>
+                                <div class="input-control">
+                                    <input type="password" id="input-new-password" class="pw-field" autocomplete="new-password" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="input-confirm-password" style="font-size:13px; font-weight:600;">Ulangi kata sandi baru</label>
+                                <div class="input-control">
+                                    <input type="password" id="input-confirm-password" class="pw-field" autocomplete="new-password" required>
+                                </div>
+                            </div>
+                        </div>
+                        <label style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:13px; color:var(--text-muted); cursor:pointer;">
+                            <input type="checkbox" id="toggle-password"> Tampilkan kata sandi
+                        </label>
+                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                            <button type="submit" style="padding:11px 22px; background:var(--primary); border:none; border-radius:10px; color:white; font-weight:600; font-family:inherit; cursor:pointer;">Ganti kata sandi</button>
+                        </div>
+                    </form>
+
+                    <div style="display:flex; gap:10px; align-items:flex-start; background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px; font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:16px;">
+                        <i class='bx bx-info-circle' style="font-size:18px;"></i>
+                        <span>Aplikasi ini hanya punya satu akun, jadi tidak ada admin lain yang bisa mereset sandi. Jika lupa kata sandi, reset dilakukan di server dengan perintah <code>python scripts/akun.py reset-sandi --username &lt;username&gt;</code>.</span>
                     </div>
-
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:6px; text-align: right;">
-                        🕒 Terakhir diupdate: <span id="display-updated">-</span>
-                    </p>
-
-                    <button type="submit" style="
-                        margin-top:24px; padding:12px 24px;
-                        background: var(--primary); border:none;
-                        border-radius:10px; color:white;
-                        font-weight:600; cursor:pointer;
-                        float:right; box-shadow: 0 4px 12px rgba(255, 138, 92, 0.3);
-                        transition: 0.2s;
-                    " onmouseover="this.style.transform='translateY(-2px)'"
-                        onmouseout="this.style.transform='translateY(0)'">
-                        Simpan Perubahan
-                    </button>
-                </form>
-
+                </div>
             </div>
         </div>
     </main>

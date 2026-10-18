@@ -10,24 +10,15 @@ from app.services.employee_archive import (
     create_employee_archive, update_employee_archive, 
     delete_employee_archive, get_all_employee_archives
 )
-from app.services.teacher import get_teachers_by_keys # Untuk Log Actor
 from app.services.log import create_log
 from app import db
+from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.response import handle_database_error
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
 
 employee_archive_bp = Blueprint('employee_archive', __name__)
-
-def get_current_actor_id(db_session):
-    """Helper: Get Teacher ID of current user for logging"""
-    try:
-        identity = get_jwt_identity()
-        teachers = get_teachers_by_keys(db_session, {'identity_number': identity})
-        return teachers[0].id if teachers else None
-    except:
-        return None
 
 @employee_archive_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -50,7 +41,7 @@ def create_route():
     try:
         new_data = create_employee_archive(db_session, data)
         
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Upload Arsip Pegawai: {new_data.document_name}")
         
@@ -92,7 +83,7 @@ def update_route():
         if old_path and (file or remove_attachment) and old_path != updated.attachment_path:
             delete_physical_file(old_path)
         
-        actor_id = get_current_actor_id(db_session)
+        actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Update Arsip Pegawai: {updated.document_name}")
 
@@ -111,7 +102,7 @@ def delete_route():
         deleted = delete_employee_archive(db_session, data.get('id'))
         if deleted:
             if deleted.attachment_path: delete_physical_file(deleted.attachment_path)
-            actor_id = get_current_actor_id(db_session)
+            actor_id = get_current_user_id()
             if actor_id: create_log(db_session, actor_id, f"Hapus Arsip Pegawai: {deleted.document_name}")
             return jsonify({"status": "deleted"}), 200
         return jsonify({"error": "Not found"}), 404

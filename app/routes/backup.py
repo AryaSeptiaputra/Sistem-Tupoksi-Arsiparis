@@ -6,15 +6,10 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 # Import service dan fungsi baru
 from app.services.backup import perform_database_backup, perform_database_restore, get_all_logs, BACKUP_DIR
-from app.services.user import get_users_by_keys 
+from app.services.user import get_user
+from app.utils.current_user import get_current_user_id
 
 backup_bp = Blueprint('backup', __name__)
-
-def get_current_user_obj(db_session: Session):
-    """Helper untuk mengambil object User berdasarkan JWT Identity (NUPTK)."""
-    current_nuptk = get_jwt_identity()
-    users = get_users_by_keys(db_session, {'nuptk': current_nuptk})
-    return users[0] if users else None
 
 @backup_bp.route('/manual', methods=['POST'])
 @jwt_required()
@@ -24,9 +19,9 @@ def trigger_manual_backup():
     triggered_by = "SYSTEM"
     
     try:
-        user = get_current_user_obj(db_session)
+        user = get_user(db_session, get_current_user_id())
         if user:
-            triggered_by = user.username # [UBAH] Ambil nama username langsung
+            triggered_by = user.display_name
     except Exception as e:
         print(f"Warning: Could not resolve user for backup log. Error: {e}")
     finally:

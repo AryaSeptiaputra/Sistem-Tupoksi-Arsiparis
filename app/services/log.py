@@ -3,13 +3,14 @@ from app.models.log import Log
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_log(db: Session, user_id: int, action: str) -> Log:
+def create_log(db: Session, user_id: int | None, action: str) -> Log:
     """
     Creates a new activity log entry for audit trails.
 
     Args:
         db (Session): The database session.
-        user_id (int): The ID of the user performing the action.
+        user_id (int | None): The ID of the account performing the action,
+            or None for an automatic system process.
         action (str): A description of the action performed (e.g., "LOGIN", 
             "CREATED_LETTER").
 

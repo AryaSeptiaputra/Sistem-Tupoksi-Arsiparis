@@ -7,7 +7,7 @@ from app.services.classification import (
     get_all_classifications, get_classifications_by_keys
 )
 from app.services.log import create_log
-from app.services.teacher import get_teachers_by_keys # Untuk logging actor
+from app.utils.current_user import get_current_user_id
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
@@ -27,10 +27,7 @@ def create_classification_route():
         
         # Logging
         try:
-            current_identity = get_jwt_identity()
-            actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            if actor:
-                create_log(db_session, actor[0].id, f"Menambah Klasifikasi: {new_cls.code} - {new_cls.name}")
+            create_log(db_session, get_current_user_id(), f"Menambah Klasifikasi: {new_cls.code} - {new_cls.name}")
         except Exception: pass
 
         return jsonify(new_cls.to_dict()), 201

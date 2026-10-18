@@ -22,23 +22,25 @@ OPTIMIZATION NOTES:
 DATABASE_URL = settings.DATABASE_URL
 IS_SQLITE = 'sqlite' in DATABASE_URL
 
-# Use NullPool untuk SQLite, QueuePool untuk MySQL
-pool_class = NullPool if IS_SQLITE else QueuePool
-
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=pool_class,
-    pool_size=20,                    # Maintain 20 connections
-    max_overflow=10,                 # Allow up to 10 additional connections
-    pool_pre_ping=True,              # Check connection health before use
-    pool_recycle=3600,               # Recycle connections after 1 hour
-    echo=False,                      # Set to True for SQL logging in development
-    connect_args={
-        'charset': 'utf8mb4',        # For MySQL: support emoji dan special chars
-        'connect_timeout': 10,       # Connection timeout 10 detik
-        'read_timeout': 30,          # Query timeout 30 detik
-    } if not IS_SQLITE else {}
-)
+# Use NullPool untuk SQLite (test), QueuePool untuk MySQL.
+# NullPool menolak argumen pool_size/max_overflow, jadi hanya dikirim untuk MySQL.
+if IS_SQLITE:
+    engine = create_engine(DATABASE_URL, poolclass=NullPool, echo=False)
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=20,                    # Maintain 20 connections
+        max_overflow=10,                 # Allow up to 10 additional connections
+        pool_pre_ping=True,              # Check connection health before use
+        pool_recycle=3600,               # Recycle connections after 1 hour
+        echo=False,                      # Set to True for SQL logging in development
+        connect_args={
+            'charset': 'utf8mb4',        # For MySQL: support emoji dan special chars
+            'connect_timeout': 10,       # Connection timeout 10 detik
+            'read_timeout': 30,          # Query timeout 30 detik
+        }
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False, 

@@ -155,10 +155,6 @@ def create_app():
     def diploma():
         return redirect(url_for('view.diploma_page'))
 
-    @app.route('/user')
-    def user():
-        return redirect(url_for('view.user_page'))
-    
     @app.route('/log')
     def log():
         return redirect(url_for('view.log'))

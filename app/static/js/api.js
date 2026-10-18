@@ -75,8 +75,8 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
 const api = {
     // 1. AUTH
     auth: {
-        login: async (nuptk, password) => {
-            const result = await fetchAPI('/auth/login', 'POST', { nuptk, password });
+        login: async (username, password) => {
+            const result = await fetchAPI('/auth/login', 'POST', { username, password });
             
             if (result && result.access_token) {
                 localStorage.setItem('access_token', result.access_token);
@@ -105,13 +105,14 @@ const api = {
         }
     },
 
-    // 2. USER
+    // 2. AKUN (satu operator)
     user: {
-        create: (data) => fetchAPI('/user/create', 'POST', data),
+        getMe: () => fetchAPI('/user/me', 'GET'),
         update: (data) => fetchAPI('/user/update', 'POST', data),
-        delete: (id) => fetchAPI('/user/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/user/get_all', 'GET'),
-        getByKeys: (filters) => fetchAPI('/user/get_by_keys', 'POST', { filters })
+        changePassword: (oldPassword, newPassword) => fetchAPI('/user/change_password', 'POST', {
+            old_password: oldPassword,
+            new_password: newPassword
+        })
     },
 
     teacher: {
@@ -213,8 +214,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const headerAvatar = document.getElementById("header-avatar");
     if (headerAvatar) {
         const user = api.auth.getUserData();
-        if (user && user.username) {
-            headerAvatar.textContent = user.username.charAt(0).toUpperCase();
+        const name = user && (user.display_name || user.username);
+        if (name) {
+            headerAvatar.textContent = name.charAt(0).toUpperCase();
             headerAvatar.style.cursor = "pointer";
             headerAvatar.title = "Klik untuk lihat profil";
             headerAvatar.onclick = () => {

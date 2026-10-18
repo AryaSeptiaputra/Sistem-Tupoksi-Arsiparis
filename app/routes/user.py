@@ -1,156 +1,71 @@
+import logging
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.services.user import create_user, update_user, delete_user, get_all_users, get_users_by_keys
-from app.services.teacher import get_teachers_by_keys
+from app.services.user import get_user, update_profile, change_password
 from app.services.log import create_log
+from app.utils.current_user import get_current_user_id
 from app import db
-from app.utils.pagination import get_pagination_params
-from app.utils.response import success_response, error_response
+
+logger = logging.getLogger(__name__)
 
 user_bp = Blueprint('user', __name__)
 
-@user_bp.route('/create', methods=['POST'])
+@user_bp.route('/me', methods=['GET'])
 @jwt_required()
-def create_user_route():
-    """
-    Payload: teacher_id, password, role, status
-    """
-    data = request.json
-    required_fields = ['teacher_id', 'password', 'role', 'status']
-
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"{field} is required"}), 400
-    
+def get_me_route():
     db_session: Session = db.SessionLocal()
-
     try:
-        new_user = create_user(db_session, data)
-        
-        # --- Logging ---
-        try:
-            # Ambil identitas admin yang sedang login
-            current_identity = get_jwt_identity() 
-            # Cari data Teacher milik admin tersebut
-            admin_actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            
-            if admin_actor:
-                target_teacher = new_user.teacher.full_name if new_user.teacher else "Unknown"
-                action = f"Membuat akun pengguna untuk guru: '{target_teacher}'."
-                create_log(db_session, admin_actor[0].id, action)
-        except Exception as e:
-            print(f"Log Error: {e}")
-        # ---------------
-
-        return jsonify({
-            "message": "Akun pengguna berhasil dibuat."
-        }), 201
-    
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except IntegrityError:
-        db_session.rollback()
-        return jsonify({"message": "Database Error: Kemungkinan duplikasi data."}), 409
-    except Exception as e:
-        db_session.rollback()
-        print(f"Error Create User: {e}")
-        return jsonify({"message": "Internal Server Error"}), 500
+        user = get_user(db_session, get_current_user_id())
+        if not user:
+            return jsonify({"error": "Akun tidak ditemukan"}), 404
+        return jsonify(user.to_dict()), 200
     finally:
         db_session.close()
 
 @user_bp.route('/update', methods=['POST'])
 @jwt_required()
-def updated_user_route():
-    data = request.json
-    user_id = data.get('id')
-    
-    if not user_id:
-        return jsonify({"error": "ID is required"}), 400
-
+def update_me_route():
+    """
+    Payload: username, display_name
+    """
+    data = request.json or {}
     db_session: Session = db.SessionLocal()
     try:
-        updated_user = update_user(db_session, user_id, data)
+        user_id = get_current_user_id()
+        updated_user = update_profile(db_session, user_id, data.get('username'), data.get('display_name'))
         if not updated_user:
-            return jsonify({"error": "User not found"}), 404
-        
-        # --- Logging ---
-        try:
-            current_identity = get_jwt_identity()
-            admin_actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            
-            if admin_actor:
-                target_name = updated_user.teacher.full_name if updated_user.teacher else "Unknown"
-                action = f"Memperbarui akun pengguna: '{target_name}'."
-                create_log(db_session, admin_actor[0].id, action)
-        except Exception:
-            pass
-        # ---------------
+            return jsonify({"error": "Akun tidak ditemukan"}), 404
 
-        return jsonify({"message": "Data pengguna berhasil diperbarui"}), 200
+        create_log(db_session, user_id, "Memperbarui informasi akun.")
+        return jsonify({"message": "Informasi akun berhasil diperbarui", "data": updated_user.to_dict()}), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except IntegrityError:
+        db_session.rollback()
+        return jsonify({"error": "Username sudah dipakai."}), 409
     finally:
         db_session.close()
 
-@user_bp.route('/delete', methods=['POST'])
+@user_bp.route('/change_password', methods=['POST'])
 @jwt_required()
-def delete_user_route():
-    data = request.json
-    user_id = data.get('id')
-    
-    if not user_id:
-        return jsonify({"error": "id is required"}), 400
-    
+def change_password_route():
+    """
+    Payload: old_password, new_password
+    """
+    data = request.json or {}
     db_session: Session = db.SessionLocal()
     try:
-        deleted_user = delete_user(db_session, user_id)
-        if not deleted_user:
-            return jsonify({"error": "User not found"}), 404
-        
-        # --- Logging ---
-        try:
-            current_identity = get_jwt_identity()
-            admin_actor = get_teachers_by_keys(db_session, {'identity_number': current_identity})
-            if admin_actor:
-                target_name = deleted_user.teacher.full_name if deleted_user.teacher else "Unknown"
-                create_log(db_session, admin_actor[0].id, f"Menghapus akun pengguna: {target_name}")
-        except Exception:
-            pass
-        # ---------------
+        user_id = get_current_user_id()
+        updated_user = change_password(db_session, user_id, data.get('old_password'), data.get('new_password') or '')
+        if not updated_user:
+            return jsonify({"error": "Akun tidak ditemukan"}), 404
 
-        return jsonify({"message": "Akun berhasil dihapus"}), 200
+        create_log(db_session, user_id, "Mengganti kata sandi akun.")
+        return jsonify({"message": "Kata sandi berhasil diganti"}), 200
 
-    finally:
-        db_session.close()
-
-@user_bp.route('/get_all', methods=['GET'])
-def get_all_users_route():
-    db_session: Session = db.SessionLocal()
-    try:
-        pagination = get_pagination_params(request.args)
-        result = get_all_users(db_session, pagination)
-        result.items = [user.to_dict() for user in result.items]
-        return success_response(result, "Users retrieved successfully", 200)
-    except Exception as e:
-        return error_response(str(e), 500)
-    finally:
-        db_session.close()
-
-@user_bp.route('/get_by_keys', methods=['POST'])
-def get_users_by_keys_route():
-    data = request.json
-    filters = data.get('filters')
-    
-    if not filters or not isinstance(filters, dict):
-        return jsonify({"error": "'filters' dictionary is required"}), 400
-
-    db_session: Session = db.SessionLocal()
-    try:
-        users = get_users_by_keys(db_session, filters)
-        return jsonify([user.to_dict() for user in users]), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     finally:

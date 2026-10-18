@@ -53,30 +53,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- FUNCTIONS ---
 
     async function initPage() {
-        // Load User dulu untuk isi Dropdown Filter
-        await loadUsersForFilter();
-        // Baru Load Log
         await loadLogs();
-    }
-
-    async function loadUsersForFilter() {
-        try {
-            // Kita butuh list user agar admin bisa filter "Siapa yang melakukan aksi ini?"
-            const users = await api.user.getAll();
-            
-            // Bersihkan dan isi ulang opsi
-            filterUser.innerHTML = '<option value="">Semua Pengguna</option>';
-            
-            users.forEach(u => {
-                const opt = document.createElement("option");
-                opt.value = u.username; // Kita filter by username yang tersimpan di log
-                opt.textContent = u.username + (u.role ? ` (${u.role})` : '');
-                filterUser.appendChild(opt);
-            });
-        } catch (e) {
-            console.error("Gagal memuat list user untuk filter:", e);
-            // Optional: ui.toast("Gagal memuat filter user", "error");
-        }
     }
 
     async function loadLogs() {
@@ -123,9 +100,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
 
-            // 2. User Chip (Visual)
-            // Backend biasanya kirim 'username' atau 'user.username'
-            const username = item.username || (item.user ? item.user.username : "System/Unknown");
+            // 2. Pelaku: nama operator, atau "Sistem" untuk proses otomatis
+            const username = item.username || "Sistem";
             
             // 3. Highlight Kata Kunci Aksi
             let actionText = item.action || item.activity || "-";
@@ -172,14 +148,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const filtered = allLogs.filter(item => {
             // Data fields
             const txt = (item.action || item.activity || "").toLowerCase();
-            const usr = (item.username || (item.user ? item.user.username : "")).toLowerCase();
+            // Log tanpa user_id dicatat oleh proses otomatis sistem
+            const actor = item.user_id ? "operator" : "sistem";
             const dateVal = new Date(item.created_at || item.timestamp);
 
             // 1. Text Search (Cari di aktivitas)
             const matchText = txt.includes(term);
 
-            // 2. User Filter
-            const matchUser = userFilter === "" || usr.includes(userFilter);
+            // 2. Filter Pelaku
+            const matchUser = userFilter === "" || actor === userFilter;
 
             // 3. Date Range
             let matchDate = true;

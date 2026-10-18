@@ -173,9 +173,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        const user = api.auth.getUserData();
-        const isAdmin = user && user.role === 'admin';
-
         data.forEach(item => {
             const tr = document.createElement("tr");
             
@@ -200,12 +197,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${!hasFile ? 'disabled style="background:#eee; cursor:default;"' : ''}>📄</button>
             `;
 
-            if (isAdmin) {
-                actionButtons += `
-                    <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
-                    <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
-                `;
-            }
+            actionButtons += `
+                <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
+                <button class="btn-action-view btn-delete" title="Hapus" onclick="triggerDelete(${item.id})">🗑️</button>
+            `;
 
             tr.innerHTML = `
                 <td>

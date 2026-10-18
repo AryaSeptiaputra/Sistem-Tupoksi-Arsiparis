@@ -81,10 +81,6 @@ tr:hover td { background-color: #f9fafb; }
 .badge-taken { background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; }
 .badge-pending { background: #fef9c3; color: #a16207; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; }
 
-.role-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
-.role-admin { background: #fee2e2; color: #b91c1c; }
-.role-headmaster { background: #e0e7ff; color: #4338ca; }
-.role-teacher { background: #dcfce7; color: #15803d; }
 
 .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .status-active { background-color: #22c55e; }

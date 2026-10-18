@@ -39,11 +39,7 @@ function loadUserInfo() {
     const user = api.auth.getUserData();
     if (!user) return;
 
-    // Ambil full_name dari teacher
-    const fullName =
-        user.full_name ||
-        (user.teacher && user.teacher.full_name) ||
-        "Pengguna";
+    const fullName = user.display_name || user.username || "Operator";
 
     // Inisial huruf pertama
     const initial = fullName.charAt(0).toUpperCase();
@@ -56,12 +52,8 @@ function loadUserInfo() {
         window.location.href = "/page/user_profile";
     });
 
-    // Set nama & role (jika elemen ada)
     if (nameEl) nameEl.textContent = fullName;
-    if (roleEl && user.role) {
-        roleEl.textContent =
-            user.role.charAt(0).toUpperCase() + user.role.slice(1);
-    }
+    if (roleEl) roleEl.textContent = "Akun saya";
 
     if (welcomeEl) {
         welcomeEl.textContent = `Halo, ${fullName}!`;
@@ -101,8 +93,6 @@ function setupTabs() {
 /* ========================================= */
 
 async function loadStatsData() {
-    const user = api.auth.getUserData();
-    
     try {
         // A. Data Guru (Untuk Widget Ringkasan Atas)
         const teachers = await api.teacher.getAll(); 
@@ -117,30 +107,28 @@ async function loadStatsData() {
         }
 
         // B. Data Keuangan
-        if (user.role === 'admin') {
-            const finances = await api.financeArchive.getAll();
-            
-            if (finances && Array.isArray(finances)) {
-                // Widget Overview
-                updateText("stat-finance-count", finances.length);
-                updateText("fin-total", finances.length);
+        const finances = await api.financeArchive.getAll();
 
-                // Hitung Total Nominal
-                let totalNominal = 0;
-                finances.forEach(item => {
-                    let raw = item.nominal;
-                    if (typeof raw === 'string') raw = raw.replace(/[^0-9]/g, '');
-                    totalNominal += (parseInt(raw) || 0);
-                });
-                
-                // Format Rupiah
-                const formattedNominal = "Rp " + new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalNominal);
-                updateText("fin-nominal", formattedNominal);
+        if (finances && Array.isArray(finances)) {
+            // Widget Overview
+            updateText("stat-finance-count", finances.length);
+            updateText("fin-total", finances.length);
 
-                // Render Chart
-                renderFinanceTrendChart(finances);
-                renderStorageChart(finances);
-            }
+            // Hitung Total Nominal
+            let totalNominal = 0;
+            finances.forEach(item => {
+                let raw = item.nominal;
+                if (typeof raw === 'string') raw = raw.replace(/[^0-9]/g, '');
+                totalNominal += (parseInt(raw) || 0);
+            });
+
+            // Format Rupiah
+            const formattedNominal = "Rp " + new Intl.NumberFormat('id-ID', { notation: "compact" }).format(totalNominal);
+            updateText("fin-nominal", formattedNominal);
+
+            // Render Chart
+            renderFinanceTrendChart(finances);
+            renderStorageChart(finances);
         }
 
     } catch (err) {

@@ -26,10 +26,6 @@ def classification_page():
 def diploma_page():
     return render_template('diploma.html')
 
-@view_bp.route('/user', methods=['GET'])
-def user_page():
-    return render_template('user.html')
-
 @view_bp.route('/log', methods=['GET'])
 def log_page():
     return render_template('log.html')

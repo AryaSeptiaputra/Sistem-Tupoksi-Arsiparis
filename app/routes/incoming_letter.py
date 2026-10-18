@@ -8,19 +8,14 @@ from app.services.incoming_letter import (
     delete_incoming_letter, get_all_incoming_letters, 
     get_incoming_letters_by_keys
 )
-from app.services.user import get_users_by_keys
 from app.services.log import create_log
 from app import db
+from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response, handle_database_error
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
-
-def get_current_user_obj(db_session):
-    current_nuptk = get_jwt_identity()
-    users = get_users_by_keys(db_session, {'nuptk': current_nuptk})
-    return users[0] if users else None
 
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -56,15 +51,10 @@ def create_incoming_letter_route():
     
     db_session: Session = db.SessionLocal()
     try:
-        current_user = get_current_user_obj(db_session)
-        if not current_user:
-            if full_path and os.path.exists(full_path): os.remove(full_path)
-            return error_response("User authentication failed", 401)
-        
         # [PERBAIKAN UTAMA DI SINI]: Hapus parameter user_id
         new_letter = create_incoming_letter(db_session, data)
-        
-        create_log(db_session, current_user.id, f"Tambah surat masuk No: '{new_letter.number}'")
+
+        create_log(db_session, get_current_user_id(), f"Tambah surat masuk No: '{new_letter.number}'")
         return success_response(new_letter.to_dict(), "Incoming letter created successfully", 201)
 
     except Exception as e:
@@ -119,9 +109,7 @@ def update_incoming_letter_route():
         if old_path and (file or remove_attachment) and old_path != updated_letter.attachment_path:
             delete_physical_file(old_path)
 
-        current_user = get_current_user_obj(db_session)
-        if current_user:
-            create_log(db_session, current_user.id, f"Update surat masuk No: '{updated_letter.number}'")
+        create_log(db_session, get_current_user_id(), f"Update surat masuk No: '{updated_letter.number}'")
 
         return success_response(updated_letter.to_dict(), "Incoming letter updated successfully", 200)
     except Exception as e:
@@ -144,9 +132,7 @@ def delete_incoming_letter_route():
         if deleted_letter.attachment_path:
             delete_physical_file(deleted_letter.attachment_path)
 
-        current_user = get_current_user_obj(db_session)
-        if current_user:
-            create_log(db_session, current_user.id, f"Hapus surat masuk No: '{deleted_letter.number}'")
+        create_log(db_session, get_current_user_id(), f"Hapus surat masuk No: '{deleted_letter.number}'")
 
         return success_response(deleted_letter.to_dict(), "Incoming letter deleted successfully", 200)
     except Exception as e:
