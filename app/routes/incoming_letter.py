@@ -15,7 +15,7 @@ from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.logger import setup_logger
-from app.utils.pagination import get_pagination_params
+from app.utils.pagination import PaginationParams, get_pagination_params
 from app.utils.response import success_response, error_response, handle_database_error
 
 logger = setup_logger(__name__)
@@ -200,15 +200,13 @@ def get_incoming_by_keys_route() -> ResponseReturnValue:
     
     db_session = db.SessionLocal()
     try:
-        page = data.get('page') or request.args.get('page', 1, type=int)
-        per_page = data.get('per_page') or request.args.get('per_page', 20, type=int)
-        
-        pagination = get_pagination_params({
-            'page': page,
-            'per_page': per_page,
-            'sort_by': data.get('sort_by', 'id'),
-            'sort_order': data.get('sort_order', 'desc')
-        })
+        # Body JSON bukan MultiDict, jadi tidak bisa lewat get_pagination_params
+        pagination = PaginationParams(
+            page=data.get('page') or request.args.get('page', 1, type=int),
+            per_page=data.get('per_page') or request.args.get('per_page', 20, type=int),
+            sort_by=data.get('sort_by', 'id'),
+            sort_order=data.get('sort_order', 'desc')
+        )
         
         result = get_incoming_letters_by_keys(db_session, filters, pagination)
         return success_response(result, "Incoming letters retrieved successfully", 200)
