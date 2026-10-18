@@ -8,6 +8,7 @@
     <link href='{{ url_for('static', filename='vendor/boxicons/css/boxicons.min.css') }}' rel='stylesheet'>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user_profile.css') }}">
 </head>
 
 <body>
@@ -114,94 +115,104 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start;">
+        <div class="ak-body">
+            <section class="ak-card ak-banner" aria-label="Ringkasan akun">
+                <div class="ak-avatar" id="profile-avatar-big" aria-hidden="true">-</div>
+                <div class="ak-identity">
+                    <h2 id="display-name">Memuat...</h2>
+                    <p id="display-username">@-</p>
+                    <span class="ak-badge" id="status-badge">
+                        <span class="status-dot status-active" id="status-indicator"></span>
+                        <span id="display-status-text">-</span>
+                    </span>
+                </div>
+                <dl class="ak-facts">
+                    <div class="ak-fact"><dt>Login terakhir</dt><dd id="display-last-login">-</dd></div>
+                    <div class="ak-fact"><dt>Diperbarui</dt><dd id="display-updated">-</dd></div>
+                    <div class="ak-fact"><dt>Akun dibuat</dt><dd id="display-joined">-</dd></div>
+                </dl>
+            </section>
 
-            <div class="content-card" style="text-align:center; padding:28px; border-radius:16px;">
-                <div style="
-                    width:96px; height:96px; border-radius:48px;
-                    background:var(--primary); margin: 0 auto 16px;
-                    display:flex; align-items:center; justify-content:center;
-                    color:white; font-size:36px; font-weight:600;
-                " id="profile-avatar-big">-</div>
+            <div class="ak-columns">
+                <div class="ak-column">
+                    <section class="ak-card" aria-labelledby="title-profile">
+                        <h3 id="title-profile"><i class='bx bxs-user-detail' aria-hidden="true"></i> Informasi akun</h3>
+                        <p class="ak-sub">Nama tampilan muncul di header dan di log aktivitas. Username dipakai saat login.</p>
 
-                <h2 style="font-size:19px; font-weight:600;" id="display-name">Memuat...</h2>
-                <p style="margin-top:4px; color:var(--text-muted); font-size:14px;" id="display-username">@-</p>
+                        <form id="form-profile" novalidate>
+                            <div class="ak-field">
+                                <label for="input-display-name">Nama tampilan</label>
+                                <div class="input-control">
+                                    <input type="text" id="input-display-name" maxlength="100" required>
+                                </div>
+                            </div>
+                            <div class="ak-field">
+                                <label for="input-username">Username</label>
+                                <div class="input-control">
+                                    <input type="text" id="input-username" autocomplete="username" maxlength="50" required>
+                                </div>
+                            </div>
+                            <div class="ak-actions">
+                                <button type="button" class="ak-btn ak-btn-ghost" id="btn-profile-reset" disabled>Batalkan</button>
+                                <button type="submit" class="ak-btn ak-btn-primary" id="btn-profile-save" disabled>Simpan perubahan</button>
+                            </div>
+                        </form>
+                    </section>
 
-                <div style="margin-top:12px; font-size:14px;">
-                    <span id="status-indicator" class="status-dot"></span>
-                    <span id="display-status-text" class="status-text">-</span>
+                    <section class="ak-card" aria-labelledby="title-activity">
+                        <h3 id="title-activity"><i class='bx bx-history' aria-hidden="true"></i> Aktivitas terakhir</h3>
+                        <p class="ak-sub">Lima catatan terbaru di Log Aktivitas.</p>
+                        <ul class="ak-activity" id="activity-list">
+                            <li class="ak-activity-empty">Memuat...</li>
+                        </ul>
+                        <a class="ak-link" href="{{ url_for('view.log_page') }}">Lihat semua log <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
+                    </section>
                 </div>
 
-                <div style="margin-top:20px; border-top:1px solid var(--border-color, #e5e7eb); padding-top:16px; text-align:left; display:flex; flex-direction:column; gap:10px; font-size:13px;">
-                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Login terakhir</span><span id="display-last-login">-</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Diperbarui</span><span id="display-updated">-</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Akun dibuat</span><span id="display-joined">-</span></div>
-                </div>
-            </div>
+                <div class="ak-column">
+                    <section class="ak-card" aria-labelledby="title-security">
+                        <h3 id="title-security"><i class='bx bxs-lock-alt' aria-hidden="true"></i> Keamanan</h3>
+                        <p class="ak-sub">Masukkan kata sandi lama untuk konfirmasi. Setelah diganti, Anda diminta login ulang.</p>
 
-            <div style="display:flex; flex-direction:column; gap:24px;">
-                <div class="content-card" style="padding:28px; border-radius:16px;">
-                    <h3 style="font-size:17px; font-weight:600;">Informasi akun</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin:4px 0 20px;">Nama tampilan muncul di header dan di log aktivitas.</p>
-
-                    <form id="form-profile">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-                            <div>
-                                <label for="input-display-name" style="font-size:13px; font-weight:600;">Nama tampilan</label>
-                                <div class="input-control">
-                                    <input type="text" id="input-display-name" required>
+                        <form id="form-password" novalidate>
+                            <div class="ak-field">
+                                <label for="input-old-password">Kata sandi lama</label>
+                                <div class="input-control has-toggle">
+                                    <input type="password" id="input-old-password" autocomplete="current-password" required>
+                                    <button type="button" class="ak-eye" data-target="input-old-password" aria-label="Tampilkan kata sandi lama" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button>
                                 </div>
                             </div>
-                            <div>
-                                <label for="input-username" style="font-size:13px; font-weight:600;">Username</label>
-                                <div class="input-control">
-                                    <input type="text" id="input-username" autocomplete="username" required>
+                            <div class="ak-field">
+                                <label for="input-new-password">Kata sandi baru</label>
+                                <div class="input-control has-toggle">
+                                    <input type="password" id="input-new-password" autocomplete="new-password" aria-describedby="password-rules" required>
+                                    <button type="button" class="ak-eye" data-target="input-new-password" aria-label="Tampilkan kata sandi baru" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button>
                                 </div>
                             </div>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                            <button type="submit" class="btn-profile-save" style="padding:11px 22px; background:var(--primary); border:none; border-radius:10px; color:white; font-weight:600; font-family:inherit; cursor:pointer;">Simpan</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="content-card" style="padding:28px; border-radius:16px;">
-                    <h3 style="font-size:17px; font-weight:600;">Ganti kata sandi</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin:4px 0 20px;">Masukkan kata sandi lama untuk konfirmasi. Minimal 8 karakter, berisi huruf besar, huruf kecil, dan angka.</p>
-
-                    <form id="form-password">
-                        <div style="margin-bottom:16px;">
-                            <label for="input-old-password" style="font-size:13px; font-weight:600;">Kata sandi lama</label>
-                            <div class="input-control">
-                                <input type="password" id="input-old-password" class="pw-field" autocomplete="current-password" required>
-                            </div>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-                            <div>
-                                <label for="input-new-password" style="font-size:13px; font-weight:600;">Kata sandi baru</label>
-                                <div class="input-control">
-                                    <input type="password" id="input-new-password" class="pw-field" autocomplete="new-password" required>
+                            <ul class="ak-rules" id="password-rules">
+                                <li data-rule="length"><i class='bx bx-circle' aria-hidden="true"></i> Minimal 8 karakter</li>
+                                <li data-rule="upper"><i class='bx bx-circle' aria-hidden="true"></i> Huruf besar (A-Z)</li>
+                                <li data-rule="lower"><i class='bx bx-circle' aria-hidden="true"></i> Huruf kecil (a-z)</li>
+                                <li data-rule="digit"><i class='bx bx-circle' aria-hidden="true"></i> Angka (0-9)</li>
+                                <li data-rule="match"><i class='bx bx-circle' aria-hidden="true"></i> Ulangan sama</li>
+                            </ul>
+                            <div class="ak-field">
+                                <label for="input-confirm-password">Ulangi kata sandi baru</label>
+                                <div class="input-control has-toggle">
+                                    <input type="password" id="input-confirm-password" autocomplete="new-password" required>
+                                    <button type="button" class="ak-eye" data-target="input-confirm-password" aria-label="Tampilkan ulangan kata sandi" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button>
                                 </div>
                             </div>
-                            <div>
-                                <label for="input-confirm-password" style="font-size:13px; font-weight:600;">Ulangi kata sandi baru</label>
-                                <div class="input-control">
-                                    <input type="password" id="input-confirm-password" class="pw-field" autocomplete="new-password" required>
-                                </div>
+                            <div class="ak-actions">
+                                <button type="submit" class="ak-btn ak-btn-primary" id="btn-password-save" disabled>Ganti kata sandi</button>
                             </div>
-                        </div>
-                        <label style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:13px; color:var(--text-muted); cursor:pointer;">
-                            <input type="checkbox" id="toggle-password"> Tampilkan kata sandi
-                        </label>
-                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                            <button type="submit" style="padding:11px 22px; background:var(--primary); border:none; border-radius:10px; color:white; font-weight:600; font-family:inherit; cursor:pointer;">Ganti kata sandi</button>
-                        </div>
-                    </form>
+                        </form>
 
-                    <div style="display:flex; gap:10px; align-items:flex-start; background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px; font-size:12px; color:var(--text-muted); line-height:1.5; margin-top:16px;">
-                        <i class='bx bx-info-circle' style="font-size:18px;"></i>
-                        <span>Aplikasi ini hanya punya satu akun, jadi tidak ada admin lain yang bisa mereset sandi. Jika lupa kata sandi, reset dilakukan di server dengan perintah <code>python scripts/akun.py reset-sandi --username &lt;username&gt;</code>.</span>
-                    </div>
+                        <div class="ak-note">
+                            <i class='bx bx-info-circle' aria-hidden="true"></i>
+                            <span>Aplikasi ini hanya punya satu akun, jadi tidak ada admin lain yang bisa mereset sandi. Jika lupa, reset di server dengan <code>python scripts/akun.py reset-sandi --username &lt;username&gt;</code>.</span>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>

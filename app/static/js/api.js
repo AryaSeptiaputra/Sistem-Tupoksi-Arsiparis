@@ -181,6 +181,11 @@ const api = {
     // 7. LOG ACTIVITY
     log: {
         getAll: () => fetchAllPages('/log/get_all'),
+        // Satu halaman saja, terbaru lebih dulu
+        getRecent: async (limit) => {
+            const resp = await fetchAPI(`/log/get_all?page=1&per_page=${limit}&sort_by=id&sort_order=desc`, 'GET');
+            return Array.isArray(resp?.data) ? resp.data : [];
+        },
         getByKeys: (filters) => fetchAPI('/log/get_by_keys', 'POST', { filters })
     },
 

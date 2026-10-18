@@ -1,0 +1,107 @@
+/* user_profile.css - Halaman Akun Saya */
+
+/* main-content tidak bisa di-scroll, jadi isi halaman di-scroll di wrapper ini */
+.ak-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 20px;
+    padding-bottom: 8px;
+}
+
+.ak-card {
+    background: var(--card-bg); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 24px;
+}
+.ak-card h3 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.ak-card h3 i { font-size: 20px; color: var(--primary-hover); }
+.ak-sub { font-size: 13px; color: var(--text-muted); margin: 4px 0 18px; line-height: 1.5; }
+
+/* --- Banner identitas --- */
+.ak-banner { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.ak-avatar {
+    width: 72px; height: 72px; border-radius: 50%; flex: 0 0 72px;
+    background: var(--primary-soft); color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 700;
+}
+.ak-identity { flex: 1 1 220px; min-width: 0; }
+.ak-identity h2 { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.ak-identity p { font-size: 14px; color: var(--text-muted); margin-top: 2px; }
+.ak-badge {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: #f0fdf4; color: #15803d;
+}
+.ak-badge.is-inactive { background: #f3f4f6; color: #4b5563; }
+.ak-badge .status-dot { margin-right: 0; }
+
+.ak-facts { display: flex; flex-wrap: wrap; gap: 12px; }
+.ak-fact {
+    min-width: 150px; padding: 10px 14px; border-radius: 12px;
+    background: var(--bg-page); display: flex; flex-direction: column; gap: 2px;
+}
+.ak-fact dt { font-size: 12px; color: var(--text-muted); }
+.ak-fact dd { font-size: 13px; font-weight: 600; }
+
+/* --- Dua kolom --- */
+.ak-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ak-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+@media (max-width: 1100px) {
+    .ak-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Field --- */
+.ak-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.ak-field label { font-size: 13px; font-weight: 600; }
+.ak-field .input-control input { border-radius: 10px; padding-right: 14px; font-family: inherit; }
+.ak-field .input-control.has-toggle input { padding-right: 46px; }
+
+.ak-eye {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px; border: none; background: transparent; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; color: var(--text-muted); cursor: pointer;
+}
+.ak-eye:hover, .ak-eye:focus-visible { color: var(--text-main); background: #f3f4f6; outline: none; }
+
+/* --- Checklist syarat kata sandi --- */
+.ak-rules { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px 12px; margin: -4px 0 14px; }
+.ak-rules li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.ak-rules li i { font-size: 16px; }
+.ak-rules li.is-met { color: #15803d; }
+
+/* --- Tombol --- */
+.ak-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.ak-btn {
+    min-height: 44px; padding: 10px 20px; border-radius: 10px; border: 1px solid transparent;
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+/* Oranye gelap agar teks putih tetap terbaca (kontras >= 4.5:1) */
+.ak-btn-primary { background: #c2410c; color: #fff; }
+.ak-btn-primary:hover:not(:disabled) { background: #9a3412; }
+.ak-btn-ghost { background: transparent; color: var(--text-main); border-color: var(--border-color); }
+.ak-btn-ghost:hover:not(:disabled) { background: #f9fafb; }
+.ak-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ak-note {
+    display: flex; gap: 10px; align-items: flex-start; margin-top: 18px;
+    background: var(--bg-page); border-radius: 12px; padding: 12px 14px;
+    font-size: 12px; color: var(--text-muted); line-height: 1.5;
+}
+.ak-note i { font-size: 18px; flex: 0 0 18px; }
+.ak-note code { font-size: 11px; background: #fff; padding: 1px 4px; border-radius: 4px; }
+
+/* --- Aktivitas terakhir --- */
+.ak-activity { list-style: none; display: flex; flex-direction: column; }
+.ak-activity li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+.ak-activity li:last-child { border-bottom: none; }
+.ak-activity-icon {
+    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px;
+    background: var(--bg-page); color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.ak-activity-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ak-activity-text span { font-size: 13px; overflow-wrap: anywhere; }
+.ak-activity-text time { font-size: 12px; color: var(--text-muted); }
+.ak-activity-empty { font-size: 13px; color: var(--text-muted); padding: 8px 0; }
+.ak-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; font-size: 13px; font-weight: 600; color: #c2410c; text-decoration: none; }
+.ak-link:hover { text-decoration: underline; }

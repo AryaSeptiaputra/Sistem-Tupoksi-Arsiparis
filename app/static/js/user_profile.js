@@ -3,29 +3,32 @@
  * Halaman Akun Saya: satu akun operator, tanpa role.
  */
 
+// Nilai yang tersimpan di server; dipakai untuk mendeteksi perubahan dan tombol Batalkan
+let savedAccount = null;
+
+const RECENT_ACTIVITY_LIMIT = 5;
+
+// Syarat kata sandi baru, sama dengan check_password di backend
+const PASSWORD_RULES = {
+    length: (pw) => pw.length >= 8,
+    upper: (pw) => /[A-Z]/.test(pw),
+    lower: (pw) => /[a-z]/.test(pw),
+    digit: (pw) => /[0-9]/.test(pw),
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     loadAccount();
-
-    const profileForm = document.getElementById('form-profile');
-    if (profileForm) profileForm.addEventListener('submit', handleProfileUpdate);
-
-    const passwordForm = document.getElementById('form-password');
-    if (passwordForm) passwordForm.addEventListener('submit', handlePasswordChange);
-
-    const toggle = document.getElementById('toggle-password');
-    if (toggle) {
-        toggle.addEventListener('change', () => {
-            document.querySelectorAll('.pw-field').forEach(input => {
-                input.type = toggle.checked ? 'text' : 'password';
-            });
-        });
-    }
+    loadRecentActivity();
+    setupProfileForm();
+    setupPasswordForm();
 
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => api.auth.logout());
     }
 });
+
+/* --- Akun --- */
 
 async function loadAccount() {
     try {
@@ -37,6 +40,7 @@ async function loadAccount() {
 }
 
 function renderAccount(account) {
+    savedAccount = account;
     const name = account.display_name || account.username || '?';
     const initial = name.charAt(0).toUpperCase();
 
@@ -50,44 +54,114 @@ function renderAccount(account) {
 
     setValue('input-display-name', account.display_name);
     setValue('input-username', account.username);
+    updateProfileButtons();
 
+    const badge = document.getElementById('status-badge');
     const statusDot = document.getElementById('status-indicator');
-    const statusText = document.getElementById('display-status-text');
-    if (statusDot && statusText) {
+    if (badge && statusDot) {
+        badge.classList.toggle('is-inactive', !account.is_active);
         statusDot.className = 'status-dot ' + (account.is_active ? 'status-active' : 'status-inactive');
-        statusText.className = 'status-text ' + (account.is_active ? 'text-active' : 'text-inactive');
-        statusText.innerText = account.is_active ? 'Aktif' : 'Nonaktif';
+        setText('display-status-text', account.is_active ? 'Aktif' : 'Nonaktif');
     }
+}
+
+/* --- Form informasi akun --- */
+
+function setupProfileForm() {
+    const form = document.getElementById('form-profile');
+    if (!form) return;
+
+    ['input-display-name', 'input-username'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateProfileButtons);
+    });
+    document.getElementById('btn-profile-reset').addEventListener('click', () => {
+        if (savedAccount) renderAccount(savedAccount);
+    });
+    form.addEventListener('submit', handleProfileUpdate);
+}
+
+function readProfileInputs() {
+    return {
+        display_name: document.getElementById('input-display-name').value.trim(),
+        username: document.getElementById('input-username').value.trim()
+    };
+}
+
+function updateProfileButtons() {
+    if (!savedAccount) return;
+    const current = readProfileInputs();
+    const changed = current.display_name !== (savedAccount.display_name || '')
+        || current.username !== (savedAccount.username || '');
+    const filled = current.display_name !== '' && current.username !== '';
+
+    document.getElementById('btn-profile-reset').disabled = !changed;
+    document.getElementById('btn-profile-save').disabled = !(changed && filled);
 }
 
 async function handleProfileUpdate(event) {
     event.preventDefault();
-
-    const payload = {
-        display_name: document.getElementById('input-display-name').value.trim(),
-        username: document.getElementById('input-username').value.trim()
-    };
+    const saveBtn = document.getElementById('btn-profile-save');
+    saveBtn.disabled = true;
 
     try {
-        const result = await api.user.update(payload);
+        const result = await api.user.update(readProfileInputs());
         renderAccount(result.data);
         ui.toast("Informasi akun tersimpan. Login ulang untuk memperbarui nama di semua halaman.", "success");
     } catch (error) {
+        updateProfileButtons();
         ui.alert("Gagal menyimpan", error.message || "Error Server", "error");
     }
 }
 
+/* --- Form kata sandi --- */
+
+function setupPasswordForm() {
+    const form = document.getElementById('form-password');
+    if (!form) return;
+
+    document.querySelectorAll('.ak-eye').forEach(btn => {
+        btn.addEventListener('click', () => togglePasswordVisibility(btn));
+    });
+    ['input-old-password', 'input-new-password', 'input-confirm-password'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePasswordChecklist);
+    });
+    form.addEventListener('submit', handlePasswordChange);
+}
+
+function togglePasswordVisibility(button) {
+    const input = document.getElementById(button.dataset.target);
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(show));
+    button.setAttribute('aria-label', button.getAttribute('aria-label').replace(show ? 'Tampilkan' : 'Sembunyikan', show ? 'Sembunyikan' : 'Tampilkan'));
+    button.querySelector('i').className = show ? 'bx bx-hide' : 'bx bx-show';
+}
+
+function updatePasswordChecklist() {
+    const oldPw = document.getElementById('input-old-password').value;
+    const newPw = document.getElementById('input-new-password').value;
+    const confirmPw = document.getElementById('input-confirm-password').value;
+
+    const results = Object.fromEntries(
+        Object.entries(PASSWORD_RULES).map(([rule, check]) => [rule, check(newPw)])
+    );
+    results.match = newPw !== '' && newPw === confirmPw;
+
+    Object.entries(results).forEach(([rule, met]) => {
+        const item = document.querySelector(`#password-rules [data-rule="${rule}"]`);
+        if (!item) return;
+        item.classList.toggle('is-met', met);
+        item.querySelector('i').className = met ? 'bx bxs-check-circle' : 'bx bx-circle';
+    });
+
+    const allMet = Object.values(results).every(Boolean);
+    document.getElementById('btn-password-save').disabled = !(allMet && oldPw !== '');
+}
+
 async function handlePasswordChange(event) {
     event.preventDefault();
-
     const oldPassword = document.getElementById('input-old-password').value;
     const newPassword = document.getElementById('input-new-password').value;
-    const confirmPassword = document.getElementById('input-confirm-password').value;
-
-    if (newPassword !== confirmPassword) {
-        ui.alert("Gagal mengganti", "Kata sandi baru tidak sama.", "error");
-        return;
-    }
 
     try {
         await api.user.changePassword(oldPassword, newPassword);
@@ -97,6 +171,57 @@ async function handlePasswordChange(event) {
         ui.alert("Gagal mengganti", error.message || "Error Server", "error");
     }
 }
+
+/* --- Aktivitas terakhir --- */
+
+async function loadRecentActivity() {
+    const list = document.getElementById('activity-list');
+    if (!list) return;
+
+    try {
+        const logs = await api.log.getRecent(RECENT_ACTIVITY_LIMIT);
+        list.innerHTML = '';
+        if (logs.length === 0) {
+            list.appendChild(createEmptyItem('Belum ada aktivitas tercatat.'));
+            return;
+        }
+        logs.forEach(log => list.appendChild(createActivityItem(log)));
+    } catch (error) {
+        list.innerHTML = '';
+        list.appendChild(createEmptyItem('Aktivitas gagal dimuat: ' + error.message));
+    }
+}
+
+function createActivityItem(log) {
+    const item = document.createElement('li');
+
+    const icon = document.createElement('span');
+    icon.className = 'ak-activity-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = `<i class='bx ${log.user_id ? 'bx-user' : 'bx-cog'}'></i>`;
+
+    const text = document.createElement('div');
+    text.className = 'ak-activity-text';
+    const action = document.createElement('span');
+    // textContent, bukan innerHTML: isi log berasal dari input pengguna
+    action.textContent = log.action;
+    const time = document.createElement('time');
+    time.dateTime = log.timestamp;
+    time.textContent = `${formatDateTime(log.timestamp)} · ${log.username}`;
+    text.append(action, time);
+
+    item.append(icon, text);
+    return item;
+}
+
+function createEmptyItem(message) {
+    const item = document.createElement('li');
+    item.className = 'ak-activity-empty';
+    item.textContent = message;
+    return item;
+}
+
+/* --- Helper --- */
 
 function formatDateTime(value) {
     if (!value) return '-';
