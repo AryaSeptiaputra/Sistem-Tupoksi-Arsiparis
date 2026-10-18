@@ -6,3 +6,4 @@ import tempfile
 _db_file = os.path.join(tempfile.mkdtemp(), "test.db")
 os.environ["DATABASE_URL"] = f"sqlite:///{_db_file}"
 os.environ.setdefault("JWT_SECRET_KEY", "test_key_for_pytest_only_0123456789")
+os.environ.setdefault("SECRET_KEY", "test_session_key_for_pytest_only")

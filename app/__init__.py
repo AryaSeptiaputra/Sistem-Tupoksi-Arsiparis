@@ -39,7 +39,7 @@ def create_app():
     # ==========================================================================
     # 🔥 KONFIGURASI KEAMANAN (PRODUCTION)
     # ==========================================================================
-    app.secret_key = 'kunci_rahasia_smkn7_bandung_super_secure' 
+    app.secret_key = settings.SECRET_KEY
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False # Ubah True jika nanti pakai HTTPS (SSL)
     app.config['SESSION_COOKIE_HTTPONLY'] = True
