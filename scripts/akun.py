@@ -65,6 +65,11 @@ def reset(username: str) -> None:
         db.close()
 
 def main() -> int:
+    """Menjalankan perintah `buat` atau `reset-sandi` dari terminal.
+
+    Returns:
+        Kode keluar proses: 0 berhasil, selain itu gagal.
+    """
     parser = argparse.ArgumentParser(description="Kelola akun operator Sistem Arsip.")
     commands = parser.add_subparsers(dest="command", required=True)
 

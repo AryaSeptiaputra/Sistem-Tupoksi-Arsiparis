@@ -1,3 +1,9 @@
+"""Operasi opsi referensi (isi dropdown).
+
+Data masukan dan keluaran berbentuk dict JSON yang bentuknya bebas, jadi
+diberi tipe `dict[str, Any]`.
+"""
+
 from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -5,32 +11,44 @@ from app.models.master_reference import MasterReference, ReferenceCategory
 from app.core.database import SessionLocal
 
 class MasterReferenceService:
+    """Mengelola opsi referensi; setiap method membuka session sendiri."""
+
     def get_by_category(self, category: str, only_active: bool = True) -> list[dict[str, Any]]:
-        """
-        Mengambil list opsi berdasarkan kategori.
-        Contoh: get_by_category('school_major')
+        """Mengambil opsi satu kategori, urut `sort_order` lalu nama.
+
+        Args:
+            category: Nilai kategori, misalnya `school_major`.
+            only_active: Hanya opsi yang aktif bila True.
+
+        Returns:
+            Opsi dalam bentuk dict.
         """
         db: Session = SessionLocal()
         try:
             query = db.query(MasterReference).filter(MasterReference.category == category)
-            
+
             if only_active:
                 query = query.filter(MasterReference.is_active == True)
-            
-            # Urutkan berdasarkan sort_order (kecil ke besar), lalu nama
+
             results = query.order_by(MasterReference.sort_order.asc(), MasterReference.name.asc()).all()
             return [item.to_dict() for item in results]
         finally:
             db.close()
 
     def create(self, data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Menambah opsi baru.
-        Data harus berisi: category, code, name, dll.
+        """Menambah opsi baru dalam keadaan aktif.
+
+        Args:
+            data: Isian opsi; `category`, `code`, dan `name` wajib.
+
+        Returns:
+            Opsi yang tersimpan dalam bentuk dict.
+
+        Raises:
+            ValueError: Kalau kategori tidak ada di `ReferenceCategory`.
         """
         db: Session = SessionLocal()
         try:
-            # Validasi sederhana: Cek apakah kategori valid sesuai Enum
             if data['category'] not in ReferenceCategory.__members__.values():
                 raise ValueError(f"Kategori '{data['category']}' tidak valid.")
 
@@ -53,8 +71,14 @@ class MasterReferenceService:
             db.close()
 
     def update(self, id: int, data: dict[str, Any]) -> dict[str, Any] | None:
-        """
-        Mengubah data referensi (misal: ganti nama atau urutan).
+        """Mengubah nama, kode, urutan, keterangan, atau status aktif opsi.
+
+        Args:
+            id: Id opsi.
+            data: Kolom yang diubah.
+
+        Returns:
+            Opsi setelah diubah, atau None bila tidak ditemukan.
         """
         db: Session = SessionLocal()
         try:
@@ -75,17 +99,22 @@ class MasterReferenceService:
             db.close()
 
     def delete(self, id: int) -> bool:
-        """
-        Soft delete (hanya set is_active = False) agar data lama tidak rusak.
-        Jika ingin hard delete, gunakan db.delete(ref).
+        """Menonaktifkan opsi tanpa menghapus barisnya.
+
+        Baris dipertahankan karena data lama masih bisa merujuk nilainya.
+
+        Args:
+            id: Id opsi.
+
+        Returns:
+            True bila opsi ditemukan dan dinonaktifkan.
         """
         db: Session = SessionLocal()
         try:
             ref = db.query(MasterReference).filter(MasterReference.id == id).first()
             if not ref:
                 return False
-            
-            # Soft Delete
+
             ref.is_active = False
             db.commit()
             return True
@@ -93,7 +122,9 @@ class MasterReferenceService:
             db.close()
 
     def get_all_categories(self) -> list[str]:
-        """
-        Helper untuk melihat daftar kategori apa saja yang tersedia di sistem.
+        """Mengambil semua nilai kategori yang dikenal sistem.
+
+        Returns:
+            Nilai `ReferenceCategory`.
         """
         return [e.value for e in ReferenceCategory]

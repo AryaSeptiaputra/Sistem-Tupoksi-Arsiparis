@@ -1,17 +1,17 @@
 import os
-import atexit # Untuk mematikan scheduler saat app stop
+import atexit
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 from werkzeug.wrappers import Response
 from flask_cors import CORS
-from flask_compress import Compress  # <--- [BARU] Import Compression
-from apscheduler.schedulers.background import BackgroundScheduler # <--- [BARU 1] Import Scheduler
+from flask_compress import Compress
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from .core.config import settings
 from .core.database import engine, Base
-# Import logic scheduler yang baru dibuat
-from .services.retention_scheduler import check_and_deactivate_archives # <--- [BARU 2] Import Fungsi Logic
+from .services.retention_scheduler import check_and_deactivate_archives
 
+# Model di-import agar terdaftar di Base.metadata sebelum create_all
 from .models import (diploma, user, classification,
                      log, incoming_letter, outgoing_letter,
                      backup, storage_location, finance_archive,
@@ -23,82 +23,65 @@ from app.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 def create_app() -> Flask:
+    """Membuat aplikasi Flask beserta konfigurasi, scheduler, dan blueprint.
+
+    Returns:
+        Aplikasi Flask yang siap dijalankan.
+    """
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    # Setup folder template & static (moved to app/static/)
     template_dir = os.path.join(app_dir, 'app', 'static', 'html')
     static_dir = os.path.join(app_dir, 'app', 'static')
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
-    # ==========================================================================
-    # 🔧 PERFORMANCE OPTIMIZATION
-    # ==========================================================================
-    # Enable gzip compression untuk response besar
+    # Kompresi gzip untuk respons di atas 1 KB, level 6 dari 1-9
     Compress(app)
-    app.config['COMPRESS_LEVEL'] = 6  # Compression level 1-9 (higher = better, slower)
-    app.config['COMPRESS_MIN_SIZE'] = 1024  # Minimum size untuk compress (1KB)
+    app.config['COMPRESS_LEVEL'] = 6
+    app.config['COMPRESS_MIN_SIZE'] = 1024
 
-    # ==========================================================================
-    # 🔥 KONFIGURASI KEAMANAN (PRODUCTION)
-    # ==========================================================================
     app.secret_key = settings.SECRET_KEY
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['SESSION_COOKIE_SECURE'] = False # Ubah True jika nanti pakai HTTPS (SSL)
+    # Ubah ke True setelah server memakai HTTPS
+    app.config['SESSION_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_HTTPONLY'] = True
+    # 86400 detik = 24 jam
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400
 
     CORS(app, supports_credentials=True)
 
-    # Konfigurasi JWT
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 43200  # 12 jam (43200 detik)
+    # 43200 detik = 12 jam
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 43200
     JWTManager(app)
 
-    # ==========================================================================
-    # 📝 KONFIGURASI LOGGING
-    # ==========================================================================
     logger.info("Application started")
 
-    # ==========================================================================
-    # ❌ ERROR HANDLERS
-    # ==========================================================================
     @app.errorhandler(500)
     def internal_error(error: Exception) -> tuple[dict[str, str], int]:
+        """Mencatat error 500 dan mengembalikan pesan JSON umum."""
         logger.error(f"Internal server error: {error}")
         return {"error": "Internal server error"}, 500
 
     @app.errorhandler(404)
     def not_found(error: Exception) -> tuple[dict[str, str], int]:
+        """Mencatat URL yang tidak ada dan mengembalikan pesan JSON 404."""
         logger.warning(f"Page not found: {error}")
         return {"error": "Not found"}, 404
 
-    # Create Database Tables
     Base.metadata.create_all(bind=engine)
 
-    # ==========================================================================
-    # 🕒 KONFIGURASI SCHEDULER (MODE DEPLOY: HARIAN)
-    # ==========================================================================
-    # Cek environment agar tidak jalan double
+    # Mode debug menjalankan reloader dua proses; scheduler hanya dijalankan
+    # di proses anak (WERKZEUG_RUN_MAIN) supaya tidak berjalan ganda.
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         scheduler = BackgroundScheduler()
-        
-        # [PRODUCTION MODE] Run daily at 00:01 WIB
-        # Lightweight and doesn't burden school server
+        # Setiap hari pukul 00:01 waktu server
         scheduler.add_job(func=check_and_deactivate_archives, trigger="cron", hour=0, minute=1)
-        
-        # [TESTING MODE] Only enable this when demonstrating to lecturer
-        # scheduler.add_job(func=check_and_deactivate_archives, trigger="interval", seconds=10)
-        
         scheduler.start()
         logger.info("Scheduler retensi arsip berjalan (harian)")
-        
-        # Shutdown scheduler when app stops
         atexit.register(lambda: scheduler.shutdown())
 
-    # ==========================================================================
-    # REGISTER BLUEPRINTS
-    # ==========================================================================
+    # Import di dalam fungsi karena modul route meng-import `app.db` dari paket ini
     from .routes.auth import auth_bp
     from .routes.user import user_bp
     from .routes.classification import classification_bp
@@ -112,7 +95,7 @@ def create_app() -> Flask:
     from .routes.storage_location import storage_location_bp
     from .routes.finance_archive import finance_bp
     from .routes.employee_archive import employee_archive_bp
-    from .routes.disposal import disposal_bp 
+    from .routes.disposal import disposal_bp
     from .routes.teacher import teacher_bp
     from .routes.master_reference import reference_bp
 
@@ -133,17 +116,15 @@ def create_app() -> Flask:
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(reference_bp)
 
-    # ==========================================================================
-    # 🔗 ROUTES REDIRECT
-    # ==========================================================================
+    # URL pendek tanpa awalan /page diarahkan ke halaman di blueprint view
     @app.route('/')
     def index() -> Response:
         return redirect(url_for('view.login_page'))
-    
+
     @app.route('/dashboard')
     def dashboard() -> Response:
         return redirect(url_for('view.dashboard_page'))
-    
+
     @app.route('/incoming_letter')
     def incoming_letter() -> Response:
         return redirect(url_for('view.incoming_letter_page'))
@@ -155,42 +136,41 @@ def create_app() -> Flask:
     @app.route('/log')
     def log() -> Response:
         return redirect(url_for('view.log'))
-    
+
     @app.route('/classification')
     def classification() -> Response:
         return redirect(url_for('view.classification'))
-    
+
     @app.route('/backup')
     def backup() -> Response:
         return redirect(url_for('view.backup'))
-    
+
     @app.route('/user_profile')
     def user_profile() -> Response:
         return redirect(url_for('view.user_profile'))
-    
+
     @app.route('/storage_location')
     def storage_location() -> Response:
         return redirect(url_for('view.storage_location'))
-    
+
     @app.route('/finance_archive')
     def finance_archive() -> Response:
         return redirect(url_for('view.finance_archive'))
-    
+
     @app.route('/employee_archive')
     def employee_archive() -> Response:
         return redirect(url_for('view.employee_archive'))
-    
+
     @app.route('/disposal')
     def disposal() -> Response:
         return redirect(url_for('view.disposal'))
-    
+
     @app.route('/teacher')
     def teacher() -> Response:
         return redirect(url_for('view.teacher'))
-    
+
     @app.route('/reference')
     def reference() -> Response:
         return redirect(url_for('view.reference'))
-    
-    # 🔥 PENTING: Return app hanya SEKALI di paling bawah
+
     return app

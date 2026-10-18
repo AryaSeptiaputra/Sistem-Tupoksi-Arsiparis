@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.errors import BackupError, RestoreError
-# Import service dan fungsi baru
 from app.services.backup import perform_database_backup, perform_database_restore, get_all_logs, BACKUP_DIR
 from app.services.user import get_user
 from app.utils.current_user import get_current_user_id
@@ -20,7 +19,11 @@ backup_bp = Blueprint('backup', __name__)
 @backup_bp.route('/manual', methods=['POST'])
 @jwt_required()
 def trigger_manual_backup() -> ResponseReturnValue:
-    """Trigger backup manual."""
+    """Membuat backup database atas nama akun yang login.
+
+    Returns:
+        201 dengan nama dan path file backup, atau 500 bila backup gagal.
+    """
     db_session: Session = SessionLocal()
     triggered_by = "SYSTEM"
 
@@ -34,7 +37,6 @@ def trigger_manual_backup() -> ResponseReturnValue:
         db_session.close()
 
     try:
-        # [UBAH] Kirim string nama user, bukan ID integer
         result = perform_database_backup(triggered_by=triggered_by)
 
         return jsonify({
@@ -51,20 +53,29 @@ def trigger_manual_backup() -> ResponseReturnValue:
 @backup_bp.route('/logs', methods=['GET'])
 @jwt_required()
 def get_backup_logs() -> ResponseReturnValue:
-    """Mengambil riwayat backup dari file JSON."""
+    """Mengambil riwayat backup dari file log JSON.
+
+    Returns:
+        200 dengan daftar riwayat, atau 500 bila terjadi error.
+    """
     try:
-        # [UBAH] Panggil fungsi service yang membaca JSON
         logs = get_all_logs()
         return jsonify(logs), 200
     except Exception as e:
         logger.error(f"Gagal membaca riwayat backup: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
-# --- ENDPOINT DOWNLOAD ---
 @backup_bp.route('/download/<path:filename>', methods=['GET'])
 @jwt_required()
 def download_backup_file(filename: str) -> ResponseReturnValue:
-    """Mengunduh file backup."""
+    """Mengunduh file backup.
+
+    Args:
+        filename: Nama file di folder backup.
+
+    Returns:
+        File backup, 404 bila tidak ada, atau 500 bila gagal dikirim.
+    """
     try:
         full_path = os.path.join(BACKUP_DIR, filename)
         if not os.path.exists(full_path):
@@ -79,11 +90,17 @@ def download_backup_file(filename: str) -> ResponseReturnValue:
         logger.error(f"Gagal mengunduh file backup {filename}: {e}", exc_info=True)
         return jsonify({"error": f"Gagal mengunduh file: {str(e)}"}), 500
 
-# --- ENDPOINT RESTORE ---
 @backup_bp.route('/restore', methods=['POST'])
 @jwt_required()
 def restore_database() -> ResponseReturnValue:
-    """Merestore database dari file yang dipilih."""
+    """Memulihkan database dari file backup pilihan.
+
+    Body JSON: `filename`.
+
+    Returns:
+        200 bila berhasil, 400 bila `filename` kosong, 404 bila file tidak
+        ada, atau 500 bila pemulihan gagal.
+    """
     data = request.get_json()
     if not data or 'filename' not in data:
         return jsonify({"error": "Parameter filename wajib ada"}), 400

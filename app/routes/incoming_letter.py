@@ -25,9 +25,17 @@ incoming_letter_bp = Blueprint('incoming_letter', __name__)
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_incoming_letter_route() -> ResponseReturnValue:
+    """Menambah surat masuk beserta lampiran opsional.
+
+    Form: `number`, `letter_date`, `received_date`, `sender`,
+    `classification_id`, kolom lain, dan `file` opsional.
+
+    Returns:
+        201 dengan data surat, 400 bila isian kurang, atau 500 bila
+        penyimpanan gagal.
+    """
     data = request.form.to_dict()
     
-    # Validasi field required dengan pesan user-friendly
     field_labels = {
         'number': 'Nomor Surat',
         'letter_date': 'Tanggal Surat',
@@ -40,7 +48,6 @@ def create_incoming_letter_route() -> ResponseReturnValue:
         if not data.get(field):
             return error_response(f"{label} wajib diisi", 400)
             
-    # Handle File
     file = request.files.get('file')
     attachment_path, full_path = None, None
     if file:
@@ -50,13 +57,11 @@ def create_incoming_letter_route() -> ResponseReturnValue:
         except (ValueError, FileStorageError) as e:
             return error_response(f"Failed to save file: {str(e)}", 500)
     
-    # Handle optional storage_location_id
     if not data.get('storage_location_id'):
         data['storage_location_id'] = None
     
     db_session: Session = db.SessionLocal()
     try:
-        # [PERBAIKAN UTAMA DI SINI]: Hapus parameter user_id
         new_letter = create_incoming_letter(db_session, data)
 
         create_log(db_session, get_current_user_id(), f"Tambah surat masuk No: '{new_letter.number}'")
@@ -72,13 +77,20 @@ def create_incoming_letter_route() -> ResponseReturnValue:
 @incoming_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_incoming_letter_route() -> ResponseReturnValue:
-    # Support both JSON and Form Data
+    """Mengubah surat masuk dan lampirannya.
+
+    Form atau JSON: `id`, kolom yang diubah, `file` atau `remove_attachment`.
+
+    Returns:
+        200 dengan data surat, 400 bila `id` kosong atau tidak valid, 404
+        bila tidak ditemukan, atau 500 bila penyimpanan gagal.
+    """
+    # Menerima JSON maupun form data
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     letter_id = data.get('id')
     
     if not letter_id: return error_response("ID wajib ada", 400)
 
-    # Type Conversion
     if data.get('classification_id'):
         try: data['classification_id'] = int(data['classification_id'])
         except (ValueError, TypeError): return error_response("Invalid classification_id", 400)
@@ -93,7 +105,6 @@ def update_incoming_letter_route() -> ResponseReturnValue:
         if not existing: return error_response("Letter not found", 404)
         old_path = existing[0].attachment_path
 
-        # Handle File Upload
         file = request.files.get('file')
         remove_attachment = data.get('remove_attachment', 'false').lower() == 'true'
         
@@ -104,13 +115,13 @@ def update_incoming_letter_route() -> ResponseReturnValue:
             except (ValueError, FileStorageError) as e:
                 return error_response(str(e), 500)
         elif remove_attachment:
-            # User ingin hapus file tanpa ganti file baru
+            # Lampiran dilepas tanpa diganti file baru
             data['attachment_path'] = None
-        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
+        # Tanpa file baru dan tanpa remove_attachment, attachment_path tidak diubah
 
         updated_letter = update_incoming_letter(db_session, letter_id, data)
 
-        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        # File lama dihapus hanya bila lampiran diganti atau dilepas
         if old_path and (file or remove_attachment) and old_path != updated_letter.attachment_path:
             delete_physical_file(old_path)
 
@@ -126,6 +137,14 @@ def update_incoming_letter_route() -> ResponseReturnValue:
 @incoming_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_incoming_letter_route() -> ResponseReturnValue:
+    """Menghapus surat masuk beserta file lampirannya.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 dengan data yang dihapus, 404 bila tidak ditemukan, atau 500
+        bila terjadi error.
+    """
     data = request.json or {}
     letter_id = data.get('id')
     
@@ -148,16 +167,12 @@ def delete_incoming_letter_route() -> ResponseReturnValue:
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
 def get_all_incoming_letters_route() -> ResponseReturnValue:
-    """
-    Get all incoming letters dengan pagination support
-    
-    Query parameters:
-    - page: Page number (default 1)
-    - per_page: Items per page (default 20, max 100)
-    - sort_by: Column to sort by (default 'id')
-    - sort_order: 'asc' or 'desc' (default 'asc')
-    
-    Example: GET /incoming_letter/get_all?page=1&per_page=50&sort_order=desc
+    """Mengambil surat masuk per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
     """
     db_session = db.SessionLocal()
     try:
@@ -172,27 +187,19 @@ def get_all_incoming_letters_route() -> ResponseReturnValue:
 
 @incoming_letter_bp.route('/get_by_keys', methods=['POST'])
 def get_incoming_by_keys_route() -> ResponseReturnValue:
-    """
-    Get incoming letters dengan filter dan pagination
-    
-    POST body:
-    {
-        "filters": {
-            "number": "...",
-            "sender": "...",
-            "classification_id": 1,
-            "archive_status": "active"
-        },
-        "page": 1,
-        "per_page": 20
-    }
+    """Mencari surat masuk per halaman.
+
+    Body JSON: `filters` (misalnya `number`, `sender`, `classification_id`,
+    `archive_status`), `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman hasil, atau 500 bila terjadi error.
     """
     data = request.json or {}
     filters = data.get('filters', {})
     
     db_session = db.SessionLocal()
     try:
-        # Extract pagination params dari request body atau query params
         page = data.get('page') or request.args.get('page', 1, type=int)
         per_page = data.get('per_page') or request.args.get('per_page', 20, type=int)
         

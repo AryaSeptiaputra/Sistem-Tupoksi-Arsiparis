@@ -1,3 +1,9 @@
+"""Operasi log aktivitas.
+
+Filter berasal dari JSON request yang bentuknya bebas, jadi diberi tipe
+`dict[str, Any]`.
+"""
+
 from typing import Any
 from sqlalchemy.orm import Session
 from app.models.log import Log
@@ -5,18 +11,15 @@ from app.utils.pagination import PaginationParams, paginate_query, PaginatedResu
 import datetime
 
 def create_log(db: Session, user_id: int | None, action: str) -> Log:
-    """
-    Creates a new activity log entry for audit trails.
+    """Mencatat satu aktivitas.
 
     Args:
-        db (Session): The database session.
-        user_id (int | None): The ID of the account performing the action,
-            or None for an automatic system process.
-        action (str): A description of the action performed (e.g., "LOGIN", 
-            "CREATED_LETTER").
+        db: Session database.
+        user_id: Akun pelaku, atau None untuk proses otomatis sistem.
+        action: Uraian aktivitas.
 
     Returns:
-        Log: The newly created log entry.
+        Entri log yang tersimpan.
     """
     new_log = Log(
         user_id=user_id,
@@ -30,14 +33,14 @@ def create_log(db: Session, user_id: int | None, action: str) -> Log:
     return new_log
 
 def get_all_logs(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[Log]:
-    """
-    Retrieves all activity log entries.
+    """Mengambil log aktivitas, terbaru lebih dulu.
 
     Args:
-        db (Session): The database session.
+        db: Session database.
+        pagination: Parameter halaman; tanpa ini semua baris dikembalikan.
 
     Returns:
-        list[Log]: A list of all activity logs recorded in the system.
+        Satu halaman hasil, atau seluruh baris bila tanpa pagination.
     """
     query = db.query(Log).order_by(Log.id.desc())
 
@@ -47,27 +50,25 @@ def get_all_logs(db: Session, pagination: PaginationParams | None = None) -> Pag
     return query.all()
 
 def get_logs_by_keys(db: Session, filters: dict[str, Any]) -> list[Log]:
-    """
-    Retrieves activity logs filtered by specific attributes.
+    """Mencari log dengan pencocokan sebagian (`ILIKE`) per kolom.
 
     Args:
-        db (Session): The database session.
-        filters (dict): Dictionary of filters (e.g., {"user_id": 5, "action": "LOGIN"}).
+        db: Session database.
+        filters: Pasangan kolom dan nilai, misalnya `{"action": "login"}`.
 
     Returns:
-        list[Log]: A list of log entries matching the criteria.
+        Log yang cocok.
 
     Raises:
-        ValueError: If a provided filter key is not a valid column attribute
-            of the Log model.
+        ValueError: Kalau ada kunci yang bukan kolom tabel log.
     """
     query = db.query(Log)
-    
+
     for key, value in filters.items():
         if not hasattr(Log, key):
             raise ValueError(f"Invalid column '{key}' for Log.")
-        
+
         column_to_filter = getattr(Log, key)
         query = query.filter(column_to_filter.ilike(f"%{value}%"))
-        
+
     return query.all()

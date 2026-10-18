@@ -21,6 +21,14 @@ classification_bp = Blueprint('classification', __name__)
 @classification_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_classification_route() -> ResponseReturnValue:
+    """Menambah klasifikasi.
+
+    Body JSON: `name`, `code`, dan kolom retensi opsional.
+
+    Returns:
+        201 dengan data klasifikasi, 400 bila isian kurang, 409 bila kode
+        atau nama sudah ada, atau 500 bila terjadi error.
+    """
     data = request.json
     if not data.get('name') or not data.get('code'):
         return jsonify({"error": "Name and Code are required"}), 400
@@ -29,7 +37,6 @@ def create_classification_route() -> ResponseReturnValue:
     try:
         new_cls = create_classification(db_session, data)
         
-        # Logging
         try:
             create_log(db_session, get_current_user_id(), f"Menambah Klasifikasi: {new_cls.code} - {new_cls.name}")
         except SQLAlchemyError as e:
@@ -50,6 +57,14 @@ def create_classification_route() -> ResponseReturnValue:
 @classification_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_classification_route() -> ResponseReturnValue:
+    """Mengubah klasifikasi.
+
+    Body JSON: `id` dan kolom yang diubah.
+
+    Returns:
+        200 dengan data klasifikasi, 400 bila `id` kosong, 404 bila tidak
+        ditemukan, atau 409 bila kode atau nama bentrok.
+    """
     data = request.json
     if not data.get('id'):
         return jsonify({"error": "ID is required"}), 400
@@ -71,6 +86,14 @@ def update_classification_route() -> ResponseReturnValue:
 @classification_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_classification_route() -> ResponseReturnValue:
+    """Menghapus klasifikasi.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 bila terhapus, 404 bila tidak ditemukan, atau 400 bila masih
+        dipakai arsip.
+    """
     data = request.json
     if not data.get('id'):
         return jsonify({"error": "ID required"}), 400
@@ -83,7 +106,7 @@ def delete_classification_route() -> ResponseReturnValue:
         
         return jsonify({"message": "Deleted successfully"}), 200
     except Exception as e:
-        # Menangani error jika klasifikasi sedang dipakai oleh surat (Constraint Error)
+        # Penyebab paling umum: klasifikasi masih dirujuk arsip surat (foreign key)
         logger.error(f"Gagal menghapus klasifikasi: {e}", exc_info=True)
         return jsonify({"error": "Gagal hapus: Klasifikasi ini sedang digunakan oleh arsip surat."}), 400
     finally:
@@ -91,6 +114,13 @@ def delete_classification_route() -> ResponseReturnValue:
 
 @classification_bp.route('/get_all', methods=['GET'])
 def get_all_route() -> ResponseReturnValue:
+    """Mengambil klasifikasi per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
+    """
     db_session: Session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -105,6 +135,13 @@ def get_all_route() -> ResponseReturnValue:
 
 @classification_bp.route('/get_by_keys', methods=['POST'])
 def get_by_keys_route() -> ResponseReturnValue:
+    """Mencari klasifikasi.
+
+    Body JSON: `filters` berisi pasangan kolom dan nilai.
+
+    Returns:
+        200 dengan klasifikasi yang cocok, atau 400 bila `filters` kosong.
+    """
     data = request.json
     filters = data.get('filters')
     if not filters: return jsonify({"error": "Filters required"}), 400

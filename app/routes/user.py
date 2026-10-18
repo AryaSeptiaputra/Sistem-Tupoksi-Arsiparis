@@ -13,6 +13,11 @@ user_bp = Blueprint('user', __name__)
 @user_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_me_route() -> ResponseReturnValue:
+    """Mengambil data akun yang sedang login.
+
+    Returns:
+        200 dengan data akun, atau 404 bila akun tidak ditemukan.
+    """
     db_session: Session = db.SessionLocal()
     try:
         user = get_user(db_session, get_current_user_id())
@@ -25,8 +30,13 @@ def get_me_route() -> ResponseReturnValue:
 @user_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_me_route() -> ResponseReturnValue:
-    """
-    Payload: username, display_name
+    """Mengubah username dan nama tampilan akun.
+
+    Body JSON: `username`, `display_name`.
+
+    Returns:
+        200 dengan data akun, 400 bila isian tidak valid, 404 bila akun
+        tidak ditemukan, atau 409 bila username sudah dipakai.
     """
     data = request.json or {}
     db_session: Session = db.SessionLocal()
@@ -50,8 +60,13 @@ def update_me_route() -> ResponseReturnValue:
 @user_bp.route('/change_password', methods=['POST'])
 @jwt_required()
 def change_password_route() -> ResponseReturnValue:
-    """
-    Payload: old_password, new_password
+    """Mengganti kata sandi akun.
+
+    Body JSON: `old_password`, `new_password`.
+
+    Returns:
+        200 bila berhasil, 400 bila kata sandi lama salah atau yang baru
+        lemah, atau 404 bila akun tidak ditemukan.
     """
     data = request.json or {}
     db_session: Session = db.SessionLocal()

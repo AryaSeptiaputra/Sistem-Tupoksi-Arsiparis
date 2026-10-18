@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class Diploma(Base):
+    """Data ijazah siswa beserta status pengambilannya."""
     __tablename__ = "diploma"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -23,6 +24,11 @@ class Diploma(Base):
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "number": self.number,
@@ -30,7 +36,7 @@ class Diploma(Base):
             "major": self.major,
             "academic_year": self.academic_year,
             "is_collected": self.is_collected,
-            "collected_at": self.collected_at, # SEBELUMNYA: "collacted_at"
+            "collected_at": self.collected_at,
             "storage_location_id": self.storage_location.id if self.storage_location else None,
             "storage_location_name": self.storage_location.name if self.storage_location else None,
             "created_at": self.created_at,

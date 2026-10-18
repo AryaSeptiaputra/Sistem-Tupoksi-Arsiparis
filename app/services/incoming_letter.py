@@ -1,3 +1,9 @@
+"""Operasi data surat masuk.
+
+Data masukan berasal dari form atau JSON request yang bentuknya bebas, jadi
+diberi tipe `dict[str, Any]`.
+"""
+
 from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -5,55 +11,79 @@ from app.models.incoming_letter import IncomingLetter
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-# [PASTIKAN] Signature fungsi ini tidak menerima user_id
 def create_incoming_letter(db: Session, letter_data: dict[str, Any]) -> IncomingLetter:
+    """Menyimpan surat masuk baru dengan status arsip awal `active`.
+
+    Args:
+        db: Session database.
+        letter_data: Isian surat; `number`, `letter_date`, `received_date`,
+            `sender`, `subject`, dan `classification_id` wajib.
+
+    Returns:
+        Surat masuk yang tersimpan.
+    """
     new_letter = IncomingLetter(
         number=letter_data['number'],
-        letter_date=letter_data['letter_date'], 
+        letter_date=letter_data['letter_date'],
         received_date=letter_data['received_date'],
         sender=letter_data['sender'],
         subject=letter_data['subject'],
         attachment_path=letter_data.get('attachment_path'),
         classification_id=letter_data['classification_id'],
         storage_location_id=letter_data.get('storage_location_id'),
-        
-        # Default 'active' jika tidak dikirim dari FE
         archive_status=letter_data.get('archive_status', 'active'),
-        
         created_at=datetime.datetime.now(),
         updated_at=datetime.datetime.now()
     )
-    
+
     db.add(new_letter)
     db.commit()
     db.refresh(new_letter)
     return new_letter
 
 def update_incoming_letter(db: Session, letter_id: int, update_data: dict[str, Any]) -> IncomingLetter | None:
+    """Mengubah surat masuk; kunci yang bukan kolom diabaikan.
+
+    Args:
+        db: Session database.
+        letter_id: Id surat.
+        update_data: Kolom yang diubah. `storage_location_id` kosong berarti
+            lokasi dilepas.
+
+    Returns:
+        Surat setelah diubah, atau None bila tidak ditemukan.
+    """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
         return None
 
     for key, value in update_data.items():
-        # Skip field system yang tidak boleh diubah manual
-        if key in ['id', 'created_at']: 
+        if key in ['id', 'created_at']:
             continue
-        
+
         if hasattr(existing_letter, key):
-            # Handle empty storage location (select reset)
+            # Pilihan "kosong" di dropdown lokasi dikirim sebagai string kosong
             if key == 'storage_location_id' and (value == "" or value is None):
                 setattr(existing_letter, key, None)
             else:
-                # Ini akan otomatis mengupdate 'archive_status' jika ada di update_data
                 setattr(existing_letter, key, value)
-            
+
     existing_letter.updated_at = datetime.datetime.now()
-    
+
     db.commit()
     db.refresh(existing_letter)
     return existing_letter
 
 def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None:
+    """Menghapus surat masuk.
+
+    Args:
+        db: Session database.
+        letter_id: Id surat.
+
+    Returns:
+        Surat yang dihapus, atau None bila tidak ditemukan.
+    """
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
         return None
@@ -63,69 +93,57 @@ def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None
     return existing_letter
 
 def get_all_incoming_letters(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[IncomingLetter]:
-    """
-    Get all incoming letters dengan support pagination
-    
-    OPTIMIZATION:
-    - Load relasi classification dan storage_location via joined load
-    - Support pagination untuk handle ribuan records
-    - Order by id DESC (newest first)
-    
+    """Mengambil surat masuk, terbaru lebih dulu.
+
     Args:
-        db: Database session
-        pagination: PaginationParams untuk pagination (opsional)
-    
+        db: Session database.
+        pagination: Parameter halaman; tanpa ini semua baris dikembalikan.
+
     Returns:
-        PaginatedResult jika pagination provided, list[IncomingLetter] sebaliknya
+        Satu halaman hasil dengan item sudah berupa dict, atau seluruh baris
+        sebagai object model bila tanpa pagination.
     """
-    # Selective eager loading hanya relasi yg dibutuhkan
     query = db.query(IncomingLetter).order_by(desc(IncomingLetter.id))
-    
+
     if pagination:
         result = paginate_query(query, pagination)
-        # Convert ke dict dengan relasi
         items_dict = [letter.to_dict() for letter in result.items]
         result.items = items_dict
         return result
     else:
-        # Fallback tanpa pagination (jangan gunakan di production untuk data besar!)
         return query.all()
 
-def get_incoming_letters_by_keys(db: Session, filters: dict[str, Any], 
+def get_incoming_letters_by_keys(db: Session, filters: dict[str, Any],
                                  pagination: PaginationParams | None = None) -> PaginatedResult | list[IncomingLetter]:
-    """
-    Get incoming letters dengan filter dan support pagination
-    
-    OPTIMIZATION:
-    - Use indexed columns untuk filter yang lebih cepat
-    - Support pagination
-    
+    """Mencari surat masuk per kolom, terbaru lebih dulu.
+
+    `id`, `archive_status`, dan kolom `*_id` dicocokkan persis; kolom lain
+    dicocokkan sebagian (`ILIKE`).
+
     Args:
-        db: Database session
-        filters: Dictionary dengan field names dan values untuk filter
-        pagination: PaginationParams untuk pagination (opsional)
-    
+        db: Session database.
+        filters: Pasangan kolom dan nilai; kunci yang bukan kolom diabaikan.
+        pagination: Parameter halaman; tanpa ini semua hasil dikembalikan.
+
     Returns:
-        PaginatedResult atau list[IncomingLetter]
+        Satu halaman hasil dengan item sudah berupa dict, atau seluruh hasil
+        sebagai object model bila tanpa pagination.
     """
     query = db.query(IncomingLetter).order_by(desc(IncomingLetter.created_at))
-    
+
     for key, value in filters.items():
         if not hasattr(IncomingLetter, key):
-            continue 
-        
+            continue
+
         column_to_filter = getattr(IncomingLetter, key)
-        
-        # Indexed columns: exact match (faster)
+
         if key.endswith('_id') or key == 'archive_status' or key == 'id':
             query = query.filter(column_to_filter == value)
         else:
-            # Text search: use LIKE dengan index
             query = query.filter(column_to_filter.ilike(f"%{value}%"))
-        
+
     if pagination:
         result = paginate_query(query, pagination)
-        # Convert ke dict dengan relasi
         items_dict = [letter.to_dict() for letter in result.items]
         result.items = items_dict
         return result
@@ -134,18 +152,27 @@ def get_incoming_letters_by_keys(db: Session, filters: dict[str, Any],
 
 
 def get_incoming_letters_count(db: Session, filters: dict[str, Any] | None = None) -> int:
-    """Get total count of incoming letters untuk UI pagination info"""
+    """Menghitung surat masuk yang cocok dengan filter.
+
+    Args:
+        db: Session database.
+        filters: Pasangan kolom dan nilai, dengan aturan pencocokan yang sama
+            seperti `get_incoming_letters_by_keys`.
+
+    Returns:
+        Jumlah surat masuk.
+    """
     query = db.query(IncomingLetter)
-    
+
     if filters:
         for key, value in filters.items():
             if not hasattr(IncomingLetter, key):
                 continue
             column_to_filter = getattr(IncomingLetter, key)
-            
+
             if key.endswith('_id') or key == 'archive_status' or key == 'id':
                 query = query.filter(column_to_filter == value)
             else:
                 query = query.filter(column_to_filter.ilike(f"%{value}%"))
-    
+
     return query.count()

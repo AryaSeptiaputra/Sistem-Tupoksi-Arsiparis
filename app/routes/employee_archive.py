@@ -4,7 +4,6 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
-# Import Models & Services
 from app.models.employee_archive import EmployeeArchive
 from app.models.teacher import Teacher
 from app.services.employee_archive import (
@@ -28,12 +27,19 @@ employee_archive_bp = Blueprint('employee_archive', __name__)
 @employee_archive_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_route() -> ResponseReturnValue:
+    """Menambah arsip pegawai beserta lampiran opsional.
+
+    Form: `document_name`, `owner_id`, kolom lain, dan `file` opsional.
+
+    Returns:
+        201 dengan data arsip, 400 bila isian kurang, atau 500 bila
+        penyimpanan gagal.
+    """
     data = request.form.to_dict()
     
     if not data.get('document_name') or not data.get('owner_id'):
         return jsonify({"error": "Nama Dokumen dan Pemilik wajib diisi"}), 400
         
-    # Validasi file
     file = request.files.get('file')
     if file:
         try:
@@ -60,6 +66,14 @@ def create_route() -> ResponseReturnValue:
 @employee_archive_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_route() -> ResponseReturnValue:
+    """Mengubah arsip pegawai dan lampirannya.
+
+    Form: `id`, kolom yang diubah, `file` atau `remove_attachment`.
+
+    Returns:
+        200 dengan data arsip, 400 bila `id` kosong, 404 bila tidak
+        ditemukan, atau 500 bila penyimpanan gagal.
+    """
     data = request.form.to_dict()
     if not data.get('id'): return jsonify({"error": "ID required"}), 400
 
@@ -78,13 +92,13 @@ def update_route() -> ResponseReturnValue:
                 data['attachment_path'] = path
             except (ValueError, FileStorageError) as e: return jsonify({"error": str(e)}), 500
         elif remove_attachment:
-            # User ingin hapus file tanpa ganti file baru
+            # Lampiran dilepas tanpa diganti file baru
             data['attachment_path'] = None
-        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
+        # Tanpa file baru dan tanpa remove_attachment, attachment_path tidak diubah
 
         updated = update_employee_archive(db_session, data.get('id'), data)
         
-        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        # File lama dihapus hanya bila lampiran diganti atau dilepas
         if old_path and (file or remove_attachment) and old_path != updated.attachment_path:
             delete_physical_file(old_path)
         
@@ -101,6 +115,13 @@ def update_route() -> ResponseReturnValue:
 @employee_archive_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_route() -> ResponseReturnValue:
+    """Menghapus arsip pegawai beserta file lampirannya.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 bila terhapus, 404 bila tidak ditemukan, atau 500 bila terjadi error.
+    """
     data = request.json or {}
     db_session = db.SessionLocal()
     try:
@@ -119,6 +140,13 @@ def delete_route() -> ResponseReturnValue:
 
 @employee_archive_bp.route('/get_all', methods=['GET'])
 def get_all_route() -> ResponseReturnValue:
+    """Mengambil arsip pegawai per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
+    """
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

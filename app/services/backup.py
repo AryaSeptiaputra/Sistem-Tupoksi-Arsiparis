@@ -1,7 +1,12 @@
-import os
-from typing import Any
-import subprocess
+"""Backup dan restore database MySQL beserta riwayatnya di file JSON.
+
+Entri log berbentuk dict dari JSON, jadi isinya diberi tipe `Any`.
+"""
+
 import json
+import os
+import subprocess
+from typing import Any
 from datetime import datetime
 from app.core.config import settings
 from app.errors import BackupError, RestoreError
@@ -11,31 +16,38 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Mendefinisikan lokasi folder backup
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
-LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json') # [BARU] Path file log
+LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json')
 
 def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
+    """Membuat file backup database MySQL dengan `mysqldump`.
+
+    Hasilnya dicatat ke log JSON, dan file `.sql` yang lebih tua dari 7 hari
+    dihapus.
+
+    Args:
+        triggered_by: Nama tampilan akun, atau `SYSTEM` untuk backup otomatis.
+
+    Returns:
+        Nama dan path file backup.
+
+    Raises:
+        BackupError: Kalau `mysqldump` gagal atau tidak bisa dijalankan.
     """
-    Melakukan backup database MySQL menggunakan mysqldump.
-    Param triggered_by: Nama user atau 'SYSTEM' (String)
-    """
-    
-    # 1. Pastikan folder backup ada
     if not os.path.exists(BACKUP_DIR):
         os.makedirs(BACKUP_DIR)
 
     db_config = parse_db_url(settings.DATABASE_URL)
     
+    # Contoh: 2026-10-18_07-52-00
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     filename = f"backup_{db_config['name']}_{timestamp}.sql"
     filepath = os.path.join(BACKUP_DIR, filename)
 
-    # 2. Siapkan environment variable
+    # Kata sandi lewat MYSQL_PWD supaya tidak terlihat di daftar proses
     env = os.environ.copy()
     env['MYSQL_PWD'] = db_config['password']
 
-    # 3. Perintah mysqldump
     command = [
         'mysqldump',
         '-h', db_config['host'],
@@ -58,7 +70,6 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
         message = "Database backup created successfully."
         result_data = {"filename": filename, "path": filepath}
         
-        # Hapus file lama (keep 7 hari)
         cleanup_old_files(directory_path=BACKUP_DIR, file_extension='.sql', days_to_keep=7)
 
     except subprocess.CalledProcessError as e:
@@ -73,7 +84,6 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
         message = f"Unexpected error: {str(e)}"
         logger.error(message, exc_info=True)
 
-    # 4. [UBAH] Simpan log ke JSON Local
     _log_to_json(
         filename=filename if status == "SUCCESS" else None,
         status=status,
@@ -87,8 +97,17 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
     return result_data
 
 def perform_database_restore(filename: str) -> dict[str, str]:
-    """
-    Merestore database dari file SQL tertentu.
+    """Memulihkan database dari file backup dengan klien `mysql`.
+
+    Args:
+        filename: Nama file backup; hanya nama file yang dipakai, path diabaikan.
+
+    Returns:
+        Status dan pesan hasil pemulihan.
+
+    Raises:
+        FileNotFoundError: Kalau file backup tidak ada di folder backup.
+        RestoreError: Kalau klien `mysql` gagal atau tidak bisa dijalankan.
     """
     safe_filename = os.path.basename(filename)
     filepath = os.path.join(BACKUP_DIR, safe_filename)
@@ -133,23 +152,20 @@ def perform_database_restore(filename: str) -> dict[str, str]:
         logger.error(f"Restore dari {safe_filename} gagal: {e}", exc_info=True)
         raise RestoreError(f"Error Tidak Terduga: {str(e)}") from e
 
-# --- [BARU] FUNGSI JSON HELPER ---
-
 def _log_to_json(filename: str | None, status: str, message: str, triggered_by: str) -> None:
-    """
-    Menulis log ke file JSON (Append mode logic).
-    """
     log_entry = {
-        "id": int(datetime.now().timestamp()), # ID unik sederhana berbasis waktu
+        # Detik sejak epoch dipakai sebagai id; backup tidak berjalan dua kali per detik
+        "id": int(datetime.now().timestamp()),
         "filename": filename,
         "status": status,
         "message": message,
-        "created_by": triggered_by, # Menyimpan nama user langsung
+        "created_by": triggered_by,
         "created_at": datetime.now().isoformat()
     }
     
-    logs = get_all_logs() # Ambil log lama
-    logs.insert(0, log_entry) # Tambahkan log baru di paling atas (terbaru)
+    logs = get_all_logs()
+    # Entri terbaru di urutan pertama
+    logs.insert(0, log_entry)
 
     try:
         with open(LOG_FILE_PATH, 'w') as f:
@@ -158,8 +174,10 @@ def _log_to_json(filename: str | None, status: str, message: str, triggered_by: 
         logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
 
 def get_all_logs() -> list[dict[str, Any]]:
-    """
-    Membaca semua log dari file JSON.
+    """Membaca riwayat backup dari file log JSON.
+
+    Returns:
+        Entri log, terbaru lebih dulu; kosong bila file belum ada atau rusak.
     """
     if not os.path.exists(LOG_FILE_PATH):
         return []

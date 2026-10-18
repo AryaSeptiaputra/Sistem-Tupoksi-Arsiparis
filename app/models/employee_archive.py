@@ -4,8 +4,8 @@ from sqlalchemy.orm import relationship, Session
 from app.core.database import Base
 import datetime
 
-# ================= MODEL =================
 class EmployeeArchive(Base):
+    """Dokumen kepegawaian milik seorang guru atau tenaga kependidikan."""
     __tablename__ = "employee_archive"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -17,15 +17,12 @@ class EmployeeArchive(Base):
     description = Column(Text, nullable=True)
     attachment_path = Column(String(255), nullable=True)
     
-    # --- RELASI KEPEMILIKAN ---
     owner_id = Column(Integer, ForeignKey("teacher.id", ondelete="CASCADE"), nullable=False, index=True)
     owner = relationship("Teacher", back_populates="my_archives", lazy="joined")
 
-    # --- RELASI KLASIFIKASI (BARU) ---
     classification_id = Column(Integer, ForeignKey('classification.id'), nullable=True, index=True)
     classification = relationship("Classification", backref="employee_archives", lazy="joined")
 
-    # --- RELASI LOKASI ---
     storage_location_id = Column(Integer, ForeignKey("storage_location.id"), nullable=True)
     storage_location = relationship("StorageLocation", backref="employee_archives", lazy="joined")
     
@@ -33,6 +30,11 @@ class EmployeeArchive(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "document_name": self.document_name,
@@ -44,8 +46,7 @@ class EmployeeArchive(Base):
             "owner_id": self.owner_id,
             "owner_name": self.owner.full_name if self.owner else "Unknown",
             "owner_identity": self.owner.identity_number if self.owner else "-",
-            
-            # Data Klasifikasi
+
             "classification_id": self.classification_id,
             "classification_code": self.classification.code if self.classification else None,
             "classification_name": self.classification.name if self.classification else None,

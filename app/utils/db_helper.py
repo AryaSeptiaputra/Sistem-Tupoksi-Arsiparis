@@ -3,13 +3,13 @@ from typing import Any
 from sqlalchemy.engine import make_url
 
 def parse_db_url(url_string: str) -> dict[str, Any]:
-    """Parses a SQLAlchemy connection string into a dictionary.
+    """Memecah URL koneksi SQLAlchemy menjadi bagian-bagiannya.
 
     Args:
-        url_string (str): The full DSN (e.g., mysql://user:pass@localhost/db).
+        url_string: URL lengkap, misalnya `mysql+pymysql://user:pass@localhost/db`.
 
     Returns:
-        dict: A dictionary containing 'user', 'password', 'host', 'port', and 'name'.
+        Dict berisi `user`, `password`, `host`, `port` (default 3306), dan `name`.
     """
     url = make_url(url_string)
     return {

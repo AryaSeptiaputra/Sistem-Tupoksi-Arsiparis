@@ -4,7 +4,6 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
-# Import Services
 from app.models.finance_archive import FinanceArchive
 from app.services.finance_archive import (
     create_finance_archive, update_finance_archive, 
@@ -27,11 +26,18 @@ finance_bp = Blueprint('finance_archive', __name__)
 @finance_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_route() -> ResponseReturnValue:
+    """Menambah arsip keuangan beserta lampiran opsional.
+
+    Form: `title`, `fiscal_year`, `classification_id`, kolom lain, dan `file` opsional.
+
+    Returns:
+        201 dengan data arsip, 400 bila isian kurang, atau 500 bila
+        penyimpanan gagal.
+    """
     data = request.form.to_dict()
     if not data.get('title') or not data.get('fiscal_year'):
         return jsonify({"error": "Judul dan Tahun Anggaran wajib diisi"}), 400
             
-    # Handle File Upload
     file = request.files.get('file')
     attachment_path = None
     if file:
@@ -43,10 +49,8 @@ def create_route() -> ResponseReturnValue:
     
     db_session = db.SessionLocal()
     try:
-        # [UBAH] Create tanpa user_id
         new_data = create_finance_archive(db_session, data)
         
-        # Logging Action
         actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Menambahkan Arsip Keuangan: '{new_data.title}'")
@@ -61,13 +65,20 @@ def create_route() -> ResponseReturnValue:
 @finance_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_route() -> ResponseReturnValue:
+    """Mengubah arsip keuangan dan lampirannya.
+
+    Form: `id`, kolom yang diubah, `file` atau `remove_attachment`.
+
+    Returns:
+        200 dengan data arsip, 400 bila `id` kosong, 404 bila tidak
+        ditemukan, atau 500 bila penyimpanan gagal.
+    """
     data = request.form.to_dict()
     archive_id = data.get('id')
     if not archive_id: return jsonify({"error": "ID required"}), 400
 
     db_session = db.SessionLocal()
     try:
-        # Cek data lama & file
         curr = db_session.query(FinanceArchive).filter(FinanceArchive.id == archive_id).first()
         if not curr: return jsonify({"error": "Data not found"}), 404
         old_path = curr.attachment_path
@@ -81,13 +92,13 @@ def update_route() -> ResponseReturnValue:
                 data['attachment_path'] = path
             except (ValueError, FileStorageError) as e: return jsonify({"error": str(e)}), 500
         elif remove_attachment:
-            # User ingin hapus file tanpa ganti file baru
+            # Lampiran dilepas tanpa diganti file baru
             data['attachment_path'] = None
-        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
+        # Tanpa file baru dan tanpa remove_attachment, attachment_path tidak diubah
 
         updated = update_finance_archive(db_session, archive_id, data)
         
-        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        # File lama dihapus hanya bila lampiran diganti atau dilepas
         if old_path and (file or remove_attachment) and old_path != updated.attachment_path:
             delete_physical_file(old_path)
 
@@ -105,6 +116,13 @@ def update_route() -> ResponseReturnValue:
 @finance_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_route() -> ResponseReturnValue:
+    """Menghapus arsip keuangan beserta file lampirannya.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 bila terhapus, 404 bila tidak ditemukan, atau 500 bila terjadi error.
+    """
     data = request.json or {}
     archive_id = data.get('id')
     
@@ -129,6 +147,13 @@ def delete_route() -> ResponseReturnValue:
 
 @finance_bp.route('/get_all', methods=['GET'])
 def get_all_route() -> ResponseReturnValue:
+    """Mengambil arsip keuangan per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
+    """
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

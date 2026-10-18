@@ -5,19 +5,21 @@ from app.models.incoming_letter import IncomingLetter
 from app.models.outgoing_letter import OutgoingLetter
 from app.models.finance_archive import FinanceArchive
 from app.models.classification import Classification
-from app.core.database import engine # Import engine untuk buat session baru
+from app.core.database import engine
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Setup Session Factory
 from sqlalchemy.orm import sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def check_and_deactivate_archives() -> None:
-    """
-    Fungsi ini akan dipanggil oleh Scheduler.
-    Membuka koneksi DB sendiri, cek retensi, update, lalu tutup koneksi.
+    """Mengubah arsip aktif yang melewati masa aktif menjadi inaktif.
+
+    Dijalankan scheduler harian dengan session sendiri. Batasnya tanggal
+    terima (surat masuk), tanggal kirim (surat keluar), atau tahun anggaran
+    (arsip keuangan) ditambah masa aktif klasifikasi. Error dicatat ke log
+    tanpa dilempar, supaya scheduler tetap berjalan.
     """
     db: Session = SessionLocal()
     try:
@@ -25,7 +27,6 @@ def check_and_deactivate_archives() -> None:
         counter = 0
         today = datetime.now()
         
-        # --- 1. SURAT MASUK ---
         incoming_docs = db.query(IncomingLetter).join(Classification)\
             .filter(IncomingLetter.archive_status == 'active').all()
         
@@ -35,7 +36,6 @@ def check_and_deactivate_archives() -> None:
                 doc.archive_status = 'inactive'
                 counter += 1
 
-        # --- 2. SURAT KELUAR ---
         outgoing_docs = db.query(OutgoingLetter).join(Classification)\
             .filter(OutgoingLetter.archive_status == 'active').all()
         
@@ -45,12 +45,10 @@ def check_and_deactivate_archives() -> None:
                 doc.archive_status = 'inactive'
                 counter += 1
 
-        # --- 3. ARSIP KEUANGAN ---
         finance_docs = db.query(FinanceArchive).join(Classification)\
             .filter(FinanceArchive.archive_status == 'active').all()
         
         for doc in finance_docs:
-            # Logic: Jika tahun sekarang > (Tahun Anggaran + Retensi)
             expiry_year = doc.fiscal_year + doc.classification.retention_active_period
             if today.year > expiry_year:
                 doc.archive_status = 'inactive'
@@ -68,9 +66,7 @@ def check_and_deactivate_archives() -> None:
     finally:
         db.close()
 
-# ... (kode sebelumnya)
-
-# Tambahkan blok ini di paling bawah file:
+# Menjalankan pengecekan sekali dari terminal: python -m app.services.retention_scheduler
 if __name__ == "__main__":
     print("--- Menjalankan Scheduler Manual ---")
     check_and_deactivate_archives()

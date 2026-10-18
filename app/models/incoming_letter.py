@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class IncomingLetter(Base):
+    """Surat masuk beserta klasifikasi dan lokasi simpannya."""
     __tablename__ = "incoming_letter"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -14,21 +15,23 @@ class IncomingLetter(Base):
     subject = Column(String(255), nullable=False)
     attachment_path = Column(String(255), nullable=True)
     
-    # Relasi Klasifikasi
     classification_id = Column(Integer, ForeignKey('classification.id'), nullable=False, index=True)
     classification = relationship("Classification", backref="incoming_letters", lazy="joined")
 
-    # Relasi Lokasi
     storage_location_id = Column(Integer, ForeignKey('storage_location.id'), nullable=True, index=True)
     storage_location = relationship("StorageLocation", backref="incoming_letters", lazy="joined")
 
-    # Status Arsip (String)
     archive_status = Column(String(20), default='active', nullable=False)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "number": self.number,

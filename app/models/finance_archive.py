@@ -4,36 +4,39 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class FinanceArchive(Base):
+    """Arsip keuangan per tahun anggaran."""
     __tablename__ = "finance_archive"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     fiscal_year = Column(Integer, index=True, nullable=False)
-    period_month = Column(Integer, nullable=True) # 1-12
+    # Bulan 1-12
+    period_month = Column(Integer, nullable=True)
     
-    # [UBAH] Enum -> String
-    # Contoh value: 'bos_reguler', 'komite', 'bop', 'lainnya'
+    # Contoh: 'bos_reguler', 'komite', 'bop', 'lainnya'
     category = Column(String(50), default='bos_reguler', nullable=False)
     
     amount = Column(BigInteger, nullable=True)
     description = Column(Text, nullable=True)
     attachment_path = Column(String(255), nullable=True)
     
-    # Relasi Klasifikasi
     classification_id = Column(Integer, ForeignKey("classification.id"), nullable=False)
     classification = relationship("Classification", backref="finance_archives", lazy="joined")
     
-    # Relasi Lokasi
     storage_location_id = Column(Integer, ForeignKey("storage_location.id"), nullable=True)
     storage_location = relationship("StorageLocation", backref="finance_archives", lazy="joined")
     
-    # [UBAH] Enum -> String
     archive_status = Column(String(20), default='active', nullable=False)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "title": self.title,

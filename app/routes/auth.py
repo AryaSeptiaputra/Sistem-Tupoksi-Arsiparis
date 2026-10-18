@@ -15,6 +15,14 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login() -> ResponseReturnValue:
+    """Login akun operator dan menerbitkan token JWT.
+
+    Body JSON: `username`, `password`.
+
+    Returns:
+        200 dengan `access_token`, 400 bila isian kosong, 401 bila salah,
+        atau 500 bila terjadi error server.
+    """
     data = request.json or {}
     username = (data.get('username') or '').strip()
     password = data.get('password')

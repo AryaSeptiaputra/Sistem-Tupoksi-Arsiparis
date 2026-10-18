@@ -15,15 +15,12 @@ log_bp = Blueprint('log', __name__)
 @log_bp.route('/get_all', methods=['GET'])
 @jwt_required()
 def get_all_logs_route() -> ResponseReturnValue:
-    """
-    Retrieves all activity logs.
+    """Mengambil log aktivitas per halaman.
 
-    Requires a valid JWT access token. Fetches the complete history of
-    system activities recorded in the database.
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
 
     Returns:
-        tuple[Response, int]:
-            * 200: A JSON list containing all log objects.
+        200 dengan satu halaman data, atau 500 bila terjadi error.
     """
     db_session: Session = db.SessionLocal()
     try:
@@ -40,21 +37,13 @@ def get_all_logs_route() -> ResponseReturnValue:
 @log_bp.route('/get_by_keys', methods=['POST'])
 @jwt_required()
 def get_logs_by_keys_route() -> ResponseReturnValue:
-    """
-    Retrieves logs filtered by multiple keys.
+    """Mencari log aktivitas.
 
-    Requires a valid JWT access token. Allows filtering the logs based on
-    specific criteria provided in the 'filters' dictionary.
-
-    Args:
-        No explicit arguments. Expects JSON payload:
-        filters (dict): A dictionary of key-value pairs to filter by.
-            Example: {"user_id": 1, "action": "LOGIN"}
+    Body JSON: `filters`, misalnya `{"action": "login"}`.
 
     Returns:
-        tuple[Response, int]:
-            * 200: A list of logs matching the filters.
-            * 400: Missing 'filters' dictionary or invalid format.
+        200 dengan log yang cocok, atau 400 bila `filters` kosong atau
+        berisi kolom yang tidak ada.
     """
     data = request.json
     filters = data.get('filters')

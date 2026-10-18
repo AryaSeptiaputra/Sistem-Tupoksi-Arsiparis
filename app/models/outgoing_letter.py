@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class OutgoingLetter(Base):
+    """Surat keluar beserta status arsip dan status persetujuannya."""
     __tablename__ = "outgoing_letter"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -15,13 +16,10 @@ class OutgoingLetter(Base):
     is_decree = Column(Boolean, default=False, index=True, nullable=False)
     attachment_path = Column(String(255), nullable=True)
 
-    # Status Arsip (Fisik)
     archive_status = Column(String(20), default='active', nullable=False)
 
-    # --- [BARU] Status Persetujuan ---
-    # Value: 'draft', 'pending', 'approved', 'rejected'
+    # Nilai: 'draft', 'pending', 'approved', 'rejected'
     approval_status = Column(String(20), default='pending', nullable=False)
-    # ---------------------------------
 
     classification_id = Column(Integer, ForeignKey("classification.id"), index=True, nullable=False)
     classification = relationship("Classification", backref="outgoing_letters", lazy="joined")
@@ -33,6 +31,11 @@ class OutgoingLetter(Base):
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "number": self.number,
@@ -47,7 +50,7 @@ class OutgoingLetter(Base):
             "storage_location_id": self.storage_location.id if self.storage_location else None,
             "storage_location_name": self.storage_location.name if self.storage_location else None,
             "archive_status": self.archive_status,
-            "approval_status": self.approval_status, # Return status baru
+            "approval_status": self.approval_status,
             "file_path": self.attachment_path,
             "created_at": self.created_at
         }

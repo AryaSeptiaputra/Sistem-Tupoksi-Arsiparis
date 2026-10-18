@@ -3,7 +3,6 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from app import db
-# Pastikan import service benar
 from app.services.disposal import get_expired_archives, execute_disposal
 from app.services.log import create_log
 from app.utils.current_user import get_current_user_id
@@ -16,11 +15,13 @@ disposal_bp = Blueprint('disposal', __name__)
 @disposal_bp.route('/check', methods=['GET'])
 @jwt_required()
 def check_expiry_route() -> ResponseReturnValue:
-    """API untuk mengecek daftar arsip yang sudah kadaluwarsa hari ini."""
+    """Mengambil daftar arsip yang sudah boleh dimusnahkan.
+
+    Returns:
+        200 dengan daftar arsip kedaluwarsa, atau 500 bila terjadi error.
+    """
     db_session: Session = db.SessionLocal()
     try:
-        # NOTE: Pastikan 'results' di sini sudah berupa List of DICT (bukan Object)
-        # dan memiliki key yang konsisten (title/subject/document_name)
         results = get_expired_archives(db_session)
         return jsonify(results), 200
     except Exception as e:
@@ -32,27 +33,32 @@ def check_expiry_route() -> ResponseReturnValue:
 @disposal_bp.route('/execute', methods=['POST'])
 @jwt_required()
 def execute_route() -> ResponseReturnValue:
-    """API untuk mengeksekusi pemusnahan berdasarkan ID yang dikirim."""
+    """Memusnahkan arsip pilihan.
+
+    Body JSON: array arsip, atau object dengan kunci `items`; tiap arsip
+    berisi `table_source` dan `id`.
+
+    Returns:
+        200 dengan jumlah arsip yang dimusnahkan, 400 bila tidak ada pilihan,
+        atau 500 bila terjadi error.
+    """
     db_session: Session = db.SessionLocal()
     try:
         data = request.json
         
-        # --- PERBAIKAN HANDLING DATA ---
         items = []
         if isinstance(data, list):
-            # Jika frontend mengirim Array langsung: [...]
+            # Front-end bisa mengirim array langsung: [...]
             items = data
         elif isinstance(data, dict):
-            # Jika frontend mengirim Object: { "items": [...] }
+            # atau object: { "items": [...] }
             items = data.get('items', [])
         
         if not items:
             return jsonify({"error": "No items selected"}), 400
-        # -------------------------------
 
         user_id = get_current_user_id()
 
-        # Eksekusi Logic
         count = execute_disposal(db_session, items, user_id)
 
         create_log(db_session, user_id, f"Melakukan Pemusnahan Arsip: {count} dokumen.")

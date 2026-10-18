@@ -25,9 +25,17 @@ outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
 @outgoing_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_outgoing_letter_route() -> ResponseReturnValue:
+    """Menambah surat keluar beserta lampiran opsional.
+
+    Form: `number`, `letter_date`, `sent_date`, `destination`,
+    `classification_id`, kolom lain, dan `file` opsional.
+
+    Returns:
+        201 dengan data surat, 400 bila isian kurang atau id bukan angka,
+        atau 500 bila penyimpanan gagal.
+    """
     data = request.form.to_dict()
     
-    # Validasi Boolean
     if 'is_decree' in data:
         data['is_decree'] = str(data['is_decree']).lower() == 'true'
     else:
@@ -47,7 +55,6 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
     except ValueError:
             return jsonify({"error": "ID Klasifikasi/Lokasi harus berupa angka"}), 400
 
-    # Validasi field required dengan pesan user-friendly
     field_labels = {
         'number': 'Nomor Surat',
         'letter_date': 'Tanggal Surat',
@@ -59,7 +66,6 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
         if not data.get(field):
             return jsonify({"error": f"{label} wajib diisi"}), 400
     
-    # File Upload
     file = request.files.get('file')
     attachment_path = None
     if file:
@@ -71,10 +77,8 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
 
     db_session: Session = db.SessionLocal()
     try:
-        # [UBAH] Hapus user_id
         new_letter = create_outgoing_letter(db_session, data)
         
-        # Logging
         actor_id = get_current_user_id()
         if actor_id:
             create_log(db_session, actor_id, f"Menambahkan surat keluar No: '{new_letter.number}'")
@@ -90,6 +94,14 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
 @outgoing_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_outgoing_letter_route() -> ResponseReturnValue:
+    """Mengubah surat keluar dan lampirannya.
+
+    Form atau JSON: `id`, kolom yang diubah, `file` atau `remove_attachment`.
+
+    Returns:
+        200 dengan data surat, 400 bila `id` kosong atau id bukan angka, 404
+        bila tidak ditemukan, atau 500 bila penyimpanan gagal.
+    """
     data = request.get_json(silent=True) or request.form.to_dict()
     letter_id = data.get('id')
     
@@ -127,13 +139,13 @@ def update_outgoing_letter_route() -> ResponseReturnValue:
             except (ValueError, FileStorageError) as e:
                 return jsonify({"error": f"Gagal upload file: {str(e)}"}), 500
         elif remove_attachment:
-            # User ingin hapus file tanpa ganti file baru
+            # Lampiran dilepas tanpa diganti file baru
             data['attachment_path'] = None
-        # Jika tidak ada file baru & tidak ada remove_attachment, jangan ubah attachment_path
+        # Tanpa file baru dan tanpa remove_attachment, attachment_path tidak diubah
         
         updated_letter = update_outgoing_letter(db_session, letter_id, data)
         
-        # Cleanup file fisik lama HANYA jika ada file baru/remove & path berbeda
+        # File lama dihapus hanya bila lampiran diganti atau dilepas
         if old_file_path and (file or remove_attachment) and old_file_path != updated_letter.attachment_path:
             delete_physical_file(old_file_path)
 
@@ -152,6 +164,14 @@ def update_outgoing_letter_route() -> ResponseReturnValue:
 @outgoing_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_outgoing_letter_route() -> ResponseReturnValue:
+    """Menghapus surat keluar beserta file lampirannya.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 dengan data yang dihapus, 404 bila tidak ditemukan, atau 500
+        bila terjadi error.
+    """
     data = request.json or {}
     letter_id = data.get('id')
 
@@ -176,6 +196,13 @@ def delete_outgoing_letter_route() -> ResponseReturnValue:
 
 @outgoing_letter_bp.route('/get_all', methods=['GET'])
 def get_all_outgoing_letters_route() -> ResponseReturnValue:
+    """Mengambil surat keluar per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
+    """
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -189,6 +216,14 @@ def get_all_outgoing_letters_route() -> ResponseReturnValue:
 
 @outgoing_letter_bp.route('/get_by_keys', methods=['POST'])
 def get_outgoing_by_keys_route() -> ResponseReturnValue:
+    """Mencari surat keluar.
+
+    Body JSON: `filters` berisi pasangan kolom dan nilai.
+
+    Returns:
+        200 dengan surat yang cocok, atau 400 bila `filters` kosong atau
+        terjadi error.
+    """
     data = request.json or {}
     filters = data.get('filters')
     if not filters: return jsonify({"error": "filters required"}), 400

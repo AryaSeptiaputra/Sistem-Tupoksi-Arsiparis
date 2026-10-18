@@ -5,22 +5,22 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Inisialisasi Blueprint
 reference_bp = Blueprint('reference', __name__)
 service = MasterReferenceService()
 
-# ---------------------------------------------------
-# PUBLIC / READ ONLY (Untuk Mengisi Dropdown)
-# ---------------------------------------------------
 
 @reference_bp.route('/api/references/<category>', methods=['GET'])
 def get_options(category: str) -> ResponseReturnValue:
-    """
-    Contoh URL: /api/references/school_major
-    Return: JSON Array opsi jurusan
+    """Mengambil opsi satu kategori untuk dropdown.
+
+    Args:
+        category: Nilai kategori, misalnya `school_major`.
+
+    Returns:
+        200 dengan daftar opsi, atau 500 bila terjadi error.
     """
     try:
-        # Ambil query param ?all=true jika ingin menampilkan yang tidak aktif (untuk menu admin)
+        # ?all=true ikut menampilkan opsi yang tidak aktif
         show_all = request.args.get('all') == 'true'
 
         results = service.get_by_category(category, only_active=not show_all)
@@ -34,23 +34,26 @@ def get_options(category: str) -> ResponseReturnValue:
 
 @reference_bp.route('/api/references/categories', methods=['GET'])
 def get_categories() -> ResponseReturnValue:
-    """
-    Mendapatkan daftar Enum kategori yang tersedia.
+    """Mengambil semua kategori referensi.
+
+    Returns:
+        200 dengan daftar kategori.
     """
     return jsonify({
         "status": "success",
         "data": service.get_all_categories()
     })
 
-# ---------------------------------------------------
-# ADMIN ONLY (Create, Update, Delete)
-# ---------------------------------------------------
 
 @reference_bp.route('/api/references', methods=['POST'])
 def create_option() -> ResponseReturnValue:
-    """
-    Menambah opsi baru.
-    Body JSON: { "category": "school_major", "code": "DKV", "name": "Desain Komunikasi Visual" }
+    """Menambah opsi referensi.
+
+    Body JSON: `category`, `code`, `name`, dan kolom opsional.
+
+    Returns:
+        201 dengan opsi baru, 400 bila isian kurang atau kategori tidak
+        valid, atau 500 bila terjadi error.
     """
     try:
         data = request.json
@@ -67,9 +70,14 @@ def create_option() -> ResponseReturnValue:
 
 @reference_bp.route('/api/references/<int:id>', methods=['PUT'])
 def update_option(id: int) -> ResponseReturnValue:
-    """
-    Update opsi.
-    Body JSON: { "name": "Nama Baru", "sort_order": 5 }
+    """Mengubah opsi referensi.
+
+    Args:
+        id: Id opsi.
+
+    Returns:
+        200 dengan opsi setelah diubah, 404 bila tidak ditemukan, atau 500
+        bila terjadi error.
     """
     try:
         data = request.json
@@ -84,8 +92,14 @@ def update_option(id: int) -> ResponseReturnValue:
 
 @reference_bp.route('/api/references/<int:id>', methods=['DELETE'])
 def delete_option(id: int) -> ResponseReturnValue:
-    """
-    Menonaktifkan opsi (Soft Delete).
+    """Menonaktifkan opsi referensi tanpa menghapus barisnya.
+
+    Args:
+        id: Id opsi.
+
+    Returns:
+        200 bila dinonaktifkan, 404 bila tidak ditemukan, atau 500 bila
+        terjadi error.
     """
     try:
         success = service.delete(id)

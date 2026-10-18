@@ -107,6 +107,12 @@ def migrate(keep: str | None) -> bool:
     return True
 
 def main() -> int:
+    """Menjalankan migrasi dari terminal.
+
+    Returns:
+        Kode keluar proses: 0 berhasil, 1 bila database bukan MySQL atau
+        migrasi dibatalkan.
+    """
     parser = argparse.ArgumentParser(description="Migrasi akun ke model satu pengguna.")
     parser.add_argument("--keep", help="Username yang dipertahankan aktif")
     args = parser.parse_args()

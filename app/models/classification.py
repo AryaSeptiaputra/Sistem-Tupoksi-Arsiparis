@@ -3,9 +3,12 @@ from sqlalchemy import Column, String, Text, DateTime, func, Integer
 from app.core.database import Base
 
 class Classification(Base):
-    """
-    Represents the categorization system for letters with Retention Schedule (JRA).
-    Update: 'final_action' changed from Enum to String for flexibility.
+    """Kode klasifikasi arsip beserta jadwal retensinya (JRA).
+
+    Attributes:
+        retention_active_period: Masa aktif dalam tahun.
+        retention_inactive_period: Masa inaktif dalam tahun.
+        final_action: Tindakan akhir, misalnya `destroy`, `permanent`, atau `assess`.
     """
     __tablename__ = "classification"
 
@@ -14,18 +17,20 @@ class Classification(Base):
     code = Column(String(10), index=True, unique=True, nullable=False)
     description = Column(Text, nullable=True)
     
-    # --- Retensi Arsip ---
     retention_active_period = Column(Integer, default=1, nullable=False) 
     retention_inactive_period = Column(Integer, default=2, nullable=False)
     
-    # [UBAH] Enum -> String
-    # Value contoh: 'destroy', 'permanent', 'assess' (diatur di Frontend)
     final_action = Column(String(50), default='destroy', nullable=False)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "code": self.code,

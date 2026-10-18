@@ -6,36 +6,35 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Hapus import jwt_required karena file ini harus public accessible oleh browser
-# from flask_jwt_extended import jwt_required 
-
 storage_bp = Blueprint('storage', __name__)
 
+# Sengaja tanpa jwt_required: file dibuka browser lewat window.open, yang
+# tidak mengirim header Authorization.
 @storage_bp.route('/<path:filename>', methods=['GET'])
-# @jwt_required() <--- JANGAN GUNAKAN INI untuk route file statis via window.open
 def serve_storage_file(filename: str) -> ResponseReturnValue:
+    """Mengirim file lampiran dari folder `storage`.
+
+    Contoh: URL `/storage/documents/incoming_letters/a.pdf` menangkap
+    `filename` = `documents/incoming_letters/a.pdf`.
+
+    Args:
+        filename: Path file relatif terhadap folder `storage`.
+
+    Returns:
+        File yang diminta, 403 bila path keluar dari folder `storage`, atau
+        404 bila file tidak ada.
     """
-    Melayani file dari folder storage.
-    URL Browser: domain.com/storage/documents/incoming_letters/namafile.pdf
-    filename yg ditangkap: documents/incoming_letters/namafile.pdf
-    """
-    
-    # 1. Tentukan Root Project & Folder Storage
     base_dir = os.getcwd()
     storage_folder = os.path.join(base_dir, 'storage')
-
-    # 2. Gabungkan path
     full_path = os.path.join(storage_folder, filename)
 
-    # 3. Validasi Keamanan (Mencegah user akses file di luar folder storage)
+    # Menolak path yang keluar dari folder storage
     if not os.path.commonprefix([full_path, storage_folder]) == storage_folder:
         return jsonify({"error": "Akses dilarang!"}), 403
 
-    # 4. Cek keberadaan file
     if not os.path.exists(full_path):
         return jsonify({"error": "File fisik tidak ditemukan"}), 404
 
-    # 5. Kirim File
     try:
         directory = os.path.dirname(full_path)
         file_name = os.path.basename(full_path)

@@ -21,6 +21,14 @@ storage_location_bp = Blueprint('storage_location', __name__)
 @storage_location_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_route() -> ResponseReturnValue:
+    """Menambah lokasi simpan.
+
+    Body JSON: `name`, `description` opsional.
+
+    Returns:
+        201 dengan data lokasi, 400 bila `name` kosong, 409 bila nama sudah
+        ada, atau 500 bila terjadi error.
+    """
     data = request.json
     if 'name' not in data:
         return jsonify({"error": "Name is required"}), 400
@@ -42,6 +50,14 @@ def create_route() -> ResponseReturnValue:
 @storage_location_bp.route('/update', methods=['POST'])
 @jwt_required()
 def update_route() -> ResponseReturnValue:
+    """Mengubah lokasi simpan.
+
+    Body JSON: `id`, `name`, `description`.
+
+    Returns:
+        200 dengan data lokasi, 400 bila `id` kosong, 404 bila tidak
+        ditemukan, atau 409 bila nama bentrok.
+    """
     data = request.json
     loc_id = data.get('id')
     
@@ -63,6 +79,13 @@ def update_route() -> ResponseReturnValue:
 @storage_location_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_route() -> ResponseReturnValue:
+    """Menghapus lokasi simpan.
+
+    Body JSON: `id`.
+
+    Returns:
+        200 dengan data yang dihapus, atau 404 bila tidak ditemukan.
+    """
     data = request.json
     loc_id = data.get('id')
     
@@ -78,6 +101,13 @@ def delete_route() -> ResponseReturnValue:
 @storage_location_bp.route('/get_all', methods=['GET'])
 @jwt_required()
 def get_all_route() -> ResponseReturnValue:
+    """Mengambil lokasi simpan per halaman.
+
+    Query: `page`, `per_page`, `sort_by`, `sort_order`.
+
+    Returns:
+        200 dengan satu halaman data, atau 500 bila terjadi error.
+    """
     db_session: Session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

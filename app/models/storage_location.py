@@ -3,14 +3,7 @@ from sqlalchemy import Column, String, Text, DateTime, func, Integer
 from app.core.database import Base
 
 class StorageLocation(Base):
-    """
-    Represents the physical location where archives are stored.
-    Examples: 'Lemari A', 'Rak 3', 'Boks 10'.
-    
-    Attributes:
-        name (str): The name/label of the storage unit.
-        description (str): Details about the location or its contents.
-    """
+    """Lokasi fisik penyimpanan arsip, misalnya 'Lemari A' atau 'Rak 3'."""
     __tablename__ = "storage_location"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -30,7 +23,11 @@ class StorageLocation(Base):
     )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert object to dictionary for API responses."""
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "name": self.name,

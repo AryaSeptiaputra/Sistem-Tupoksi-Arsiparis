@@ -1,6 +1,6 @@
 import os
 import time
-import uuid  # [BARU] Untuk generate nama unik
+import uuid
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -9,12 +9,24 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# 10 MB dalam byte
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
 def cleanup_old_files(directory_path: str, file_extension: str, days_to_keep: int = 7) -> None:
-    """Menghapus file lama berdasarkan umur file."""
+    """Menghapus file berekstensi tertentu yang lebih tua dari batas hari.
+
+    Kegagalan menghapus dicatat ke log tanpa menghentikan proses.
+
+    Args:
+        directory_path: Folder yang dibersihkan.
+        file_extension: Ekstensi file yang diperiksa, misalnya `.sql`.
+        days_to_keep: Umur maksimal file dalam hari.
+    """
     if not os.path.exists(directory_path):
         return
 
     now = time.time()
+    # 86400 detik = 1 hari
     cutoff = now - (days_to_keep * 86400)
 
     try:
@@ -30,21 +42,22 @@ def cleanup_old_files(directory_path: str, file_extension: str, days_to_keep: in
         logger.error(f"cleanup_old_files gagal: {e}", exc_info=True)
 
 def delete_physical_file(relative_path: str | None) -> None:
-    """
-    Menghapus file fisik dari penyimpanan jika ada.
-    Arg: relative_path (contoh: 'storage/documents/outgoing/abc.pdf')
+    """Menghapus file lampiran dari disk bila ada.
+
+    Kegagalan menghapus dicatat ke log tanpa melempar error.
+
+    Args:
+        relative_path: Path yang tersimpan di database, misalnya
+            `storage/documents/outgoing_letters/abc.pdf`.
     """
     if not relative_path:
         return
-    
+
     try:
-        # Normalisasi path untuk mencegah traversal
+        # normpath merapikan `..` dan pemisah path sebelum digabung
         normalized_path = os.path.normpath(relative_path)
-        
-        # [UPDATE] Arahkan ke folder static aplikasi
-        # Asumsi struktur: root/app/static/storage/...
         full_path = os.path.join(os.getcwd(), 'app', 'static', normalized_path)
-        
+
         if os.path.exists(full_path):
             os.remove(full_path)
             logger.info(f"File berhasil dihapus: {full_path}")
@@ -55,57 +68,49 @@ def delete_physical_file(relative_path: str | None) -> None:
         logger.error(f"Gagal menghapus file fisik: {e}", exc_info=True)
 
 def handle_file_upload(file_obj: FileStorage | None, subfolder: str) -> tuple[str | None, str | None]:
-    """
-    Menangani logika upload file secara terpusat dengan RENAME UUID.
-    
+    """Menyimpan file unggahan dengan nama acak UUID.
+
     Args:
-        file_obj: Object file dari request.files
-        subfolder (str): Nama folder kategori (misal: 'incoming_letters')
-        
+        file_obj: File dari `request.files`.
+        subfolder: Nama folder kategori, misalnya `incoming_letters`.
+
     Returns:
-        tuple: (db_relative_path, full_system_path)
-        
+        Pasangan (path untuk database, path lengkap di disk), atau
+        `(None, None)` bila tidak ada file.
+
     Raises:
-        ValueError: Jika ukuran file melebihi 10 MB
-        FileStorageError: Jika folder atau file gagal ditulis ke disk
+        ValueError: Kalau ukuran file melebihi 10 MB.
+        FileStorageError: Kalau folder atau file gagal ditulis ke disk.
     """
     if not file_obj:
         return None, None
-        
-    # 1. Amankan nama file asli & Ambil Ekstensi
-    original_filename = secure_filename(file_obj.filename)
-    file_extension = os.path.splitext(original_filename)[1].lower() # .pdf, .jpg, dll
 
-    # 2. Validasi Ukuran File (Maksimal 10 MB)
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB dalam bytes
-    file_obj.seek(0, os.SEEK_END)  # Pindah ke akhir file
-    file_size = file_obj.tell()  # Dapatkan ukuran file
-    file_obj.seek(0)  # Kembali ke awal
-    
+    original_filename = secure_filename(file_obj.filename)
+    # Contoh: ".pdf"
+    file_extension = os.path.splitext(original_filename)[1].lower()
+
+    file_obj.seek(0, os.SEEK_END)
+    file_size = file_obj.tell()
+    file_obj.seek(0)
+
     if file_size > MAX_FILE_SIZE:
         size_mb = file_size / (1024 * 1024)
         raise ValueError(f"Ukuran file terlalu besar ({size_mb:.2f} MB). Maksimal file yang diperbolehkan adalah 10 MB.")
 
-    # 3. [BARU] Generate Nama Unik (UUID)
-    # Contoh hasil: 'a1b2c3d4-1234-5678.pdf'
+    # Contoh: "3f2a9c0e8b7d4e1fa6c5b4d3e2f1a0b9.pdf"
     unique_filename = f"{uuid.uuid4().hex}{file_extension}"
-
-    # 4. Tentukan folder tujuan (Masuk ke app/static agar bisa diakses browser)
-    # Struktur: /app/static/storage/documents/{subfolder}/
     base_upload_dir = os.path.join(os.getcwd(), 'storage', 'documents', subfolder)
-    
+
     full_path = os.path.join(base_upload_dir, unique_filename)
     try:
         if not os.path.exists(base_upload_dir):
             os.makedirs(base_upload_dir)
-        # 5. Simpan File dengan Nama Baru
         file_obj.save(full_path)
     except OSError as e:
         logger.error(f"Gagal menyimpan file ke {full_path}: {e}", exc_info=True)
         raise FileStorageError(f"Gagal menyimpan file: {e}") from e
-    
-    # 6. Path untuk Database (Relative terhadap folder static)
-    # Menggunakan forward slash (/) agar kompatibel dengan URL HTML
+
+    # Garis miring "/" dipakai agar path bisa langsung dipakai sebagai URL
     db_path = f"storage/documents/{subfolder}/{unique_filename}"
-    
+
     return db_path, full_path

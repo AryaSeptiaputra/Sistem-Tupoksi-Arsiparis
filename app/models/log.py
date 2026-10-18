@@ -4,18 +4,13 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class Log(Base):
-    """
-    Represents an audit trail or activity history in the system.
-
-    This model is used to record critical actions performed by the operator
-    or by automatic system processes (e.g., the retention scheduler).
+    """Catatan aktivitas operator atau proses otomatis sistem.
 
     Attributes:
-        id (int): The primary key for the log entry.
-        user_id (int | None): Foreign key to 'app_user.id'. None means the
-            action was performed by the system.
-        action (str): A text description of what activity occurred.
-        timestamp (datetime): The exact time when the action occurred.
+        user_id: Akun pelaku; None berarti aksi dilakukan sistem,
+            misalnya scheduler retensi.
+        action: Uraian aktivitas.
+        timestamp: Waktu aktivitas terjadi.
     """
     __tablename__ = "log"
 
@@ -27,6 +22,11 @@ class Log(Base):
     user = relationship("User", backref="logs", lazy="joined")
 
     def to_dict(self) -> dict[str, Any]:
+        """Mengubah baris menjadi dict untuk respons API.
+
+        Returns:
+            Kolom baris beserta nama relasi yang dipakai front-end.
+        """
         return {
             "id": self.id,
             "user_id": self.user_id,
