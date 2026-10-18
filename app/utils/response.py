@@ -2,8 +2,8 @@
 Standard response formatting untuk consistency across all endpoints.
 """
 
-from typing import Any, Dict, Optional, List
-from flask import jsonify
+from typing import Any
+from flask import Response, jsonify
 from http import HTTPStatus
 
 from app.utils.logger import setup_logger
@@ -12,7 +12,7 @@ logger = setup_logger(__name__)
 
 
 def success_response(data: Any = None, message: str = "Success", 
-                    status_code: int = 200) -> tuple:
+                    status_code: int = 200) -> tuple[Response, int]:
     """
     Standard success response format
     
@@ -39,7 +39,7 @@ def success_response(data: Any = None, message: str = "Success",
 
 
 def error_response(message: str, status_code: int = 400,
-                   errors: Optional[Dict] = None) -> tuple:
+                   errors: dict[str, Any] | None = None) -> tuple[Response, int]:
     """
     Standard error response format
     
@@ -62,7 +62,7 @@ def error_response(message: str, status_code: int = 400,
     return jsonify(response), status_code
 
 
-def validation_error_response(errors: Dict[str, List[str]]) -> tuple:
+def validation_error_response(errors: dict[str, list[str]]) -> tuple[Response, int]:
     """Handle validation errors"""
     return error_response(
         message="Validation failed",
@@ -71,7 +71,7 @@ def validation_error_response(errors: Dict[str, List[str]]) -> tuple:
     )
 
 
-def not_found_response(resource: str = "Resource") -> tuple:
+def not_found_response(resource: str = "Resource") -> tuple[Response, int]:
     """Handle not found errors"""
     return error_response(
         message=f"{resource} not found",
@@ -79,7 +79,7 @@ def not_found_response(resource: str = "Resource") -> tuple:
     )
 
 
-def unauthorized_response(message: str = "Unauthorized") -> tuple:
+def unauthorized_response(message: str = "Unauthorized") -> tuple[Response, int]:
     """Handle unauthorized errors"""
     return error_response(
         message=message,
@@ -88,7 +88,7 @@ def unauthorized_response(message: str = "Unauthorized") -> tuple:
 
 
 def server_error_response(message: str = "Internal server error",
-                         exception: Optional[Exception] = None) -> tuple:
+                         exception: Exception | None = None) -> tuple[Response, int]:
     """Handle server errors with optional exception logging"""
     if exception:
         message = f"{message}: {str(exception)}"
@@ -99,7 +99,7 @@ def server_error_response(message: str = "Internal server error",
     )
 
 
-def handle_database_error(exception: Exception, operation: str = "menyimpan") -> tuple:
+def handle_database_error(exception: Exception, operation: str = "menyimpan") -> tuple[Response, int]:
     """
     Handle database errors dengan pesan user-friendly
     

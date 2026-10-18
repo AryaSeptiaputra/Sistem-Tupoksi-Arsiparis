@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.log import Log
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
@@ -28,7 +29,7 @@ def create_log(db: Session, user_id: int | None, action: str) -> Log:
     db.refresh(new_log)
     return new_log
 
-def get_all_logs(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Log]:
+def get_all_logs(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[Log]:
     """
     Retrieves all activity log entries.
 
@@ -45,7 +46,7 @@ def get_all_logs(db: Session, pagination: PaginationParams = None) -> PaginatedR
 
     return query.all()
 
-def get_logs_by_keys(db: Session, filters: dict) -> list[Log]:
+def get_logs_by_keys(db: Session, filters: dict[str, Any]) -> list[Log]:
     """
     Retrieves activity logs filtered by specific attributes.
 

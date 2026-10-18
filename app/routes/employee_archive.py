@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,7 @@ employee_archive_bp = Blueprint('employee_archive', __name__)
 
 @employee_archive_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_route():
+def create_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     
     if not data.get('document_name') or not data.get('owner_id'):
@@ -58,7 +59,7 @@ def create_route():
 
 @employee_archive_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_route():
+def update_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     if not data.get('id'): return jsonify({"error": "ID required"}), 400
 
@@ -99,7 +100,7 @@ def update_route():
 
 @employee_archive_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_route():
+def delete_route() -> ResponseReturnValue:
     data = request.json or {}
     db_session = db.SessionLocal()
     try:
@@ -117,7 +118,7 @@ def delete_route():
         db_session.close()
 
 @employee_archive_bp.route('/get_all', methods=['GET'])
-def get_all_route():
+def get_all_route() -> ResponseReturnValue:
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.models.incoming_letter import IncomingLetter
@@ -5,7 +6,7 @@ from app.utils.pagination import PaginationParams, paginate_query, PaginatedResu
 import datetime
 
 # [PASTIKAN] Signature fungsi ini tidak menerima user_id
-def create_incoming_letter(db: Session, letter_data: dict) -> IncomingLetter:
+def create_incoming_letter(db: Session, letter_data: dict[str, Any]) -> IncomingLetter:
     new_letter = IncomingLetter(
         number=letter_data['number'],
         letter_date=letter_data['letter_date'], 
@@ -28,7 +29,7 @@ def create_incoming_letter(db: Session, letter_data: dict) -> IncomingLetter:
     db.refresh(new_letter)
     return new_letter
 
-def update_incoming_letter(db: Session, letter_id: int, update_data: dict) -> IncomingLetter | None:
+def update_incoming_letter(db: Session, letter_id: int, update_data: dict[str, Any]) -> IncomingLetter | None:
     existing_letter = db.query(IncomingLetter).filter(IncomingLetter.id == letter_id).first()
     if not existing_letter:
         return None
@@ -61,7 +62,7 @@ def delete_incoming_letter(db: Session, letter_id: int) -> IncomingLetter | None
     db.commit()
     return existing_letter
 
-def get_all_incoming_letters(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[IncomingLetter]:
+def get_all_incoming_letters(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[IncomingLetter]:
     """
     Get all incoming letters dengan support pagination
     
@@ -90,8 +91,8 @@ def get_all_incoming_letters(db: Session, pagination: PaginationParams = None) -
         # Fallback tanpa pagination (jangan gunakan di production untuk data besar!)
         return query.all()
 
-def get_incoming_letters_by_keys(db: Session, filters: dict, 
-                                 pagination: PaginationParams = None) -> PaginatedResult | list[IncomingLetter]:
+def get_incoming_letters_by_keys(db: Session, filters: dict[str, Any], 
+                                 pagination: PaginationParams | None = None) -> PaginatedResult | list[IncomingLetter]:
     """
     Get incoming letters dengan filter dan support pagination
     
@@ -132,7 +133,7 @@ def get_incoming_letters_by_keys(db: Session, filters: dict,
         return query.all()
 
 
-def get_incoming_letters_count(db: Session, filters: dict = None) -> int:
+def get_incoming_letters_count(db: Session, filters: dict[str, Any] | None = None) -> int:
     """Get total count of incoming letters untuk UI pagination info"""
     query = db.query(IncomingLetter)
     

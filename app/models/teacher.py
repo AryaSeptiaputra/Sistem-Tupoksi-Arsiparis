@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, Text, Integer, DateTime, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -39,7 +40,7 @@ class Teacher(Base):
     # Relasi ke Arsip Pribadi (Milik Guru Ini) - Cascade Delete
     my_archives = relationship("EmployeeArchive", back_populates="owner", cascade="all, delete-orphan")
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "identity_number": self.identity_number,

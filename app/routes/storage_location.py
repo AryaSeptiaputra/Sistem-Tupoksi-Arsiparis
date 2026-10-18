@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -19,7 +20,7 @@ storage_location_bp = Blueprint('storage_location', __name__)
 
 @storage_location_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_route():
+def create_route() -> ResponseReturnValue:
     data = request.json
     if 'name' not in data:
         return jsonify({"error": "Name is required"}), 400
@@ -40,7 +41,7 @@ def create_route():
 
 @storage_location_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_route():
+def update_route() -> ResponseReturnValue:
     data = request.json
     loc_id = data.get('id')
     
@@ -61,7 +62,7 @@ def update_route():
 
 @storage_location_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_route():
+def delete_route() -> ResponseReturnValue:
     data = request.json
     loc_id = data.get('id')
     
@@ -76,7 +77,7 @@ def delete_route():
 
 @storage_location_bp.route('/get_all', methods=['GET'])
 @jwt_required()
-def get_all_route():
+def get_all_route() -> ResponseReturnValue:
     db_session: Session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

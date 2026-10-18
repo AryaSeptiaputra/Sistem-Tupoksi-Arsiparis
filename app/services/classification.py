@@ -1,9 +1,10 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.classification import Classification
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_classification(db: Session, data: dict) -> Classification:
+def create_classification(db: Session, data: dict[str, Any]) -> Classification:
     new_cls = Classification(
         name=data['name'],
         code=data['code'],
@@ -18,7 +19,7 @@ def create_classification(db: Session, data: dict) -> Classification:
     db.refresh(new_cls)
     return new_cls
 
-def update_classification(db: Session, cls_id: int, data: dict) -> Classification | None:
+def update_classification(db: Session, cls_id: int, data: dict[str, Any]) -> Classification | None:
     cls = db.query(Classification).filter(Classification.id == cls_id).first()
     if not cls:
         return None
@@ -43,7 +44,7 @@ def delete_classification(db: Session, cls_id: int) -> Classification | None:
     db.commit()
     return cls
 
-def get_all_classifications(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Classification]:
+def get_all_classifications(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[Classification]:
     query = db.query(Classification).order_by(Classification.id.desc())
 
     if pagination:
@@ -51,7 +52,7 @@ def get_all_classifications(db: Session, pagination: PaginationParams = None) ->
 
     return query.all()
 
-def get_classifications_by_keys(db: Session, filters: dict) -> list[Classification]:
+def get_classifications_by_keys(db: Session, filters: dict[str, Any]) -> list[Classification]:
     query = db.query(Classification)
     for key, value in filters.items():
         if hasattr(Classification, key):

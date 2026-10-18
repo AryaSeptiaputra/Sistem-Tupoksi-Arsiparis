@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
@@ -25,7 +26,7 @@ finance_bp = Blueprint('finance_archive', __name__)
 
 @finance_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_route():
+def create_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     if not data.get('title') or not data.get('fiscal_year'):
         return jsonify({"error": "Judul dan Tahun Anggaran wajib diisi"}), 400
@@ -59,7 +60,7 @@ def create_route():
 
 @finance_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_route():
+def update_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     archive_id = data.get('id')
     if not archive_id: return jsonify({"error": "ID required"}), 400
@@ -103,7 +104,7 @@ def update_route():
 
 @finance_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_route():
+def delete_route() -> ResponseReturnValue:
     data = request.json or {}
     archive_id = data.get('id')
     
@@ -127,7 +128,7 @@ def delete_route():
         db_session.close()
 
 @finance_bp.route('/get_all', methods=['GET'])
-def get_all_route():
+def get_all_route() -> ResponseReturnValue:
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)

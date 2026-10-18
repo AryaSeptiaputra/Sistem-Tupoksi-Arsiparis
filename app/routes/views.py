@@ -1,63 +1,64 @@
 from flask import Blueprint, request, jsonify, render_template
+from flask.typing import ResponseReturnValue
 
 view_bp = Blueprint('view', __name__)
 
 @view_bp.route('/login', methods=['GET'])
-def login_page():
+def login_page() -> ResponseReturnValue:
     return render_template('login.html')
 
 @view_bp.route('/dashboard', methods=['GET'])
-def dashboard_page():
+def dashboard_page() -> ResponseReturnValue:
     return render_template('dashboard.html')
 
 @view_bp.route('/incoming_letter', methods=['GET'])
-def incoming_letter_page():
+def incoming_letter_page() -> ResponseReturnValue:
     return render_template('incoming_letter.html')
 
 @view_bp.route('/outgoing_letter', methods=['GET'])
-def outgoing_letter_page():
+def outgoing_letter_page() -> ResponseReturnValue:
     return render_template('outgoing_letter.html')
 
 @view_bp.route('/classification', methods=['GET'])
-def classification_page():
+def classification_page() -> ResponseReturnValue:
     return render_template('classification.html')
 
 @view_bp.route('/diploma', methods=['GET'])
-def diploma_page():
+def diploma_page() -> ResponseReturnValue:
     return render_template('diploma.html')
 
 @view_bp.route('/log', methods=['GET'])
-def log_page():
+def log_page() -> ResponseReturnValue:
     return render_template('log.html')
 
 @view_bp.route('/backup', methods=['GET'])
-def backup():
+def backup() -> ResponseReturnValue:
     return render_template('backup.html')
 
 @view_bp.route('/user_profile', methods=['GET'])
-def user_profile():
+def user_profile() -> ResponseReturnValue:
     return render_template('user_profile.html')
 
 @view_bp.route('/storage_location', methods=['GET'])
-def storage_location():
+def storage_location() -> ResponseReturnValue:
     return render_template('storage_location.html')
 
 @view_bp.route('/finance_archive', methods=['GET'])
-def finance_archive():
+def finance_archive() -> ResponseReturnValue:
     return render_template('finance_archive.html')
 
 @view_bp.route('/employee_archive', methods=['GET'])
-def employee_archive():
+def employee_archive() -> ResponseReturnValue:
     return render_template('employee_archive.html')
 
 @view_bp.route('/disposal', methods=['GET'])
-def disposal():
+def disposal() -> ResponseReturnValue:
     return render_template('disposal.html')
 
 @view_bp.route('/teacher', methods=['GET'])
-def teacher():
+def teacher() -> ResponseReturnValue:
     return render_template('teacher.html')
 
 @view_bp.route('/reference', methods=['GET'])
-def reference():
+def reference() -> ResponseReturnValue:
     return render_template('master_reference.html')

@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, jsonify, request, send_from_directory
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ backup_bp = Blueprint('backup', __name__)
 
 @backup_bp.route('/manual', methods=['POST'])
 @jwt_required()
-def trigger_manual_backup():
+def trigger_manual_backup() -> ResponseReturnValue:
     """Trigger backup manual."""
     db_session: Session = SessionLocal()
     triggered_by = "SYSTEM"
@@ -49,7 +50,7 @@ def trigger_manual_backup():
 
 @backup_bp.route('/logs', methods=['GET'])
 @jwt_required()
-def get_backup_logs():
+def get_backup_logs() -> ResponseReturnValue:
     """Mengambil riwayat backup dari file JSON."""
     try:
         # [UBAH] Panggil fungsi service yang membaca JSON
@@ -62,7 +63,7 @@ def get_backup_logs():
 # --- ENDPOINT DOWNLOAD ---
 @backup_bp.route('/download/<path:filename>', methods=['GET'])
 @jwt_required()
-def download_backup_file(filename):
+def download_backup_file(filename: str) -> ResponseReturnValue:
     """Mengunduh file backup."""
     try:
         full_path = os.path.join(BACKUP_DIR, filename)
@@ -81,7 +82,7 @@ def download_backup_file(filename):
 # --- ENDPOINT RESTORE ---
 @backup_bp.route('/restore', methods=['POST'])
 @jwt_required()
-def restore_database():
+def restore_database() -> ResponseReturnValue:
     """Merestore database dari file yang dipilih."""
     data = request.get_json()
     if not data or 'filename' not in data:

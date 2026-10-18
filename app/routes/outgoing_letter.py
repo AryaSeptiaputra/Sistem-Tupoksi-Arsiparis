@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from app.services.outgoing_letter import (
@@ -23,7 +24,7 @@ outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
 
 @outgoing_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_outgoing_letter_route():
+def create_outgoing_letter_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     
     # Validasi Boolean
@@ -88,7 +89,7 @@ def create_outgoing_letter_route():
 
 @outgoing_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_outgoing_letter_route():
+def update_outgoing_letter_route() -> ResponseReturnValue:
     data = request.get_json(silent=True) or request.form.to_dict()
     letter_id = data.get('id')
     
@@ -150,7 +151,7 @@ def update_outgoing_letter_route():
 
 @outgoing_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_outgoing_letter_route():
+def delete_outgoing_letter_route() -> ResponseReturnValue:
     data = request.json or {}
     letter_id = data.get('id')
 
@@ -174,7 +175,7 @@ def delete_outgoing_letter_route():
         db_session.close()
 
 @outgoing_letter_bp.route('/get_all', methods=['GET'])
-def get_all_outgoing_letters_route():
+def get_all_outgoing_letters_route() -> ResponseReturnValue:
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -187,7 +188,7 @@ def get_all_outgoing_letters_route():
     finally: db_session.close()
 
 @outgoing_letter_bp.route('/get_by_keys', methods=['POST'])
-def get_outgoing_by_keys_route():
+def get_outgoing_by_keys_route() -> ResponseReturnValue:
     data = request.json or {}
     filters = data.get('filters')
     if not filters: return jsonify({"error": "filters required"}), 400

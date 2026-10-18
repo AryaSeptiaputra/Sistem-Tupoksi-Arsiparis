@@ -1,9 +1,10 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.employee_archive import EmployeeArchive
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_employee_archive(db: Session, data: dict) -> EmployeeArchive:
+def create_employee_archive(db: Session, data: dict[str, Any]) -> EmployeeArchive:
     new_archive = EmployeeArchive(
         document_name=data['document_name'],
         document_type=data.get('document_type', 'lainnya'),
@@ -24,7 +25,7 @@ def create_employee_archive(db: Session, data: dict) -> EmployeeArchive:
     db.refresh(new_archive)
     return new_archive
 
-def update_employee_archive(db: Session, archive_id: int, update_data: dict) -> EmployeeArchive | None:
+def update_employee_archive(db: Session, archive_id: int, update_data: dict[str, Any]) -> EmployeeArchive | None:
     archive = db.query(EmployeeArchive).filter(EmployeeArchive.id == archive_id).first()
     if not archive: return None
 
@@ -50,7 +51,7 @@ def delete_employee_archive(db: Session, archive_id: int) -> EmployeeArchive | N
     db.commit()
     return archive
 
-def get_all_employee_archives(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[EmployeeArchive]:
+def get_all_employee_archives(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[EmployeeArchive]:
     query = db.query(EmployeeArchive).order_by(EmployeeArchive.id.desc())
 
     if pagination:

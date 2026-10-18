@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, Text, DateTime, func, Integer
 from app.core.database import Base
 
@@ -28,7 +29,7 @@ class StorageLocation(Base):
         onupdate=func.now()
     )
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Convert object to dictionary for API responses."""
         return {
             "id": self.id,

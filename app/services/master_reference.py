@@ -1,10 +1,11 @@
+from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.models.master_reference import MasterReference, ReferenceCategory
 from app.core.database import SessionLocal
 
 class MasterReferenceService:
-    def get_by_category(self, category: str, only_active: bool = True):
+    def get_by_category(self, category: str, only_active: bool = True) -> list[dict[str, Any]]:
         """
         Mengambil list opsi berdasarkan kategori.
         Contoh: get_by_category('school_major')
@@ -22,7 +23,7 @@ class MasterReferenceService:
         finally:
             db.close()
 
-    def create(self, data: dict):
+    def create(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Menambah opsi baru.
         Data harus berisi: category, code, name, dll.
@@ -51,7 +52,7 @@ class MasterReferenceService:
         finally:
             db.close()
 
-    def update(self, id: int, data: dict):
+    def update(self, id: int, data: dict[str, Any]) -> dict[str, Any] | None:
         """
         Mengubah data referensi (misal: ganti nama atau urutan).
         """
@@ -73,7 +74,7 @@ class MasterReferenceService:
         finally:
             db.close()
 
-    def delete(self, id: int):
+    def delete(self, id: int) -> bool:
         """
         Soft delete (hanya set is_active = False) agar data lama tidak rusak.
         Jika ingin hard delete, gunakan db.delete(ref).
@@ -91,7 +92,7 @@ class MasterReferenceService:
         finally:
             db.close()
 
-    def get_all_categories(self):
+    def get_all_categories(self) -> list[str]:
         """
         Helper untuk melihat daftar kategori apa saja yang tersedia di sistem.
         """

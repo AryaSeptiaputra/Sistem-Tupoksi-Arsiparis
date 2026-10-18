@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,7 @@ incoming_letter_bp = Blueprint('incoming_letter', __name__)
 
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_incoming_letter_route():
+def create_incoming_letter_route() -> ResponseReturnValue:
     data = request.form.to_dict()
     
     # Validasi field required dengan pesan user-friendly
@@ -70,7 +71,7 @@ def create_incoming_letter_route():
 
 @incoming_letter_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_incoming_letter_route():
+def update_incoming_letter_route() -> ResponseReturnValue:
     # Support both JSON and Form Data
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     letter_id = data.get('id')
@@ -124,7 +125,7 @@ def update_incoming_letter_route():
 
 @incoming_letter_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_incoming_letter_route():
+def delete_incoming_letter_route() -> ResponseReturnValue:
     data = request.json or {}
     letter_id = data.get('id')
     
@@ -146,7 +147,7 @@ def delete_incoming_letter_route():
         db_session.close()
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
-def get_all_incoming_letters_route():
+def get_all_incoming_letters_route() -> ResponseReturnValue:
     """
     Get all incoming letters dengan pagination support
     
@@ -170,7 +171,7 @@ def get_all_incoming_letters_route():
         db_session.close()
 
 @incoming_letter_bp.route('/get_by_keys', methods=['POST'])
-def get_incoming_by_keys_route():
+def get_incoming_by_keys_route() -> ResponseReturnValue:
     """
     Get incoming letters dengan filter dan pagination
     

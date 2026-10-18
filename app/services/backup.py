@@ -1,4 +1,5 @@
 import os
+from typing import Any
 import subprocess
 import json
 from datetime import datetime
@@ -14,7 +15,7 @@ logger = setup_logger(__name__)
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
 LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json') # [BARU] Path file log
 
-def perform_database_backup(triggered_by="SYSTEM"):
+def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
     """
     Melakukan backup database MySQL menggunakan mysqldump.
     Param triggered_by: Nama user atau 'SYSTEM' (String)
@@ -85,7 +86,7 @@ def perform_database_backup(triggered_by="SYSTEM"):
 
     return result_data
 
-def perform_database_restore(filename):
+def perform_database_restore(filename: str) -> dict[str, str]:
     """
     Merestore database dari file SQL tertentu.
     """
@@ -134,7 +135,7 @@ def perform_database_restore(filename):
 
 # --- [BARU] FUNGSI JSON HELPER ---
 
-def _log_to_json(filename, status, message, triggered_by):
+def _log_to_json(filename: str | None, status: str, message: str, triggered_by: str) -> None:
     """
     Menulis log ke file JSON (Append mode logic).
     """
@@ -156,7 +157,7 @@ def _log_to_json(filename, status, message, triggered_by):
     except OSError as e:
         logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
 
-def get_all_logs():
+def get_all_logs() -> list[dict[str, Any]]:
     """
     Membaca semua log dari file JSON.
     """

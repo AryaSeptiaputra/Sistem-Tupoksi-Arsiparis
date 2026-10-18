@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, Text, Enum, DateTime, func, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -15,7 +16,7 @@ class Backup(Base):
     user_id = Column(Integer, ForeignKey('app_user.id', ondelete='SET NULL'), nullable=True, index=True)
     user = relationship('User', backref='backup', lazy="joined")
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "filename": self.filename,

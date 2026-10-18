@@ -1,9 +1,10 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.storage_location import StorageLocation
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_storage_location(db: Session, data: dict) -> StorageLocation:
+def create_storage_location(db: Session, data: dict[str, Any]) -> StorageLocation:
     """Creates a new storage location (e.g., Cupboard/Shelf)."""
     new_location = StorageLocation(
         name=data['name'],
@@ -17,7 +18,7 @@ def create_storage_location(db: Session, data: dict) -> StorageLocation:
     db.refresh(new_location)
     return new_location
 
-def update_storage_location(db: Session, location_id: int, update_data: dict) -> StorageLocation | None:
+def update_storage_location(db: Session, location_id: int, update_data: dict[str, Any]) -> StorageLocation | None:
     """Updates an existing storage location."""
     location = db.query(StorageLocation).filter(StorageLocation.id == location_id).first()
     if not location:
@@ -44,7 +45,7 @@ def delete_storage_location(db: Session, location_id: int) -> StorageLocation | 
     db.commit()
     return location
 
-def get_all_storage_locations(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[StorageLocation]:
+def get_all_storage_locations(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[StorageLocation]:
     """Retrieves all storage locations."""
     query = db.query(StorageLocation).order_by(StorageLocation.id.desc())
 

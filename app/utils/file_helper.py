@@ -1,6 +1,7 @@
 import os
 import time
 import uuid  # [BARU] Untuk generate nama unik
+from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from app.errors import FileStorageError
@@ -8,7 +9,7 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def cleanup_old_files(directory_path, file_extension, days_to_keep=7):
+def cleanup_old_files(directory_path: str, file_extension: str, days_to_keep: int = 7) -> None:
     """Menghapus file lama berdasarkan umur file."""
     if not os.path.exists(directory_path):
         return
@@ -28,7 +29,7 @@ def cleanup_old_files(directory_path, file_extension, days_to_keep=7):
     except OSError as e:
         logger.error(f"cleanup_old_files gagal: {e}", exc_info=True)
 
-def delete_physical_file(relative_path):
+def delete_physical_file(relative_path: str | None) -> None:
     """
     Menghapus file fisik dari penyimpanan jika ada.
     Arg: relative_path (contoh: 'storage/documents/outgoing/abc.pdf')
@@ -53,7 +54,7 @@ def delete_physical_file(relative_path):
     except OSError as e:
         logger.error(f"Gagal menghapus file fisik: {e}", exc_info=True)
 
-def handle_file_upload(file_obj, subfolder):
+def handle_file_upload(file_obj: FileStorage | None, subfolder: str) -> tuple[str | None, str | None]:
     """
     Menangani logika upload file secara terpusat dengan RENAME UUID.
     

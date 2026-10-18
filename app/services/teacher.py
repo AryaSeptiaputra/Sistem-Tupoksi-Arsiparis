@@ -1,9 +1,10 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.teacher import Teacher
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_teacher(db: Session, data: dict) -> Teacher:
+def create_teacher(db: Session, data: dict[str, Any]) -> Teacher:
     """
     Creates a new teacher/employee record.
     """
@@ -24,7 +25,7 @@ def create_teacher(db: Session, data: dict) -> Teacher:
     db.refresh(new_teacher)
     return new_teacher
 
-def update_teacher(db: Session, teacher_id: int, update_data: dict) -> Teacher | None:
+def update_teacher(db: Session, teacher_id: int, update_data: dict[str, Any]) -> Teacher | None:
     """
     Updates teacher details.
     """
@@ -60,7 +61,7 @@ def delete_teacher(db: Session, teacher_id: int) -> Teacher | None:
     db.commit()
     return existing_teacher
 
-def get_all_teachers(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Teacher]:
+def get_all_teachers(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[Teacher]:
     query = db.query(Teacher).order_by(Teacher.id.desc())
 
     if pagination:
@@ -68,7 +69,7 @@ def get_all_teachers(db: Session, pagination: PaginationParams = None) -> Pagina
 
     return query.all()
 
-def get_teachers_by_keys(db: Session, filters: dict) -> list[Teacher]:
+def get_teachers_by_keys(db: Session, filters: dict[str, Any]) -> list[Teacher]:
     query = db.query(Teacher)
     
     for key, value in filters.items():

@@ -2,6 +2,7 @@ import os
 import atexit # Untuk mematikan scheduler saat app stop
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
+from werkzeug.wrappers import Response
 from flask_cors import CORS
 from flask_compress import Compress  # <--- [BARU] Import Compression
 from apscheduler.schedulers.background import BackgroundScheduler # <--- [BARU 1] Import Scheduler
@@ -21,7 +22,7 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def create_app():
+def create_app() -> Flask:
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     # Setup folder template & static (moved to app/static/)
@@ -63,12 +64,12 @@ def create_app():
     # ❌ ERROR HANDLERS
     # ==========================================================================
     @app.errorhandler(500)
-    def internal_error(error):
+    def internal_error(error: Exception) -> tuple[dict[str, str], int]:
         logger.error(f"Internal server error: {error}")
         return {"error": "Internal server error"}, 500
 
     @app.errorhandler(404)
-    def not_found(error):
+    def not_found(error: Exception) -> tuple[dict[str, str], int]:
         logger.warning(f"Page not found: {error}")
         return {"error": "Not found"}, 404
 
@@ -136,59 +137,59 @@ def create_app():
     # 🔗 ROUTES REDIRECT
     # ==========================================================================
     @app.route('/')
-    def index():
+    def index() -> Response:
         return redirect(url_for('view.login_page'))
     
     @app.route('/dashboard')
-    def dashboard():
+    def dashboard() -> Response:
         return redirect(url_for('view.dashboard_page'))
     
     @app.route('/incoming_letter')
-    def incoming_letter():
+    def incoming_letter() -> Response:
         return redirect(url_for('view.incoming_letter_page'))
 
     @app.route('/diploma')
-    def diploma():
+    def diploma() -> Response:
         return redirect(url_for('view.diploma_page'))
 
     @app.route('/log')
-    def log():
+    def log() -> Response:
         return redirect(url_for('view.log'))
     
     @app.route('/classification')
-    def classification():
+    def classification() -> Response:
         return redirect(url_for('view.classification'))
     
     @app.route('/backup')
-    def backup():
+    def backup() -> Response:
         return redirect(url_for('view.backup'))
     
     @app.route('/user_profile')
-    def user_profile():
+    def user_profile() -> Response:
         return redirect(url_for('view.user_profile'))
     
     @app.route('/storage_location')
-    def storage_location():
+    def storage_location() -> Response:
         return redirect(url_for('view.storage_location'))
     
     @app.route('/finance_archive')
-    def finance_archive():
+    def finance_archive() -> Response:
         return redirect(url_for('view.finance_archive'))
     
     @app.route('/employee_archive')
-    def employee_archive():
+    def employee_archive() -> Response:
         return redirect(url_for('view.employee_archive'))
     
     @app.route('/disposal')
-    def disposal():
+    def disposal() -> Response:
         return redirect(url_for('view.disposal'))
     
     @app.route('/teacher')
-    def teacher():
+    def teacher() -> Response:
         return redirect(url_for('view.teacher'))
     
     @app.route('/reference')
-    def reference():
+    def reference() -> Response:
         return redirect(url_for('view.reference'))
     
     # 🔥 PENTING: Return app hanya SEKALI di paling bawah

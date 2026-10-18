@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from app.services.log import get_all_logs, get_logs_by_keys
@@ -13,7 +14,7 @@ log_bp = Blueprint('log', __name__)
 
 @log_bp.route('/get_all', methods=['GET'])
 @jwt_required()
-def get_all_logs_route():
+def get_all_logs_route() -> ResponseReturnValue:
     """
     Retrieves all activity logs.
 
@@ -38,7 +39,7 @@ def get_all_logs_route():
 
 @log_bp.route('/get_by_keys', methods=['POST'])
 @jwt_required()
-def get_logs_by_keys_route():
+def get_logs_by_keys_route() -> ResponseReturnValue:
     """
     Retrieves logs filtered by multiple keys.
 

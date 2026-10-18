@@ -3,18 +3,17 @@ Pagination utility untuk handle large datasets efficiently.
 Mendukung offset-based dan cursor-based pagination.
 """
 
-from typing import TypeVar, Generic, List, Dict, Any, Optional
+from typing import Any
 from sqlalchemy.orm import Query
+from werkzeug.datastructures import MultiDict
 from math import ceil
-
-T = TypeVar('T')
 
 
 class PaginationParams:
     """Extract pagination parameters dari request"""
     
     def __init__(self, page: int = 1, per_page: int = 20, 
-                 sort_by: str = 'id', sort_order: str = 'asc'):
+                 sort_by: str = 'id', sort_order: str = 'asc') -> None:
         """
         Args:
             page: Page number (1-indexed), default 1
@@ -35,7 +34,7 @@ class PaginationParams:
         """Calculate offset dari page"""
         return (self.page - 1) * self.per_page
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'page': self.page,
             'per_page': self.per_page,
@@ -47,15 +46,15 @@ class PaginationParams:
 class PaginatedResult:
     """Response wrapper untuk paginated data"""
     
-    def __init__(self, items: List[Any], total: int, 
-                 page: int, per_page: int):
+    def __init__(self, items: list[Any], total: int, 
+                 page: int, per_page: int) -> None:
         self.items = items
         self.total = total
         self.page = page
         self.per_page = per_page
         self.total_pages = ceil(total / per_page) if per_page > 0 else 0
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert ke dictionary untuk JSON response"""
         return {
             'data': self.items,
@@ -103,7 +102,7 @@ def paginate_query(query: Query, pagination: PaginationParams) -> PaginatedResul
     )
 
 
-def get_pagination_params(request_args: dict) -> PaginationParams:
+def get_pagination_params(request_args: MultiDict[str, str]) -> PaginationParams:
     """
     Extract pagination params dari request.args
     

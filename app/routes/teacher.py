@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -17,7 +18,7 @@ teacher_bp = Blueprint('teacher', __name__)
 
 @teacher_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_teacher_route():
+def create_teacher_route() -> ResponseReturnValue:
     """
     Creates a new teacher profile.
     JSON Payload: identity_number, full_name, gender, employment_status, status, rank (opt), address (opt)
@@ -58,7 +59,7 @@ def create_teacher_route():
 
 @teacher_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_teacher_route():
+def update_teacher_route() -> ResponseReturnValue:
     data = request.json
     teacher_id = data.get('id')
     
@@ -88,7 +89,7 @@ def update_teacher_route():
 
 @teacher_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_teacher_route():
+def delete_teacher_route() -> ResponseReturnValue:
     data = request.json
     teacher_id = data.get('id')
     
@@ -116,7 +117,7 @@ def delete_teacher_route():
         db_session.close()
 
 @teacher_bp.route('/get_all', methods=['GET'])
-def get_all_teachers_route():
+def get_all_teachers_route() -> ResponseReturnValue:
     db_session: Session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -130,7 +131,7 @@ def get_all_teachers_route():
         db_session.close()
 
 @teacher_bp.route('/get_by_keys', methods=['POST'])
-def get_teachers_by_keys_route():
+def get_teachers_by_keys_route() -> ResponseReturnValue:
     data = request.json
     filters = data.get('filters')
     

@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, DateTime, func, Integer, ForeignKey, Text
 from sqlalchemy.orm import relationship, Session
 from app.core.database import Base
@@ -31,7 +32,7 @@ class EmployeeArchive(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "document_name": self.document_name,

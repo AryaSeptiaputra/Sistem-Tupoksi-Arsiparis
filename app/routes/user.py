@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -11,7 +12,7 @@ user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/me', methods=['GET'])
 @jwt_required()
-def get_me_route():
+def get_me_route() -> ResponseReturnValue:
     db_session: Session = db.SessionLocal()
     try:
         user = get_user(db_session, get_current_user_id())
@@ -23,7 +24,7 @@ def get_me_route():
 
 @user_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_me_route():
+def update_me_route() -> ResponseReturnValue:
     """
     Payload: username, display_name
     """
@@ -48,7 +49,7 @@ def update_me_route():
 
 @user_bp.route('/change_password', methods=['POST'])
 @jwt_required()
-def change_password_route():
+def change_password_route() -> ResponseReturnValue:
     """
     Payload: old_password, new_password
     """

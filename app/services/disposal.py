@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy.orm import Session
 from sqlalchemy import extract, or_
 from datetime import datetime
@@ -11,7 +13,7 @@ from app.models.diploma import Diploma
 from app.models.classification import Classification
 from app.utils.file_helper import delete_physical_file
 
-def get_expired_archives(db: Session):
+def get_expired_archives(db: Session) -> list[dict[str, Any]]:
     current_year = datetime.now().year
     expired_items = []
 
@@ -144,7 +146,7 @@ def get_expired_archives(db: Session):
 
     return expired_items
 
-def execute_disposal(db: Session, items_to_destroy: list, user_id: int):
+def execute_disposal(db: Session, items_to_destroy: list[dict[str, Any]], user_id: int | None) -> int:
     count = 0
     for item in items_to_destroy:
         source = item.get('table_source')

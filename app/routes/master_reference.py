@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask.typing import ResponseReturnValue
 from app.services.master_reference import MasterReferenceService
 from app.utils.logger import setup_logger
 
@@ -13,7 +14,7 @@ service = MasterReferenceService()
 # ---------------------------------------------------
 
 @reference_bp.route('/api/references/<category>', methods=['GET'])
-def get_options(category):
+def get_options(category: str) -> ResponseReturnValue:
     """
     Contoh URL: /api/references/school_major
     Return: JSON Array opsi jurusan
@@ -32,7 +33,7 @@ def get_options(category):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/categories', methods=['GET'])
-def get_categories():
+def get_categories() -> ResponseReturnValue:
     """
     Mendapatkan daftar Enum kategori yang tersedia.
     """
@@ -46,7 +47,7 @@ def get_categories():
 # ---------------------------------------------------
 
 @reference_bp.route('/api/references', methods=['POST'])
-def create_option():
+def create_option() -> ResponseReturnValue:
     """
     Menambah opsi baru.
     Body JSON: { "category": "school_major", "code": "DKV", "name": "Desain Komunikasi Visual" }
@@ -65,7 +66,7 @@ def create_option():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['PUT'])
-def update_option(id):
+def update_option(id: int) -> ResponseReturnValue:
     """
     Update opsi.
     Body JSON: { "name": "Nama Baru", "sort_order": 5 }
@@ -82,7 +83,7 @@ def update_option(id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['DELETE'])
-def delete_option(id):
+def delete_option(id: int) -> ResponseReturnValue:
     """
     Menonaktifkan opsi (Soft Delete).
     """

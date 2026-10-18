@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -19,7 +20,7 @@ classification_bp = Blueprint('classification', __name__)
 
 @classification_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_classification_route():
+def create_classification_route() -> ResponseReturnValue:
     data = request.json
     if not data.get('name') or not data.get('code'):
         return jsonify({"error": "Name and Code are required"}), 400
@@ -48,7 +49,7 @@ def create_classification_route():
 
 @classification_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_classification_route():
+def update_classification_route() -> ResponseReturnValue:
     data = request.json
     if not data.get('id'):
         return jsonify({"error": "ID is required"}), 400
@@ -69,7 +70,7 @@ def update_classification_route():
 
 @classification_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_classification_route():
+def delete_classification_route() -> ResponseReturnValue:
     data = request.json
     if not data.get('id'):
         return jsonify({"error": "ID required"}), 400
@@ -89,7 +90,7 @@ def delete_classification_route():
         db_session.close()
 
 @classification_bp.route('/get_all', methods=['GET'])
-def get_all_route():
+def get_all_route() -> ResponseReturnValue:
     db_session: Session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -103,7 +104,7 @@ def get_all_route():
         db_session.close()
 
 @classification_bp.route('/get_by_keys', methods=['POST'])
-def get_by_keys_route():
+def get_by_keys_route() -> ResponseReturnValue:
     data = request.json
     filters = data.get('filters')
     if not filters: return jsonify({"error": "Filters required"}), 400

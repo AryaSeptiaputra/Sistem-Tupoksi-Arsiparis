@@ -1,6 +1,8 @@
+from typing import Any
+
 from sqlalchemy.engine import make_url
 
-def parse_db_url(url_string):
+def parse_db_url(url_string: str) -> dict[str, Any]:
     """Parses a SQLAlchemy connection string into a dictionary.
 
     Args:

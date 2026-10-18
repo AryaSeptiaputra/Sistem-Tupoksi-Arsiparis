@@ -1,10 +1,11 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.diploma import Diploma
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 # [UBAH] Hapus parameter user_id
-def create_diploma(db: Session, data: dict) -> Diploma:
+def create_diploma(db: Session, data: dict[str, Any]) -> Diploma:
     new_diploma = Diploma(
         number=data['number'],
         student_name=data['student_name'],
@@ -26,7 +27,7 @@ def create_diploma(db: Session, data: dict) -> Diploma:
     db.refresh(new_diploma)
     return new_diploma
 
-def update_diploma(db: Session, diploma_id: int, update_data: dict) -> Diploma | None:
+def update_diploma(db: Session, diploma_id: int, update_data: dict[str, Any]) -> Diploma | None:
     existing = db.query(Diploma).filter(Diploma.id == diploma_id).first()
     if not existing:
         return None
@@ -62,7 +63,7 @@ def delete_diploma(db: Session, diploma_id: int) -> Diploma | None:
     db.commit()
     return existing
 
-def get_all_diplomas(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[Diploma]:
+def get_all_diplomas(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[Diploma]:
     query = db.query(Diploma).order_by(Diploma.id.desc())
 
     if pagination:
@@ -70,7 +71,7 @@ def get_all_diplomas(db: Session, pagination: PaginationParams = None) -> Pagina
 
     return query.all()
 
-def get_diplomas_by_keys(db: Session, filters: dict) -> list[Diploma]:
+def get_diplomas_by_keys(db: Session, filters: dict[str, Any]) -> list[Diploma]:
     query = db.query(Diploma)
     
     for key, value in filters.items():

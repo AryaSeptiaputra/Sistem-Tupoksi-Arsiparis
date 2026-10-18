@@ -1,3 +1,4 @@
+from typing import Any
 import enum
 from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime, func, Enum
 from app.core.database import Base
@@ -48,7 +49,7 @@ class MasterReference(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "category": self.category, 

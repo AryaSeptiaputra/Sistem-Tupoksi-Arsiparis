@@ -1,9 +1,10 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.outgoing_letter import OutgoingLetter
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
-def create_outgoing_letter(db: Session, letter_data: dict) -> OutgoingLetter:
+def create_outgoing_letter(db: Session, letter_data: dict[str, Any]) -> OutgoingLetter:
     new_letter = OutgoingLetter(
         number=letter_data['number'],
         letter_date=letter_data['letter_date'],
@@ -29,7 +30,7 @@ def create_outgoing_letter(db: Session, letter_data: dict) -> OutgoingLetter:
     db.refresh(new_letter)
     return new_letter
 
-def update_outgoing_letter(db: Session, letter_id: int, update_data: dict) -> OutgoingLetter | None:
+def update_outgoing_letter(db: Session, letter_id: int, update_data: dict[str, Any]) -> OutgoingLetter | None:
     existing_letter = db.query(OutgoingLetter).filter(OutgoingLetter.id == letter_id).first()
     if not existing_letter:
         return None
@@ -56,7 +57,7 @@ def delete_outgoing_letter(db: Session, letter_id: int) -> OutgoingLetter | None
     db.commit()
     return existing_letter
 
-def get_all_outgoing_letters(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[OutgoingLetter]:
+def get_all_outgoing_letters(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[OutgoingLetter]:
     query = db.query(OutgoingLetter).order_by(OutgoingLetter.id.desc())
 
     if pagination:
@@ -64,7 +65,7 @@ def get_all_outgoing_letters(db: Session, pagination: PaginationParams = None) -
 
     return query.all()
 
-def get_outgoing_letters_by_keys(db: Session, filters: dict) -> list[OutgoingLetter]:
+def get_outgoing_letters_by_keys(db: Session, filters: dict[str, Any]) -> list[OutgoingLetter]:
     query = db.query(OutgoingLetter)
     
     for key, value in filters.items():

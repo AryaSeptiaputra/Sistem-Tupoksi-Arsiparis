@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from app import db
@@ -14,7 +15,7 @@ disposal_bp = Blueprint('disposal', __name__)
 
 @disposal_bp.route('/check', methods=['GET'])
 @jwt_required()
-def check_expiry_route():
+def check_expiry_route() -> ResponseReturnValue:
     """API untuk mengecek daftar arsip yang sudah kadaluwarsa hari ini."""
     db_session: Session = db.SessionLocal()
     try:
@@ -30,7 +31,7 @@ def check_expiry_route():
 
 @disposal_bp.route('/execute', methods=['POST'])
 @jwt_required()
-def execute_route():
+def execute_route() -> ResponseReturnValue:
     """API untuk mengeksekusi pemusnahan berdasarkan ID yang dikirim."""
     db_session: Session = db.SessionLocal()
     try:

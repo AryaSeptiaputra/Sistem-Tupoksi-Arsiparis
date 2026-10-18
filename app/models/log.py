@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, Text, DateTime, func, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -25,7 +26,7 @@ class Log(Base):
     user_id = Column(Integer, ForeignKey('app_user.id', ondelete='SET NULL'), nullable=True, index=True)
     user = relationship("User", backref="logs", lazy="joined")
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "user_id": self.user_id,

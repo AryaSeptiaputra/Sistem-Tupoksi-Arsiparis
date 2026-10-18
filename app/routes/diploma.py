@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, request, jsonify
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
 from app.errors import FileStorageError
@@ -22,7 +23,7 @@ diploma_bp = Blueprint('diploma', __name__)
 
 @diploma_bp.route('/create', methods=['POST'])
 @jwt_required()
-def create_diploma_route():
+def create_diploma_route() -> ResponseReturnValue:
     data = request.form.to_dict()
 
     # Konversi Boolean
@@ -68,7 +69,7 @@ def create_diploma_route():
 
 @diploma_bp.route('/update', methods=['POST'])
 @jwt_required()
-def update_diploma_route():
+def update_diploma_route() -> ResponseReturnValue:
     data = request.get_json(silent=True) or request.form.to_dict()
     if not data.get('id'): return jsonify({"error": "ID required"}), 400
 
@@ -122,7 +123,7 @@ def update_diploma_route():
 
 @diploma_bp.route('/delete', methods=['POST'])
 @jwt_required()
-def delete_diploma_route():
+def delete_diploma_route() -> ResponseReturnValue:
     data = request.json or {}
     db_session: Session = db.SessionLocal()
     try:
@@ -144,7 +145,7 @@ def delete_diploma_route():
         db_session.close()
 
 @diploma_bp.route('/get_all', methods=['GET'])
-def get_all_diplomas_route():
+def get_all_diplomas_route() -> ResponseReturnValue:
     db_session = db.SessionLocal()
     try:
         pagination = get_pagination_params(request.args)
@@ -157,7 +158,7 @@ def get_all_diplomas_route():
     finally: db_session.close()
 
 @diploma_bp.route('/get_by_keys', methods=['POST'])
-def get_diplomas_by_keys_route():
+def get_diplomas_by_keys_route() -> ResponseReturnValue:
     data = request.json or {}
     filters = data.get('filters', {})
     db_session = db.SessionLocal()

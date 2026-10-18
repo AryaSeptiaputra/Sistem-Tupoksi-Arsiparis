@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, Text, DateTime, func, Integer, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -32,7 +33,7 @@ class FinanceArchive(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,

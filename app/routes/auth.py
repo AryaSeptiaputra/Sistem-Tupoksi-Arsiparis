@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, session
+from flask.typing import ResponseReturnValue
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from flask_jwt_extended import create_access_token
@@ -13,7 +14,7 @@ logger = setup_logger(__name__)
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
-def login():
+def login() -> ResponseReturnValue:
     data = request.json or {}
     username = (data.get('username') or '').strip()
     password = data.get('password')

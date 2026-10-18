@@ -14,7 +14,7 @@ logger = setup_logger(__name__)
 from sqlalchemy.orm import sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def check_and_deactivate_archives():
+def check_and_deactivate_archives() -> None:
     """
     Fungsi ini akan dipanggil oleh Scheduler.
     Membuka koneksi DB sendiri, cek retensi, update, lalu tutup koneksi.

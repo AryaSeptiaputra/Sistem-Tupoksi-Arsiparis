@@ -1,10 +1,11 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from app.models.finance_archive import FinanceArchive
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
 
 # [UBAH] Hapus user_id dari parameter
-def create_finance_archive(db: Session, data: dict) -> FinanceArchive:
+def create_finance_archive(db: Session, data: dict[str, Any]) -> FinanceArchive:
     """
     Creates a new finance archive record.
     """
@@ -32,7 +33,7 @@ def create_finance_archive(db: Session, data: dict) -> FinanceArchive:
     db.refresh(new_archive)
     return new_archive
 
-def update_finance_archive(db: Session, archive_id: int, update_data: dict) -> FinanceArchive | None:
+def update_finance_archive(db: Session, archive_id: int, update_data: dict[str, Any]) -> FinanceArchive | None:
     archive = db.query(FinanceArchive).filter(FinanceArchive.id == archive_id).first()
     if not archive: return None
 
@@ -62,7 +63,7 @@ def delete_finance_archive(db: Session, archive_id: int) -> FinanceArchive | Non
     db.commit()
     return archive
 
-def get_all_finance_archives(db: Session, pagination: PaginationParams = None) -> PaginatedResult | list[FinanceArchive]:
+def get_all_finance_archives(db: Session, pagination: PaginationParams | None = None) -> PaginatedResult | list[FinanceArchive]:
     query = db.query(FinanceArchive).order_by(FinanceArchive.fiscal_year.desc(), FinanceArchive.created_at.desc())
 
     if pagination:

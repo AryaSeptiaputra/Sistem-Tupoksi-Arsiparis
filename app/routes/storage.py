@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, send_from_directory, abort, jsonify
+from flask.typing import ResponseReturnValue
 
 from app.utils.logger import setup_logger
 
@@ -12,7 +13,7 @@ storage_bp = Blueprint('storage', __name__)
 
 @storage_bp.route('/<path:filename>', methods=['GET'])
 # @jwt_required() <--- JANGAN GUNAKAN INI untuk route file statis via window.open
-def serve_storage_file(filename):
+def serve_storage_file(filename: str) -> ResponseReturnValue:
     """
     Melayani file dari folder storage.
     URL Browser: domain.com/storage/documents/incoming_letters/namafile.pdf

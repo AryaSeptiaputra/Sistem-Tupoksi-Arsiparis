@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, func, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -21,7 +22,7 @@ class Diploma(Base):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "number": self.number,
