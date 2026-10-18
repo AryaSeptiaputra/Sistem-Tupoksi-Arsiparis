@@ -56,7 +56,7 @@ def delete_physical_file(relative_path: str | None) -> None:
     try:
         # normpath merapikan `..` dan pemisah path sebelum digabung
         normalized_path = os.path.normpath(relative_path)
-        full_path = os.path.join(os.getcwd(), 'app', 'static', normalized_path)
+        full_path = os.path.join(os.getcwd(), normalized_path)
 
         if os.path.exists(full_path):
             os.remove(full_path)
