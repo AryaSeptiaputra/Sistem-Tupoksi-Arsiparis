@@ -230,13 +230,31 @@ async function loadDocuments() {
 /* (Guru, Ijazah, Arsip Pegawai)             */
 /* ========================================= */
 
+// Server membatasi per_page maksimal 100.
+const MAX_PER_PAGE = 100;
+
+// Ambil seluruh baris endpoint get_all berpagination ({data, pagination}) halaman demi halaman.
+async function fetchAllPages(endpoint) {
+    const rows = [];
+    let page = 1;
+    let hasNext = true;
+    while (hasNext) {
+        const resp = await fetchAPI(`${endpoint}?page=${page}&per_page=${MAX_PER_PAGE}`, 'GET');
+        if (!Array.isArray(resp?.data)) break;
+        rows.push(...resp.data);
+        hasNext = Boolean(resp.pagination?.has_next);
+        page += 1;
+    }
+    return rows;
+}
+
 async function loadExtendedStats() {
     try {
-        // Request Parallel agar loading cepat
+        // Statistik butuh semua baris, bukan hanya halaman pertama.
         const [teachers, diplomas, empArchives] = await Promise.all([
-            api.teacher.getAll().catch(() => []),
-            api.diploma.getAll().catch(() => []),
-            api.employeeArchive.getAll().catch(() => [])
+            fetchAllPages('/teacher/get_all').catch(() => []),
+            fetchAllPages('/diploma/get_all').catch(() => []),
+            fetchAllPages('/employee_archive/get_all').catch(() => [])
         ]);
 
         // --- A. DATA GURU ---
