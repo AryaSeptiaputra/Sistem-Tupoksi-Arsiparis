@@ -120,11 +120,3 @@ class MasterReferenceService:
             return True
         finally:
             db.close()
-
-    def get_all_categories(self) -> list[str]:
-        """Mengambil semua nilai kategori yang dikenal sistem.
-
-        Returns:
-            Nilai `ReferenceCategory`.
-        """
-        return [e.value for e in ReferenceCategory]

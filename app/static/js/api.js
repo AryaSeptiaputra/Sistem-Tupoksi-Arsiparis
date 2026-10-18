@@ -165,14 +165,7 @@ const api = {
         getByKeys: (filters) => fetchAPI('/log/get_by_keys', 'POST', { filters })
     },
 
-    // 8. BACKUP
-    backup: {
-        manual: () => fetchAPI('/backup/manual', 'POST'),
-        getLogs: () => fetchAPI('/backup/logs', 'GET'),
-        restore: (filename) => fetchAPI('/backup/restore', 'POST', { filename })
-    },
-
-    // 9. STORAGE LOCATION
+    // 8. STORAGE LOCATION
     storageLocation: {
         create: (data) => fetchAPI('/storage_location/create', 'POST', data),
         update: (data) => fetchAPI('/storage_location/update', 'POST', data),

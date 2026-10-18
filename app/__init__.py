@@ -15,7 +15,7 @@ from .services.retention_scheduler import check_and_deactivate_archives
 # Model di-import agar terdaftar di Base.metadata sebelum create_all
 from .models import (diploma, user, classification,
                      log, incoming_letter, outgoing_letter,
-                     backup, storage_location, finance_archive,
+                     storage_location, finance_archive,
                      employee_archive, teacher, master_reference)
 
 from app.core import database as db

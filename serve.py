@@ -3,8 +3,8 @@ from main import app
 import logging
 import os
 
+# Log waitress ditampilkan ke stdout. Contoh: "2026-10-18 10:30:00,123 Serving on http://0.0.0.0:6001"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-logger = logging.getLogger('waitress')
 
 if __name__ == "__main__":
     # Bind ke 0.0.0.0 agar bisa diakses dari device lain

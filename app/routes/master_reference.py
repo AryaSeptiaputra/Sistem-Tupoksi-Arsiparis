@@ -32,19 +32,6 @@ def get_options(category: str) -> ResponseReturnValue:
         logger.error(f"Gagal mengambil referensi {category}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@reference_bp.route('/api/references/categories', methods=['GET'])
-def get_categories() -> ResponseReturnValue:
-    """Mengambil semua kategori referensi.
-
-    Returns:
-        200 dengan daftar kategori.
-    """
-    return jsonify({
-        "status": "success",
-        "data": service.get_all_categories()
-    })
-
-
 @reference_bp.route('/api/references', methods=['POST'])
 def create_option() -> ResponseReturnValue:
     """Menambah opsi referensi.
