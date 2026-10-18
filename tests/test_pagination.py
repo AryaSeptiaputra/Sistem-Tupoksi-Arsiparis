@@ -13,6 +13,7 @@ import pytest
 from flask import request
 from app import create_app
 from app.core.database import SessionLocal, Base, engine
+from app.models.classification import Classification
 from app.models.incoming_letter import IncomingLetter
 from app.utils.pagination import PaginationParams, paginate_query, get_pagination_params
 from app.utils.response import success_response, error_response
@@ -28,6 +29,12 @@ def app():
     # Create tables
     with app.app_context():
         Base.metadata.create_all(bind=engine)
+        # Surat uji merujuk classification_id=1; foreign key SQLite aktif
+        session = SessionLocal()
+        session.add(Classification(id=1, name="Umum", code="000", retention_active_period=1,
+                                   retention_inactive_period=1, final_action="destroy"))
+        session.commit()
+        session.close()
         yield app
         Base.metadata.drop_all(bind=engine)
 

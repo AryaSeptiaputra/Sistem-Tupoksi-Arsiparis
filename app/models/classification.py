@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Any
-from sqlalchemy import Column, String, Text, DateTime, func, Integer
+from sqlalchemy import Column, String, Text, DateTime, Integer
 from app.core.database import Base
 
 class Classification(Base):
@@ -22,8 +23,8 @@ class Classification(Base):
     
     final_action = Column(String(50), default='destroy', nullable=False)
 
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     def to_dict(self) -> dict[str, Any]:
         """Mengubah baris menjadi dict untuk respons API.

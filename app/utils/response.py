@@ -62,52 +62,42 @@ def error_response(message: str, status_code: int = 400,
     return jsonify(response), status_code
 
 
-
-
-
-
-
-
-
-
 def handle_database_error(exception: Exception, operation: str = "menyimpan") -> tuple[Response, int]:
     """Mencatat error database dan mengubahnya menjadi pesan untuk pengguna.
 
-    Pesan dipilih dari kode error MySQL: 1062 duplikat, 1451/1452 foreign
-    key, 1406 data terlalu panjang, 1048 kolom wajib kosong.
+    Pesan dipilih dari teks constraint SQLite: `UNIQUE`, `FOREIGN KEY`, dan
+    `NOT NULL`. SQLite tidak membatasi panjang `VARCHAR(n)`, jadi tidak ada
+    error "data terlalu panjang".
 
     Args:
         exception: Exception yang ditangkap di route.
-        operation: Kata kerja operasi untuk pesan, misalnya `menyimpan`.
+        operation: Kata kerja operasi untuk pesan, misalnya `menyimpan`;
+            `menghapus` membedakan pesan pelanggaran foreign key.
 
     Returns:
         Pasangan (respons JSON, status HTTP): 400 untuk kesalahan data,
         500 untuk selainnya.
     """
     logger.error(f"Gagal {operation} data: {exception}", exc_info=exception)
-    error_msg = str(exception)
+    # Contoh: "(sqlite3.IntegrityError) UNIQUE constraint failed: incoming_letter.number"
+    error_msg = str(exception).lower()
 
-    if "Duplicate entry" in error_msg or "1062" in error_msg:
-        if "number" in error_msg or "nomor" in error_msg.lower():
+    if "unique constraint failed" in error_msg:
+        if "number" in error_msg or "nomor" in error_msg:
             return error_response("Nomor dokumen sudah ada. Harap gunakan nomor yang berbeda.", 400)
-        elif "nuptk" in error_msg.lower():
+        elif "nuptk" in error_msg:
             return error_response("NUPTK sudah terdaftar dalam sistem.", 400)
-        elif "email" in error_msg.lower():
+        elif "email" in error_msg:
             return error_response("Email sudah terdaftar dalam sistem.", 400)
         else:
             return error_response("Data yang Anda masukkan sudah ada dalam sistem.", 400)
 
-    if "foreign key constraint" in error_msg.lower() or "1451" in error_msg or "1452" in error_msg:
-        # 1451: baris induk masih dirujuk; 1452: baris rujukan tidak ada
-        if "1451" in error_msg:
+    if "foreign key constraint failed" in error_msg:
+        if operation == "menghapus":
             return error_response("Data tidak dapat dihapus karena masih digunakan oleh data lain.", 400)
-        else:
-            return error_response("Data terkait tidak ditemukan. Pastikan semua data referensi valid.", 400)
+        return error_response("Data terkait tidak ditemukan. Pastikan semua data referensi valid.", 400)
 
-    if "Data too long" in error_msg or "1406" in error_msg:
-        return error_response("Data yang dimasukkan terlalu panjang. Harap kurangi jumlah karakter.", 400)
-
-    if "cannot be null" in error_msg.lower() or "1048" in error_msg:
+    if "not null constraint failed" in error_msg:
         return error_response("Ada field wajib yang belum diisi. Harap lengkapi semua data.", 400)
 
     return error_response(

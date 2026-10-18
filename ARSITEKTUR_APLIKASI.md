@@ -11,7 +11,7 @@ Karakteristik utama:
 - Runtime: Python 3.11.
 - Web framework: Flask.
 - Server produksi: Waitress melalui `serve.py`.
-- Database: database yang kompatibel dengan SQLAlchemy; konfigurasi utama berasal dari `DATABASE_URL`.
+- Database: SQLite (satu file, tanpa server database) melalui SQLAlchemy; lokasinya dari `DATABASE_URL`.
 - Autentikasi API: JWT melalui `flask-jwt-extended`.
 - File arsip: disimpan pada folder `storage/`.
 - Pekerjaan terjadwal: APScheduler untuk pemeriksaan masa retensi arsip.
@@ -129,17 +129,18 @@ Blueprint yang terdaftar:
 
 `app/models/` mendefinisikan tabel, kolom, foreign key, relationship, dan serialisasi data. `app/core/database.py` menyediakan:
 
-- `engine` dari `DATABASE_URL`.
+- `engine` SQLite dari `DATABASE_URL` dengan `NullPool`; URL selain SQLite ditolak saat start.
+- `PRAGMA foreign_keys=ON`, `journal_mode=WAL`, dan `busy_timeout=5000` di setiap koneksi.
 - `SessionLocal` sebagai factory session SQLAlchemy.
 - `Base` sebagai declarative base seluruh model.
-- `NullPool` untuk SQLite dan `QueuePool` untuk database non-SQLite.
-- health check koneksi melalui `pool_pre_ping` dan recycle koneksi setiap 3600 detik.
+
+Kolom waktu (`created_at`, `updated_at`, `timestamp`) diisi `datetime.now` dari Python agar tercatat dalam waktu lokal. Backup dan restore memakai API backup `sqlite3` (`app/services/backup.py`); restore selalu didahului backup otomatis `pre_restore_*.db`. Data MySQL lama dipindahkan sekali jalan dengan `scripts/migrate_mysql_to_sqlite.py`.
 
 Saat application factory dijalankan, `Base.metadata.create_all(bind=engine)` memastikan tabel model tersedia.
 
 ### Utilitas dan penyimpanan file
 
-Helper pada `app/utils/` menangani hashing password, pagination, standardisasi response/error, database helper, dan upload file. Dokumen fisik berada di `storage/documents/` atau subfolder fitur terkait, sedangkan database menyimpan path file pada kolom seperti `attachment_path`.
+Helper pada `app/utils/` menangani hashing password, pagination, standardisasi response/error, dan upload file. Dokumen fisik berada di `storage/documents/` atau subfolder fitur terkait, sedangkan database menyimpan path file pada kolom seperti `attachment_path`.
 
 ## 6. Alur Request API
 

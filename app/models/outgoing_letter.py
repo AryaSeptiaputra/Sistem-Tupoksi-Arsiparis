@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Any
-from sqlalchemy import Column, String, DateTime, func, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -27,8 +28,8 @@ class OutgoingLetter(Base):
     storage_location_id = Column(Integer, ForeignKey("storage_location.id"), nullable=True)
     storage_location = relationship("StorageLocation", backref="outgoing_letters", lazy="joined")
 
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     def to_dict(self) -> dict[str, Any]:
         """Mengubah baris menjadi dict untuk respons API.

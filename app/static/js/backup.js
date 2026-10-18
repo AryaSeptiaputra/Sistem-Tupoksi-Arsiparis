@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const tr = document.createElement("tr");
 
             const dateStr = item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : "-";
-            const filename = item.filename || "backup.sql";
+            const filename = item.filename || "backup.db";
 
             tr.innerHTML = `
                 <td style="font-weight:500;">

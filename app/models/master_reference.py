@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Any
 import enum
-from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime, func, Enum
+from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime, Enum
 from app.core.database import Base
 
 class ReferenceCategory(str, enum.Enum):
@@ -42,8 +43,8 @@ class MasterReference(Base):
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     def to_dict(self) -> dict[str, Any]:
         """Mengubah baris menjadi dict untuk respons API.

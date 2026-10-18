@@ -1,16 +1,16 @@
-"""Backup dan restore database MySQL beserta riwayatnya di file JSON.
+"""Backup dan restore database SQLite beserta riwayatnya di file JSON.
 
 Entri log berbentuk dict dari JSON, jadi isinya diberi tipe `Any`.
 """
 
 import json
 import os
-import subprocess
+import sqlite3
+from contextlib import closing
 from typing import Any
 from datetime import datetime
-from app.core.config import settings
+from app.core.database import engine
 from app.errors import BackupError, RestoreError
-from app.utils.db_helper import parse_db_url
 from app.utils.file_helper import cleanup_old_files
 from app.utils.logger import setup_logger
 
@@ -18,6 +18,7 @@ logger = setup_logger(__name__)
 
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
 LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json')
+BACKUP_EXTENSION = '.db'
 
 def get_all_logs() -> list[dict[str, Any]]:
     """Membaca riwayat backup dari file log JSON.
@@ -27,7 +28,7 @@ def get_all_logs() -> list[dict[str, Any]]:
     """
     if not os.path.exists(LOG_FILE_PATH):
         return []
-    
+
     try:
         with open(LOG_FILE_PATH, 'r') as f:
             data = json.load(f)
@@ -46,7 +47,7 @@ def _log_to_json(filename: str | None, status: str, message: str, triggered_by: 
         "created_by": triggered_by,
         "created_at": datetime.now().isoformat()
     }
-    
+
     logs = get_all_logs()
     # Entri terbaru di urutan pertama
     logs.insert(0, log_entry)
@@ -57,40 +58,37 @@ def _log_to_json(filename: str | None, status: str, message: str, triggered_by: 
     except OSError as e:
         logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
 
-def _build_mysql_env(password: str | None) -> dict[str, str]:
-    # Kata sandi lewat MYSQL_PWD supaya tidak terlihat di daftar proses
-    env = os.environ.copy()
-    env['MYSQL_PWD'] = password
-    return env
+def _database_path() -> str:
+    # Contoh: sqlite:///database/arsip.db -> "database/arsip.db"
+    return engine.url.database
 
-def _build_mysql_args(program: str, db_config: dict[str, Any]) -> list[str]:
-    return [
-        program,
-        '-h', db_config['host'],
-        '-P', str(db_config['port']),
-        '-u', db_config['user'],
-    ]
+def _copy_database(source_path: str, target_path: str) -> None:
+    # API backup sqlite3 menyalin halaman secara konsisten walau database sedang dibuka
+    with closing(sqlite3.connect(source_path)) as source, closing(sqlite3.connect(target_path)) as target:
+        source.backup(target)
 
-def _run_dump(command: list[str], env: dict[str, str], filepath: str) -> tuple[bool, str]:
+def _create_backup_file(prefix: str) -> tuple[str, str]:
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR)
+
+    db_name = os.path.splitext(os.path.basename(_database_path()))[0]
+    # Contoh: 2026-10-18_07-52-00
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    filename = f"{prefix}_{db_name}_{timestamp}{BACKUP_EXTENSION}"
+    filepath = os.path.join(BACKUP_DIR, filename)
+
     try:
-        subprocess.run(command, env=env, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as e:
-        err_msg = e.stderr if e.stderr else str(e)
-        message = f"Dump process failed: {err_msg}"
-        logger.error(message, exc_info=True)
+        _copy_database(_database_path(), filepath)
+    except (sqlite3.Error, OSError):
         if os.path.exists(filepath):
             os.remove(filepath)
-        return False, message
-    except OSError as e:
-        message = f"Unexpected error: {str(e)}"
-        logger.error(message, exc_info=True)
-        return False, message
-    return True, "Database backup created successfully."
+        raise
+    return filename, filepath
 
 def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
-    """Membuat file backup database MySQL dengan `mysqldump`.
+    """Menyalin database aktif ke folder backup.
 
-    Hasilnya dicatat ke log JSON, dan file `.sql` yang lebih tua dari 7 hari
+    Hasilnya dicatat ke log JSON, dan file `.db` yang lebih tua dari 7 hari
     dihapus.
 
     Args:
@@ -100,45 +98,35 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
         Nama dan path file backup.
 
     Raises:
-        BackupError: Kalau `mysqldump` gagal atau tidak bisa dijalankan.
+        BackupError: Kalau database gagal dibaca atau file backup gagal ditulis.
     """
-    if not os.path.exists(BACKUP_DIR):
-        os.makedirs(BACKUP_DIR)
+    try:
+        filename, filepath = _create_backup_file("backup")
+    except (sqlite3.Error, OSError) as e:
+        message = f"Backup gagal: {e}"
+        logger.error(message, exc_info=True)
+        _log_to_json(filename=None, status="FAILED", message=message, triggered_by=triggered_by)
+        raise BackupError(message) from e
 
-    db_config = parse_db_url(settings.DATABASE_URL)
-    
-    # Contoh: 2026-10-18_07-52-00
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    filename = f"backup_{db_config['name']}_{timestamp}.sql"
-    filepath = os.path.join(BACKUP_DIR, filename)
-
-    env = _build_mysql_env(db_config['password'])
-    command = _build_mysql_args('mysqldump', db_config) + [
-        '--single-transaction',
-        '--quick',
-        f'--result-file={filepath}',
-        db_config['name']
-    ]
-
-    success, message = _run_dump(command, env, filepath)
-    if success:
-        cleanup_old_files(directory_path=BACKUP_DIR, file_extension='.sql', days_to_keep=7)
-    status = "SUCCESS" if success else "FAILED"
-
-    _log_to_json(
-        filename=filename if status == "SUCCESS" else None,
-        status=status,
-        message=message,
-        triggered_by=triggered_by
-    )
-
-    if not success:
-        raise BackupError(message)
-
+    cleanup_old_files(directory_path=BACKUP_DIR, file_extension=BACKUP_EXTENSION, days_to_keep=7)
+    _log_to_json(filename=filename, status="SUCCESS",
+                 message="Database backup created successfully.", triggered_by=triggered_by)
     return {"filename": filename, "path": filepath}
 
+def _check_backup_file(filepath: str, filename: str) -> None:
+    try:
+        with closing(sqlite3.connect(filepath)) as conn:
+            result = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    except sqlite3.DatabaseError as e:
+        raise RestoreError(f"File '{filename}' bukan database SQLite yang valid.") from e
+    if result != "ok":
+        raise RestoreError(f"File '{filename}' rusak: {result}")
+
 def perform_database_restore(filename: str) -> dict[str, str]:
-    """Memulihkan database dari file backup dengan klien `mysql`.
+    """Memulihkan database dari file backup.
+
+    Sebelum menimpa, database aktif disalin sebagai `pre_restore_*.db` agar
+    pemulihan yang salah pilih bisa dibatalkan.
 
     Args:
         filename: Nama file backup; hanya nama file yang dipakai, path diabaikan.
@@ -148,7 +136,7 @@ def perform_database_restore(filename: str) -> dict[str, str]:
 
     Raises:
         FileNotFoundError: Kalau file backup tidak ada di folder backup.
-        RestoreError: Kalau klien `mysql` gagal atau tidak bisa dijalankan.
+        RestoreError: Kalau file backup tidak valid atau penyalinan gagal.
     """
     safe_filename = os.path.basename(filename)
     filepath = os.path.join(BACKUP_DIR, safe_filename)
@@ -156,31 +144,20 @@ def perform_database_restore(filename: str) -> dict[str, str]:
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"File backup '{safe_filename}' tidak ditemukan di server.")
 
-    db_config = parse_db_url(settings.DATABASE_URL)
-
-    env = _build_mysql_env(db_config['password'])
-    command = _build_mysql_args('mysql', db_config) + [db_config['name']]
+    _check_backup_file(filepath, safe_filename)
 
     try:
-        with open(filepath, 'r') as input_file:
-            subprocess.run(
-                command, 
-                stdin=input_file, 
-                env=env, 
-                check=True, 
-                capture_output=True, 
-                text=True
-            )
-            
-        return {
-            "status": "SUCCESS", 
-            "message": f"Database berhasil dipulihkan dari {safe_filename}"
-        }
-
-    except subprocess.CalledProcessError as e:
-        err_msg = e.stderr if e.stderr else str(e)
-        logger.error(f"Restore dari {safe_filename} gagal: {err_msg}", exc_info=True)
-        raise RestoreError(f"Proses Restore Gagal: {err_msg}") from e
-    except OSError as e:
+        pre_restore_name, _ = _create_backup_file("pre_restore")
+        _log_to_json(filename=pre_restore_name, status="SUCCESS",
+                     message=f"Backup otomatis sebelum restore dari {safe_filename}.", triggered_by="SYSTEM")
+        # Koneksi lama ditutup agar tidak ada yang memegang database saat ditimpa
+        engine.dispose()
+        _copy_database(filepath, _database_path())
+    except (sqlite3.Error, OSError) as e:
         logger.error(f"Restore dari {safe_filename} gagal: {e}", exc_info=True)
-        raise RestoreError(f"Error Tidak Terduga: {str(e)}") from e
+        raise RestoreError(f"Proses Restore Gagal: {e}") from e
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Database berhasil dipulihkan dari {safe_filename}"
+    }

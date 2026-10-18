@@ -5,6 +5,9 @@
 __pycache__/
 
 database/backups/*
+database/*.db
+database/*.db-wal
+database/*.db-shm
 storage/documents/*
 logs/
 

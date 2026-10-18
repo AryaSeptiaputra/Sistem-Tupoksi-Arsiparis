@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Any
-from sqlalchemy import Column, Text, DateTime, func, Integer, ForeignKey
+from sqlalchemy import Column, Text, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -16,7 +17,7 @@ class Log(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     action = Column(Text, nullable=False)
-    timestamp = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.now, index=True)
 
     user_id = Column(Integer, ForeignKey('app_user.id', ondelete='SET NULL'), nullable=True, index=True)
     user = relationship("User", backref="logs", lazy="joined")

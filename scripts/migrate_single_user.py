@@ -2,9 +2,11 @@
 Migrasi sekali jalan dari tabel `user` (3 role, terhubung ke `teacher`)
 ke tabel `app_user` (satu operator, tanpa role). Hanya untuk MySQL.
 
-Pemakaian (dari folder project, setelah backup database):
-    python scripts/migrate_single_user.py
-    python scripts/migrate_single_user.py --keep <username>
+Pemakaian (dari folder project, setelah backup database). Aplikasi kini
+memakai SQLite, jadi database MySQL lama ditunjuk lewat `--source` atau env
+`MYSQL_SOURCE_URL`; jalankan sebelum `scripts/migrate_mysql_to_sqlite.py`:
+    python scripts/migrate_single_user.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
+    python scripts/migrate_single_user.py --source "..." --keep <username>
 
 Langkah, semuanya aman dijalankan ulang:
 1. Membuat tabel `app_user` bila belum ada.
@@ -24,9 +26,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from sqlalchemy import inspect, text
-from sqlalchemy.engine import Connection
-from app.core.database import engine
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Connection, Engine
 from app.models.user import User
 
 LINKED_TABLES = ("log", "backup")
@@ -82,19 +83,20 @@ def _repoint_foreign_key(conn: Connection, table: str) -> None:
         ))
     print(f"Foreign key {table}.user_id -> app_user.id siap.")
 
-def migrate(keep: str | None) -> bool:
+def migrate(source: Engine, keep: str | None) -> bool:
     """
     Menjalankan seluruh langkah migrasi.
 
     Args:
+        source (Engine): Engine database MySQL lama.
         keep (str | None): Username yang tetap aktif bila ada lebih dari satu akun aktif.
 
     Returns:
         bool: True bila selesai; False bila berhenti karena perlu tindakan operator.
     """
-    User.__table__.create(bind=engine, checkfirst=True)
+    User.__table__.create(bind=source, checkfirst=True)
 
-    with engine.begin() as conn:
+    with source.begin() as conn:
         tables = inspect(conn).get_table_names()
         if "user" in tables:
             copied = _copy_old_users(conn)
@@ -110,17 +112,23 @@ def main() -> int:
     """Menjalankan migrasi dari terminal.
 
     Returns:
-        Kode keluar proses: 0 berhasil, 1 bila database bukan MySQL atau
-        migrasi dibatalkan.
+        Kode keluar proses: 0 berhasil, 1 bila URL kosong, database bukan
+        MySQL, atau migrasi dibatalkan.
     """
     parser = argparse.ArgumentParser(description="Migrasi akun ke model satu pengguna.")
+    parser.add_argument("--source", default=os.environ.get("MYSQL_SOURCE_URL"),
+                        help="URL MySQL lama, misalnya mysql+pymysql://user:sandi@localhost/nama_db")
     parser.add_argument("--keep", help="Username yang dipertahankan aktif")
     args = parser.parse_args()
 
-    if engine.dialect.name != "mysql":
-        print(f"Skrip ini hanya untuk MySQL, bukan {engine.dialect.name}.", file=sys.stderr)
+    if not args.source:
+        print("URL MySQL wajib diisi lewat --source atau env MYSQL_SOURCE_URL.", file=sys.stderr)
         return 1
-    return 0 if migrate(args.keep) else 1
+    source = create_engine(args.source)
+    if source.dialect.name != "mysql":
+        print(f"Skrip ini hanya untuk MySQL, bukan {source.dialect.name}.", file=sys.stderr)
+        return 1
+    return 0 if migrate(source, args.keep) else 1
 
 if __name__ == "__main__":
     sys.exit(main())

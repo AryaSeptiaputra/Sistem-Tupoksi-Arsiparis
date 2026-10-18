@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Any
-from sqlalchemy import Column, String, DateTime, func, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -23,8 +24,8 @@ class IncomingLetter(Base):
 
     archive_status = Column(String(20), default='active', nullable=False)
 
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     def to_dict(self) -> dict[str, Any]:
         """Mengubah baris menjadi dict untuk respons API.

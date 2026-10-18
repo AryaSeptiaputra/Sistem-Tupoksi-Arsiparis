@@ -1,35 +1,41 @@
-"""Engine SQLAlchemy, pabrik session, dan `Base` model untuk seluruh aplikasi."""
+"""Engine SQLAlchemy, pabrik session, dan `Base` model untuk seluruh aplikasi.
 
-from sqlalchemy import create_engine
+Aplikasi memakai SQLite agar ringan di device lama tanpa server database.
+"""
+
+from sqlite3 import Connection as SQLiteConnection
+
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import ConnectionPoolEntry, NullPool
 from app.core.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
-IS_SQLITE = 'sqlite' in DATABASE_URL
 
-# SQLite (dipakai test) memakai NullPool, yang menolak argumen pool_size dan
-# max_overflow; argumen pool hanya dikirim untuk MySQL.
-if IS_SQLITE:
-    engine = create_engine(DATABASE_URL, poolclass=NullPool, echo=False)
-else:
-    engine = create_engine(
-        DATABASE_URL,
-        poolclass=QueuePool,
-        pool_size=20,
-        max_overflow=10,
-        # Cek koneksi sebelum dipakai supaya koneksi yang diputus MySQL tidak dipakai ulang
-        pool_pre_ping=True,
-        # 3600 detik, di bawah wait_timeout default MySQL
-        pool_recycle=3600,
-        echo=False,
-        connect_args={
-            # utf8mb4 agar emoji dan karakter 4 byte tersimpan utuh
-            'charset': 'utf8mb4',
-            'connect_timeout': 10,
-            'read_timeout': 30,
-        }
+if not DATABASE_URL.startswith('sqlite'):
+    raise ValueError(
+        f"DATABASE_URL harus SQLite, misalnya sqlite:///database/arsip.db; "
+        f"didapat skema '{DATABASE_URL.split(':', 1)[0]}'. "
+        f"Pindahkan data MySQL lama dengan scripts/migrate_mysql_to_sqlite.py."
     )
+
+# NullPool membuka koneksi baru per session; murah untuk SQLite dan aman lintas thread waitress
+engine = create_engine(DATABASE_URL, poolclass=NullPool, echo=False)
+
+# 5000 milidetik menunggu kunci tulis dilepas sebelum gagal "database is locked"
+BUSY_TIMEOUT_MS = 5000
+
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragmas(dbapi_connection: SQLiteConnection, connection_record: ConnectionPoolEntry) -> None:
+    # SQLite mengabaikan foreign key kecuali diaktifkan per koneksi.
+    # WAL membuat pembacaan tidak terblokir saat ada penulisan dari thread lain.
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+    cursor.close()
+
 
 SessionLocal = sessionmaker(
     autocommit=False,
