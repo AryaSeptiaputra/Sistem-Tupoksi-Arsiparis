@@ -8,6 +8,9 @@ from app.utils.current_user import get_current_user_id
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 # Inisialisasi Blueprint
 teacher_bp = Blueprint('teacher', __name__)
@@ -36,7 +39,7 @@ def create_teacher_route():
             action = f"Menambahkan Guru/Pegawai baru: '{new_teacher.full_name}' ({new_teacher.identity_number})."
             create_log(db_session, get_current_user_id(), action)
         except Exception as e:
-            print(f"Warning Log Error: {e}")
+            logger.warning(f"Gagal mencatat log tambah guru: {e}", exc_info=True)
         # ---------------------
 
         return jsonify({
@@ -48,7 +51,7 @@ def create_teacher_route():
         return jsonify({"message": "NIP/NUPTK sudah terdaftar."}), 409
     except Exception as e:
         db_session.rollback()
-        print(f"Error Create Teacher: {e}")
+        logger.error(f"Gagal menambah guru: {e}", exc_info=True)
         return jsonify({"message": "Internal Server Error"}), 500
     finally:
         db_session.close()

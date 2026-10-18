@@ -5,6 +5,9 @@ from datetime import datetime
 from app.core.config import settings
 from app.utils.db_helper import parse_db_url
 from app.utils.file_helper import cleanup_old_files
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 # Mendefinisikan lokasi folder backup
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
@@ -146,7 +149,7 @@ def _log_to_json(filename, status, message, triggered_by):
         with open(LOG_FILE_PATH, 'w') as f:
             json.dump(logs, f, indent=4)
     except Exception as e:
-        print(f"CRITICAL: Gagal menulis log JSON. Error: {e}")
+        logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
 
 def get_all_logs():
     """

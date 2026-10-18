@@ -6,6 +6,9 @@ from app.models.outgoing_letter import OutgoingLetter
 from app.models.finance_archive import FinanceArchive
 from app.models.classification import Classification
 from app.core.database import engine # Import engine untuk buat session baru
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 # Setup Session Factory
 from sqlalchemy.orm import sessionmaker
@@ -18,7 +21,7 @@ def check_and_deactivate_archives():
     """
     db: Session = SessionLocal()
     try:
-        print(f"[{datetime.now()}] Memulai pengecekan retensi otomatis...")
+        logger.info("Memulai pengecekan retensi otomatis")
         counter = 0
         today = datetime.now()
         
@@ -55,12 +58,12 @@ def check_and_deactivate_archives():
 
         if counter > 0:
             db.commit()
-            print(f"[{datetime.now()}] SUKSES: {counter} dokumen diubah menjadi Inaktif.")
+            logger.info(f"{counter} dokumen diubah menjadi inaktif")
         else:
-            print(f"[{datetime.now()}] INFO: Tidak ada dokumen yang kedaluwarsa hari ini.")
+            logger.info("Tidak ada dokumen yang kedaluwarsa hari ini")
 
     except Exception as e:
-        print(f"ERROR pada Retention Scheduler: {e}")
+        logger.error(f"Scheduler retensi gagal: {e}", exc_info=True)
         db.rollback()
     finally:
         db.close()

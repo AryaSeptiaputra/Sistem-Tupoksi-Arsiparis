@@ -3,6 +3,10 @@ import time
 import uuid  # [BARU] Untuk generate nama unik
 from werkzeug.utils import secure_filename
 
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 def cleanup_old_files(directory_path, file_extension, days_to_keep=7):
     """Menghapus file lama berdasarkan umur file."""
     if not os.path.exists(directory_path):
@@ -21,7 +25,7 @@ def cleanup_old_files(directory_path, file_extension, days_to_keep=7):
                     except OSError:
                         pass
     except Exception as e:
-        print(f"[Error] cleanup_old_files failed: {e}")
+        logger.error(f"cleanup_old_files gagal: {e}", exc_info=True)
 
 def delete_physical_file(relative_path):
     """
@@ -41,12 +45,12 @@ def delete_physical_file(relative_path):
         
         if os.path.exists(full_path):
             os.remove(full_path)
-            print(f"File berhasil dihapus: {full_path}")
+            logger.info(f"File berhasil dihapus: {full_path}")
         else:
-            print(f"File tidak ditemukan untuk dihapus: {full_path}")
-            
+            logger.warning(f"File tidak ditemukan untuk dihapus: {full_path}")
+
     except OSError as e:
-        print(f"Gagal menghapus file fisik: {e}")
+        logger.error(f"Gagal menghapus file fisik: {e}", exc_info=True)
 
 def handle_file_upload(file_obj, subfolder):
     """

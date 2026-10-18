@@ -1,6 +1,10 @@
 import os
 from flask import Blueprint, send_from_directory, abort, jsonify
 
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 # Hapus import jwt_required karena file ini harus public accessible oleh browser
 # from flask_jwt_extended import jwt_required 
 
@@ -36,5 +40,5 @@ def serve_storage_file(filename):
         file_name = os.path.basename(full_path)
         return send_from_directory(directory, file_name)
     except Exception as e:
-        print(f"Storage Error: {e}")
+        logger.error(f"Gagal mengirim file storage: {e}", exc_info=True)
         abort(404)

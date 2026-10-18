@@ -1,4 +1,3 @@
-import logging
 from flask import Blueprint, request, jsonify, session
 from sqlalchemy.orm import Session
 from flask_jwt_extended import create_access_token
@@ -6,8 +5,9 @@ from app.services.auth import login_user
 from app.services.user import record_login
 from app.services.log import create_log
 from app import db
+from app.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 

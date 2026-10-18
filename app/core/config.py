@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     FLASK_ENV: str = "production"
     FLASK_DEBUG: int = 0
     LOG_FILE_PATH: str | None = None
+    LOG_FORMAT: str = "text"
 
     model_config = SettingsConfigDict(
         env_file=".env",

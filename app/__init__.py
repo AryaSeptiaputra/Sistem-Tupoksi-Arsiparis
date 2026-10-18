@@ -1,6 +1,5 @@
 import os
 import atexit # Untuk mematikan scheduler saat app stop
-import logging
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -18,6 +17,9 @@ from .models import (diploma, user, classification,
                      employee_archive, teacher, master_reference)
 
 from app.core import database as db
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 def create_app():
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,25 +57,19 @@ def create_app():
     # ==========================================================================
     # 📝 KONFIGURASI LOGGING
     # ==========================================================================
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    if settings.LOG_FILE_PATH:
-        os.makedirs(os.path.dirname(settings.LOG_FILE_PATH), exist_ok=True)
-        handler = logging.FileHandler(settings.LOG_FILE_PATH)
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        logging.getLogger().addHandler(handler)
-    app.logger.info("Application started")
+    logger.info("Application started")
 
     # ==========================================================================
     # ❌ ERROR HANDLERS
     # ==========================================================================
     @app.errorhandler(500)
     def internal_error(error):
-        app.logger.error(f"Internal server error: {error}")
+        logger.error(f"Internal server error: {error}")
         return {"error": "Internal server error"}, 500
 
     @app.errorhandler(404)
     def not_found(error):
-        app.logger.warning(f"Page not found: {error}")
+        logger.warning(f"Page not found: {error}")
         return {"error": "Not found"}, 404
 
     # Create Database Tables
@@ -94,7 +90,7 @@ def create_app():
         # scheduler.add_job(func=check_and_deactivate_archives, trigger="interval", seconds=10)
         
         scheduler.start()
-        print("[SCHEDULER] Archive Retention running (Daily Mode)")
+        logger.info("Scheduler retensi arsip berjalan (harian)")
         
         # Shutdown scheduler when app stops
         atexit.register(lambda: scheduler.shutdown())

@@ -8,6 +8,9 @@ from app.core.database import SessionLocal
 from app.services.backup import perform_database_backup, perform_database_restore, get_all_logs, BACKUP_DIR
 from app.services.user import get_user
 from app.utils.current_user import get_current_user_id
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 backup_bp = Blueprint('backup', __name__)
 
@@ -23,7 +26,7 @@ def trigger_manual_backup():
         if user:
             triggered_by = user.display_name
     except Exception as e:
-        print(f"Warning: Could not resolve user for backup log. Error: {e}")
+        logger.warning(f"Nama akun untuk log backup tidak terbaca: {e}", exc_info=True)
     finally:
         db_session.close()
 

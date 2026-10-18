@@ -1,4 +1,3 @@
-import logging
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
@@ -7,8 +6,6 @@ from app.services.user import get_user, update_profile, change_password
 from app.services.log import create_log
 from app.utils.current_user import get_current_user_id
 from app import db
-
-logger = logging.getLogger(__name__)
 
 user_bp = Blueprint('user', __name__)
 
