@@ -60,6 +60,16 @@ class PaginatedResult:
         self.per_page = per_page
         self.total_pages = ceil(total / per_page) if per_page > 0 else 0
 
+    @property
+    def has_next(self) -> bool:
+        """Apakah masih ada halaman setelah halaman ini."""
+        return self.page < self.total_pages
+
+    @property
+    def has_prev(self) -> bool:
+        """Apakah ada halaman sebelum halaman ini."""
+        return self.page > 1
+
     def to_dict(self) -> dict[str, Any]:
         """Mengubah hasil menjadi bentuk respons JSON.
 
@@ -73,8 +83,8 @@ class PaginatedResult:
                 'per_page': self.per_page,
                 'total': self.total,
                 'total_pages': self.total_pages,
-                'has_next': self.page < self.total_pages,
-                'has_prev': self.page > 1
+                'has_next': self.has_next,
+                'has_prev': self.has_prev
             }
         }
 

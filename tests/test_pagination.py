@@ -189,7 +189,7 @@ def test_paginate_query_to_dict(app, sample_data):
 # Test Response Formatting
 # =============================================================================
 
-def test_success_response():
+def test_success_response(app):
     """Test success response format"""
     data = {'id': 1, 'name': 'Test'}
     response, status_code = success_response(data, "Success", 200)
@@ -202,7 +202,7 @@ def test_success_response():
     assert status_code == 200
 
 
-def test_error_response():
+def test_error_response(app):
     """Test error response format"""
     response, status_code = error_response("Not found", 404)
     
@@ -213,7 +213,7 @@ def test_error_response():
     assert status_code == 404
 
 
-def test_error_response_with_details():
+def test_error_response_with_details(app):
     """Test error response with additional details"""
     errors = {'field': ['Error message']}
     response, status_code = error_response("Validation failed", 422, errors)
