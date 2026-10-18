@@ -61,3 +61,14 @@ def test_execute_disposal_marks_destroyed(db, classifications):
     assert count == 1
     assert db.get(IncomingLetter, letter.id).archive_status == "destroyed"
     assert get_expired_archives(db) == []
+
+def test_execute_disposal_marks_diploma_destroyed(db):
+    diploma = Diploma(number="D-1", student_name="Siswa", major="TKJ", academic_year="2015/2016", is_collected=True)
+    db.add(diploma)
+    db.commit()
+
+    count = execute_disposal(db, [{"table_source": "diploma", "id": diploma.id}], None)
+
+    assert count == 1
+    assert db.get(Diploma, diploma.id).archive_status == "destroyed"
+    assert get_expired_archives(db) == []

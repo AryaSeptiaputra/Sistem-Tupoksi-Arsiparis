@@ -16,6 +16,7 @@ class Diploma(Base):
     is_collected = Column(Boolean, default=False, nullable=False)
     collected_at = Column(DateTime, nullable=True)
     attachment_path = Column(String(255), nullable=True)
+    archive_status = Column(String(20), default='active', nullable=False)
 
     storage_location_id = Column(Integer, ForeignKey("storage_location.id"), nullable=True)
     storage_location = relationship("StorageLocation", backref="diplomas", lazy="joined")
@@ -37,6 +38,7 @@ class Diploma(Base):
             "academic_year": self.academic_year,
             "is_collected": self.is_collected,
             "collected_at": self.collected_at,
+            "archive_status": self.archive_status,
             "storage_location_id": self.storage_location.id if self.storage_location else None,
             "storage_location_name": self.storage_location.name if self.storage_location else None,
             "created_at": self.created_at,

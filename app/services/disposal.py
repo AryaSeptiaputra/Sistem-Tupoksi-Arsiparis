@@ -68,7 +68,10 @@ def _format_finance_title(item: FinanceArchive) -> str:
     return item.title
 
 def _scan_diplomas(db: Session, current_year: int) -> list[dict[str, Any]]:
-    diplomas = db.query(Diploma).filter(Diploma.is_collected == True).all()
+    diplomas = db.query(Diploma).filter(
+        Diploma.is_collected == True,
+        Diploma.archive_status != 'destroyed'
+    ).all()
 
     expired = []
     for item in diplomas:
@@ -133,12 +136,7 @@ def execute_disposal(db: Session, items_to_destroy: list[dict[str, Any]], user_i
                 delete_physical_file(record.attachment_path)
                 record.attachment_path = None
 
-            # Model tanpa archive_status ditandai lewat keterangannya
-            if hasattr(record, 'archive_status'):
-                record.archive_status = 'destroyed'
-            else:
-                if hasattr(record, 'description'):
-                     record.description = (record.description or "") + " [MUSNAH]"
+            record.archive_status = 'destroyed'
 
             count += 1
 
