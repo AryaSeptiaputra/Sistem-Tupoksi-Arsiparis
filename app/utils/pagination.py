@@ -4,6 +4,8 @@ Item hasil query bisa berupa object model atau dict hasil `to_dict()`,
 jadi diberi tipe `Any`.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from sqlalchemy.orm import Query
 from werkzeug.datastructures import MultiDict

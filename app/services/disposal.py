@@ -4,6 +4,8 @@ Baris arsip berasal dari beberapa model berbeda (surat, arsip keuangan, arsip
 pegawai, ijazah), jadi diberi tipe `Any` pada fungsi yang memprosesnya bersama.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any

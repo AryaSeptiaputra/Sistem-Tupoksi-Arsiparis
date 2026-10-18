@@ -3,6 +3,8 @@
 Entri log berbentuk dict dari JSON, jadi isinya diberi tipe `Any`.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sqlite3

@@ -3,6 +3,8 @@
 Isian form atau JSON bentuknya bebas, jadi diberi tipe `dict[str, Any]`.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from flask import Blueprint, request, jsonify

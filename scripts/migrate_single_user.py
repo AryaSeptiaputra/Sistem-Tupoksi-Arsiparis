@@ -20,6 +20,9 @@ Langkah, semuanya aman dijalankan ulang:
 
 Tabel `user` lama tidak dihapus.
 """
+
+from __future__ import annotations
+
 import argparse
 import os
 import sys

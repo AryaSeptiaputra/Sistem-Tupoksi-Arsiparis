@@ -18,7 +18,7 @@ if not exist .env (
     echo Menghasilkan file .env baru dengan placeholder...
     (
         echo # --- DATABASE CONFIGURATION ---
-        echo DATABASE_URL=
+        echo DATABASE_URL=sqlite:///database/arsip.db
         echo.
         echo # --- SECURITY ---
         echo JWT_SECRET_KEY=
@@ -38,6 +38,14 @@ if not exist .env (
 )
 
 :: 2. Membuat Virtual Environment jika belum ada
+:: Aplikasi dikunci untuk Python 3.8 (versi terakhir yang berjalan di Windows 7)
+python -c "import sys; sys.exit(0 if sys.version_info[:2] == (3, 8) else 1)"
+if %errorlevel% neq 0 (
+    echo [ERROR] Dibutuhkan Python 3.8. Versi terpasang:
+    python --version
+    echo Pasang Python 3.8.10 dari python.org lalu jalankan ulang setup ini.
+    goto :err
+)
 if not exist .venv (
     echo [2/6] Membuat Virtual Environment...
     python -m venv .venv

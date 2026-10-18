@@ -4,6 +4,8 @@ Filter berasal dari JSON request yang bentuknya bebas, jadi diberi tipe
 `dict[str, Any]`.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from sqlalchemy.orm import Session
 from app.models.log import Log

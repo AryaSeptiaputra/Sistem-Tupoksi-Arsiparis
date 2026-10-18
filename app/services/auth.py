@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.services.user import get_user_by_username

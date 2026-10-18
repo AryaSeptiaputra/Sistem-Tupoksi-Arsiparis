@@ -13,16 +13,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    # Python 3.8 = versi yang dipakai klien di Windows 7; dipasang lewat uv
+    # karena runner Ubuntu terbaru tidak lagi menyediakan 3.8.
+    - name: Set up uv and Python 3.8
+      uses: astral-sh/setup-uv@v6
       with:
-        python-version: '3.11'
+        python-version: '3.8'
+        activate-environment: true
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      run: uv pip install -r requirements.txt
 
     - name: Run tests
-      run: |
-        pytest
+      run: pytest tests

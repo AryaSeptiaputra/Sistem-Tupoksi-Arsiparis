@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from flask_jwt_extended import get_jwt
 
 def get_current_user_id() -> int | None:

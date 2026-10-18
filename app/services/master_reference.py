@@ -4,6 +4,8 @@ Data masukan dan keluaran berbentuk dict JSON yang bentuknya bebas, jadi
 diberi tipe `dict[str, Any]`.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session

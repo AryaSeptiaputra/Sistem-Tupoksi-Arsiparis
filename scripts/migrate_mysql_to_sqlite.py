@@ -19,6 +19,9 @@ Langkah:
    sumber dan tujuan, per 500 baris.
 4. Memeriksa keutuhan foreign key dengan `PRAGMA foreign_key_check`.
 """
+
+from __future__ import annotations
+
 import argparse
 import os
 import sys

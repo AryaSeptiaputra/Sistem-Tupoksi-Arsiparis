@@ -43,62 +43,61 @@ Bagian ini khusus untuk tim yang mengurus API, Logic, dan Database.
 
 ### 1\. Setup Development
 
-Ikuti langkah ini untuk menyiapkan environment lokal:
+Aplikasi menargetkan **Python 3.8** agar bisa dipasang di Windows 7, dan memakai **SQLite** (satu file, tanpa server database).
 
 ```bash
-# 1. Clone & Masuk Direktori
-git clone [https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git)
+# 1. Clone & masuk direktori
+git clone https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis.git
 cd Sistem-Tupoksi-Arsiparis
 
-# 2. Setup Virtual Environment (Wajib!)
+# 2. Virtual environment dengan Python 3.8
+#    Di mesin pengembangan bisa lewat uv: uv python install 3.8 && uv venv .venv --python 3.8
 python -m venv .venv
-# Windows: venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
+.venv\Scriptsctivate
 
-# 3. Install Dependencies
+# 3. Install dependency (versi dikunci untuk Python 3.8)
 pip install -r requirements.txt
 ```
 
-#### 4\. Konfigurasi Environment (.env)
+Salin `.env.example` menjadi `.env`, lalu isi `JWT_SECRET_KEY` dan `SECRET_KEY` dengan nilai acak milik sendiri. `DATABASE_URL` default-nya `sqlite:///database/arsip.db`.
 
-Buat file baru bernama `.env` di folder paling luar (root), lalu isi dengan konfigurasi berikut. Sesuaikan password database dengan settingan laptop masing-masing.
-
-**Isi file `.env`:**
-
-```ini
-# Ganti 'password' dengan password database MySQL lokal kalian
-DATABASE_URL=[mysql+pymysql://root:password@localhost/arsiparis_smk7]
-
-# Key untuk keamanan login (Jangan disebar sembarangan)
-JWT_SECRET_KEY=[5584c6c09bd32c2db66d179a24a5f04f488a4428c37269a17358ca7554dccb09]
-```
-
-> ⚠️ **PENTING:** Jangan pernah push file `.env` ini ke GitHub\! Pastikan file ini sudah ada di dalam `.gitignore`.
+> ⚠️ **PENTING:** Jangan pernah push file `.env` ke GitHub dan jangan menulis nilai rahasia di dokumen mana pun.
 
 ```bash
-# 5. Setup Database & Admin
-# Import file .sql dari folder database/ jika diperlukan,
-# lalu jalankan script ini untuk membuat user admin awal:
-python seed_admin.py
+# 4. Data awal dan akun operator
+python database/seeders/seed_master.py
+python scripts/akun.py buat --username <nip> --nama "<nama operator>"
+
+# Atau, bila memindahkan data dari MySQL lama:
+python scripts/migrate_mysql_to_sqlite.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
+```
+
+Dependency diubah lewat `requirements.in`, lalu kunci ulang untuk Python 3.8:
+
+```bash
+uv pip compile requirements.in --python-version 3.8 -o requirements.txt
 ```
 
 ### 2\. Menjalankan Server API
-
-Pastikan server menyala agar tim Frontend bisa menarik data.
 
 ```bash
 python main.py
 ```
 
-Server berjalan di: `http://localhost:8000`
-
-### 3\. Testing API
-
-Sebelum push, pastikan tidak ada error logic:
+### 3\. Testing
 
 ```bash
-python test_api.py
+pytest tests
 ```
+
+### 4\. Instalasi di Windows 7 (laptop klien / PC sekolah)
+
+1. Windows 7 **SP1** dengan update **KB2533623** sudah terpasang.
+2. Pasang Python **3.8.10** dari installer resmi python.org (versi 3.8 terakhir yang punya installer Windows); centang *Add Python to PATH*.
+3. Jalankan `scripts\setup.bat`, isi `.env`, lalu `scripts\install_service.bat` sebagai Administrator.
+4. Python 3.8 dan Windows 7 sudah tidak mendapat patch keamanan: buka aplikasi hanya di jaringan lokal, jangan ke internet.
+
+Checklist uji di device target: login, dashboard tampil dengan grafik, tambah/ubah/hapus surat, unggah lampiran, backup lalu restore.
 
 -----
 
@@ -200,7 +199,7 @@ Aturan main untuk semua developer (Backend & Frontend):
 - Run: `docker run -p 8080:8080 arsiparis-app`
 
 ### Testing
-- Run tests: `pytest`
+- Run tests: `pytest tests`
 
 ### Logging
 - Logs are configured to console and optionally to file specified in `.env`.

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +11,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     FLASK_ENV: str = "production"
     FLASK_DEBUG: int = 0
-    LOG_FILE_PATH: str | None = None
+    # Optional, bukan `str | None`: pydantic mengevaluasi annotation saat runtime,
+    # dan Python 3.8 (target Windows 7) belum mendukung operator `|` pada tipe.
+    LOG_FILE_PATH: Optional[str] = None
     LOG_FORMAT: str = "text"
 
     model_config = SettingsConfigDict(

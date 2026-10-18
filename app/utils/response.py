@@ -4,6 +4,8 @@
 jadi diberi tipe `Any`.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from flask import Response, jsonify
 
