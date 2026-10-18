@@ -1,11 +1,8 @@
-import os
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import Session
+from flask_jwt_extended import jwt_required
 
 from app.models.employee_archive import EmployeeArchive
-from app.models.teacher import Teacher
 from app.services.employee_archive import (
     create_employee_archive, update_employee_archive, 
     delete_employee_archive, get_all_employee_archives

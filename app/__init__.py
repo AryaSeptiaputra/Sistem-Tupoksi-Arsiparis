@@ -1,5 +1,6 @@
 import os
 import atexit
+from collections.abc import Callable
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
 from werkzeug.wrappers import Response
@@ -22,19 +23,25 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def create_app() -> Flask:
-    """Membuat aplikasi Flask beserta konfigurasi, scheduler, dan blueprint.
+# URL pendek tanpa awalan /page: path -> (nama endpoint, endpoint tujuan)
+SHORT_URL_REDIRECTS = {
+    '/': ('index', 'view.login_page'),
+    '/dashboard': ('dashboard', 'view.dashboard_page'),
+    '/incoming_letter': ('incoming_letter', 'view.incoming_letter_page'),
+    '/diploma': ('diploma', 'view.diploma_page'),
+    '/log': ('log', 'view.log'),
+    '/classification': ('classification', 'view.classification'),
+    '/backup': ('backup', 'view.backup'),
+    '/user_profile': ('user_profile', 'view.user_profile'),
+    '/storage_location': ('storage_location', 'view.storage_location'),
+    '/finance_archive': ('finance_archive', 'view.finance_archive'),
+    '/employee_archive': ('employee_archive', 'view.employee_archive'),
+    '/disposal': ('disposal', 'view.disposal'),
+    '/teacher': ('teacher', 'view.teacher'),
+    '/reference': ('reference', 'view.reference'),
+}
 
-    Returns:
-        Aplikasi Flask yang siap dijalankan.
-    """
-    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    template_dir = os.path.join(app_dir, 'app', 'static', 'html')
-    static_dir = os.path.join(app_dir, 'app', 'static')
-
-    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-
+def _configure_app(app: Flask) -> None:
     # Kompresi gzip untuk respons di atas 1 KB, level 6 dari 1-9
     Compress(app)
     app.config['COMPRESS_LEVEL'] = 6
@@ -55,8 +62,7 @@ def create_app() -> Flask:
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 43200
     JWTManager(app)
 
-    logger.info("Application started")
-
+def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(500)
     def internal_error(error: Exception) -> tuple[dict[str, str], int]:
         """Mencatat error 500 dan mengembalikan pesan JSON umum."""
@@ -69,18 +75,19 @@ def create_app() -> Flask:
         logger.warning(f"Page not found: {error}")
         return {"error": "Not found"}, 404
 
-    Base.metadata.create_all(bind=engine)
-
+def _start_scheduler(app: Flask) -> None:
     # Mode debug menjalankan reloader dua proses; scheduler hanya dijalankan
     # di proses anak (WERKZEUG_RUN_MAIN) supaya tidak berjalan ganda.
-    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        scheduler = BackgroundScheduler()
-        # Setiap hari pukul 00:01 waktu server
-        scheduler.add_job(func=check_and_deactivate_archives, trigger="cron", hour=0, minute=1)
-        scheduler.start()
-        logger.info("Scheduler retensi arsip berjalan (harian)")
-        atexit.register(lambda: scheduler.shutdown())
+    if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        return
+    scheduler = BackgroundScheduler()
+    # Setiap hari pukul 00:01 waktu server
+    scheduler.add_job(func=check_and_deactivate_archives, trigger="cron", hour=0, minute=1)
+    scheduler.start()
+    logger.info("Scheduler retensi arsip berjalan (harian)")
+    atexit.register(lambda: scheduler.shutdown())
 
+def _register_blueprints(app: Flask) -> None:
     # Import di dalam fungsi karena modul route meng-import `app.db` dari paket ini
     from .routes.auth import auth_bp
     from .routes.user import user_bp
@@ -116,61 +123,31 @@ def create_app() -> Flask:
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(reference_bp)
 
-    # URL pendek tanpa awalan /page diarahkan ke halaman di blueprint view
-    @app.route('/')
-    def index() -> Response:
-        return redirect(url_for('view.login_page'))
+def _build_redirect(target_endpoint: str) -> Callable[[], Response]:
+    def redirect_view() -> Response:
+        return redirect(url_for(target_endpoint))
+    return redirect_view
 
-    @app.route('/dashboard')
-    def dashboard() -> Response:
-        return redirect(url_for('view.dashboard_page'))
+def _register_redirects(app: Flask) -> None:
+    for path, (endpoint, target_endpoint) in SHORT_URL_REDIRECTS.items():
+        app.add_url_rule(path, endpoint, _build_redirect(target_endpoint))
 
-    @app.route('/incoming_letter')
-    def incoming_letter() -> Response:
-        return redirect(url_for('view.incoming_letter_page'))
+def create_app() -> Flask:
+    """Membuat aplikasi Flask beserta konfigurasi, scheduler, dan blueprint.
 
-    @app.route('/diploma')
-    def diploma() -> Response:
-        return redirect(url_for('view.diploma_page'))
+    Returns:
+        Aplikasi Flask yang siap dijalankan.
+    """
+    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    template_dir = os.path.join(app_dir, 'app', 'static', 'html')
+    static_dir = os.path.join(app_dir, 'app', 'static')
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
-    @app.route('/log')
-    def log() -> Response:
-        return redirect(url_for('view.log'))
-
-    @app.route('/classification')
-    def classification() -> Response:
-        return redirect(url_for('view.classification'))
-
-    @app.route('/backup')
-    def backup() -> Response:
-        return redirect(url_for('view.backup'))
-
-    @app.route('/user_profile')
-    def user_profile() -> Response:
-        return redirect(url_for('view.user_profile'))
-
-    @app.route('/storage_location')
-    def storage_location() -> Response:
-        return redirect(url_for('view.storage_location'))
-
-    @app.route('/finance_archive')
-    def finance_archive() -> Response:
-        return redirect(url_for('view.finance_archive'))
-
-    @app.route('/employee_archive')
-    def employee_archive() -> Response:
-        return redirect(url_for('view.employee_archive'))
-
-    @app.route('/disposal')
-    def disposal() -> Response:
-        return redirect(url_for('view.disposal'))
-
-    @app.route('/teacher')
-    def teacher() -> Response:
-        return redirect(url_for('view.teacher'))
-
-    @app.route('/reference')
-    def reference() -> Response:
-        return redirect(url_for('view.reference'))
-
+    _configure_app(app)
+    logger.info("Application started")
+    _register_error_handlers(app)
+    Base.metadata.create_all(bind=engine)
+    _start_scheduler(app)
+    _register_blueprints(app)
+    _register_redirects(app)
     return app

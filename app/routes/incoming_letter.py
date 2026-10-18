@@ -1,7 +1,7 @@
 import os
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 
 from app.services.incoming_letter import (
@@ -217,8 +217,3 @@ def get_incoming_by_keys_route() -> ResponseReturnValue:
         return error_response(str(e), 500)
     finally:
         db_session.close()
-    if not filters: return jsonify({"error": "filters required"}), 400
-    db_session = db.SessionLocal()
-    try: return jsonify([l.to_dict() for l in get_incoming_letters_by_keys(db_session, filters)]), 200
-    except Exception as e: return jsonify({"error": str(e)}), 400
-    finally: db_session.close()

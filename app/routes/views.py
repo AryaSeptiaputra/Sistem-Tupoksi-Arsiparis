@@ -1,6 +1,6 @@
 """Halaman HTML aplikasi; data di halaman diambil front-end lewat API."""
 
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, render_template
 from flask.typing import ResponseReturnValue
 
 view_bp = Blueprint('view', __name__)

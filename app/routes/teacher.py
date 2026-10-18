@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys

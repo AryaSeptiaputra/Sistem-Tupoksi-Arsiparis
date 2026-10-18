@@ -1,8 +1,7 @@
 from typing import Any
 from sqlalchemy import Column, String, DateTime, func, Integer, ForeignKey, Text
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import relationship
 from app.core.database import Base
-import datetime
 
 class EmployeeArchive(Base):
     """Dokumen kepegawaian milik seorang guru atau tenaga kependidikan."""

@@ -150,29 +150,3 @@ def get_incoming_letters_by_keys(db: Session, filters: dict[str, Any],
     else:
         return query.all()
 
-
-def get_incoming_letters_count(db: Session, filters: dict[str, Any] | None = None) -> int:
-    """Menghitung surat masuk yang cocok dengan filter.
-
-    Args:
-        db: Session database.
-        filters: Pasangan kolom dan nilai, dengan aturan pencocokan yang sama
-            seperti `get_incoming_letters_by_keys`.
-
-    Returns:
-        Jumlah surat masuk.
-    """
-    query = db.query(IncomingLetter)
-
-    if filters:
-        for key, value in filters.items():
-            if not hasattr(IncomingLetter, key):
-                continue
-            column_to_filter = getattr(IncomingLetter, key)
-
-            if key.endswith('_id') or key == 'archive_status' or key == 'id':
-                query = query.filter(column_to_filter == value)
-            else:
-                query = query.filter(column_to_filter.ilike(f"%{value}%"))
-
-    return query.count()

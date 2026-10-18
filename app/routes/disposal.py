@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from app import db
 from app.services.disposal import get_expired_archives, execute_disposal

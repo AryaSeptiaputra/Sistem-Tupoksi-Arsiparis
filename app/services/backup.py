@@ -19,6 +19,74 @@ logger = setup_logger(__name__)
 BACKUP_DIR = os.path.join(os.getcwd(), 'database', 'backups')
 LOG_FILE_PATH = os.path.join(BACKUP_DIR, 'backup_logs.json')
 
+def get_all_logs() -> list[dict[str, Any]]:
+    """Membaca riwayat backup dari file log JSON.
+
+    Returns:
+        Entri log, terbaru lebih dulu; kosong bila file belum ada atau rusak.
+    """
+    if not os.path.exists(LOG_FILE_PATH):
+        return []
+    
+    try:
+        with open(LOG_FILE_PATH, 'r') as f:
+            data = json.load(f)
+            return data
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning(f"Log backup {LOG_FILE_PATH} tidak terbaca, dianggap kosong: {e}", exc_info=True)
+        return []
+
+def _log_to_json(filename: str | None, status: str, message: str, triggered_by: str) -> None:
+    log_entry = {
+        # Detik sejak epoch dipakai sebagai id; backup tidak berjalan dua kali per detik
+        "id": int(datetime.now().timestamp()),
+        "filename": filename,
+        "status": status,
+        "message": message,
+        "created_by": triggered_by,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    logs = get_all_logs()
+    # Entri terbaru di urutan pertama
+    logs.insert(0, log_entry)
+
+    try:
+        with open(LOG_FILE_PATH, 'w') as f:
+            json.dump(logs, f, indent=4)
+    except OSError as e:
+        logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
+
+def _build_mysql_env(password: str | None) -> dict[str, str]:
+    # Kata sandi lewat MYSQL_PWD supaya tidak terlihat di daftar proses
+    env = os.environ.copy()
+    env['MYSQL_PWD'] = password
+    return env
+
+def _build_mysql_args(program: str, db_config: dict[str, Any]) -> list[str]:
+    return [
+        program,
+        '-h', db_config['host'],
+        '-P', str(db_config['port']),
+        '-u', db_config['user'],
+    ]
+
+def _run_dump(command: list[str], env: dict[str, str], filepath: str) -> tuple[bool, str]:
+    try:
+        subprocess.run(command, env=env, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr if e.stderr else str(e)
+        message = f"Dump process failed: {err_msg}"
+        logger.error(message, exc_info=True)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return False, message
+    except OSError as e:
+        message = f"Unexpected error: {str(e)}"
+        logger.error(message, exc_info=True)
+        return False, message
+    return True, "Database backup created successfully."
+
 def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
     """Membuat file backup database MySQL dengan `mysqldump`.
 
@@ -44,45 +112,18 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
     filename = f"backup_{db_config['name']}_{timestamp}.sql"
     filepath = os.path.join(BACKUP_DIR, filename)
 
-    # Kata sandi lewat MYSQL_PWD supaya tidak terlihat di daftar proses
-    env = os.environ.copy()
-    env['MYSQL_PWD'] = db_config['password']
-
-    command = [
-        'mysqldump',
-        '-h', db_config['host'],
-        '-P', str(db_config['port']),
-        '-u', db_config['user'],
+    env = _build_mysql_env(db_config['password'])
+    command = _build_mysql_args('mysqldump', db_config) + [
         '--single-transaction',
         '--quick',
         f'--result-file={filepath}',
         db_config['name']
     ]
 
-    status = "FAILED"
-    message = ""
-    result_data = {}
-
-    try:
-        subprocess.run(command, env=env, check=True, capture_output=True, text=True)
-        
-        status = "SUCCESS"
-        message = "Database backup created successfully."
-        result_data = {"filename": filename, "path": filepath}
-        
+    success, message = _run_dump(command, env, filepath)
+    if success:
         cleanup_old_files(directory_path=BACKUP_DIR, file_extension='.sql', days_to_keep=7)
-
-    except subprocess.CalledProcessError as e:
-        status = "FAILED"
-        err_msg = e.stderr if e.stderr else str(e)
-        message = f"Dump process failed: {err_msg}"
-        logger.error(message, exc_info=True)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-    except OSError as e:
-        status = "FAILED"
-        message = f"Unexpected error: {str(e)}"
-        logger.error(message, exc_info=True)
+    status = "SUCCESS" if success else "FAILED"
 
     _log_to_json(
         filename=filename if status == "SUCCESS" else None,
@@ -91,10 +132,10 @@ def perform_database_backup(triggered_by: str = "SYSTEM") -> dict[str, str]:
         triggered_by=triggered_by
     )
 
-    if status == "FAILED":
+    if not success:
         raise BackupError(message)
 
-    return result_data
+    return {"filename": filename, "path": filepath}
 
 def perform_database_restore(filename: str) -> dict[str, str]:
     """Memulihkan database dari file backup dengan klien `mysql`.
@@ -117,16 +158,8 @@ def perform_database_restore(filename: str) -> dict[str, str]:
 
     db_config = parse_db_url(settings.DATABASE_URL)
 
-    env = os.environ.copy()
-    env['MYSQL_PWD'] = db_config['password']
-
-    command = [
-        'mysql',
-        '-h', db_config['host'],
-        '-P', str(db_config['port']),
-        '-u', db_config['user'],
-        db_config['name']
-    ]
+    env = _build_mysql_env(db_config['password'])
+    command = _build_mysql_args('mysql', db_config) + [db_config['name']]
 
     try:
         with open(filepath, 'r') as input_file:
@@ -151,41 +184,3 @@ def perform_database_restore(filename: str) -> dict[str, str]:
     except OSError as e:
         logger.error(f"Restore dari {safe_filename} gagal: {e}", exc_info=True)
         raise RestoreError(f"Error Tidak Terduga: {str(e)}") from e
-
-def _log_to_json(filename: str | None, status: str, message: str, triggered_by: str) -> None:
-    log_entry = {
-        # Detik sejak epoch dipakai sebagai id; backup tidak berjalan dua kali per detik
-        "id": int(datetime.now().timestamp()),
-        "filename": filename,
-        "status": status,
-        "message": message,
-        "created_by": triggered_by,
-        "created_at": datetime.now().isoformat()
-    }
-    
-    logs = get_all_logs()
-    # Entri terbaru di urutan pertama
-    logs.insert(0, log_entry)
-
-    try:
-        with open(LOG_FILE_PATH, 'w') as f:
-            json.dump(logs, f, indent=4)
-    except OSError as e:
-        logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
-
-def get_all_logs() -> list[dict[str, Any]]:
-    """Membaca riwayat backup dari file log JSON.
-
-    Returns:
-        Entri log, terbaru lebih dulu; kosong bila file belum ada atau rusak.
-    """
-    if not os.path.exists(LOG_FILE_PATH):
-        return []
-    
-    try:
-        with open(LOG_FILE_PATH, 'r') as f:
-            data = json.load(f)
-            return data
-    except (OSError, json.JSONDecodeError) as e:
-        logger.warning(f"Log backup {LOG_FILE_PATH} tidak terbaca, dianggap kosong: {e}", exc_info=True)
-        return []

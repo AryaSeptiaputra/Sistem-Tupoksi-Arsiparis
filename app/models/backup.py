@@ -1,5 +1,5 @@
 from typing import Any
-from sqlalchemy import Column, String, Text, Enum, DateTime, func, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, DateTime, func, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 

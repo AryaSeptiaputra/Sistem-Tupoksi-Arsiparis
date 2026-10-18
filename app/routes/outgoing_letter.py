@@ -1,7 +1,13 @@
-import os
+"""Endpoint surat keluar.
+
+Isian form atau JSON bentuknya bebas, jadi diberi tipe `dict[str, Any]`.
+"""
+
+from typing import Any
+
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from app.services.outgoing_letter import (
     create_outgoing_letter, update_outgoing_letter, 
@@ -21,6 +27,27 @@ from app.utils.response import success_response, error_response
 logger = setup_logger(__name__)
 
 outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
+
+REQUIRED_FIELDS = {
+    'number': 'Nomor Surat',
+    'letter_date': 'Tanggal Surat',
+    'sent_date': 'Tanggal Kirim',
+    'destination': 'Tujuan'
+}
+
+def _find_missing_label(data: dict[str, Any]) -> str | None:
+    for field, label in REQUIRED_FIELDS.items():
+        if not data.get(field):
+            return label
+    return None
+
+def _normalize_update_fields(data: dict[str, Any]) -> None:
+    if 'is_decree' in data:
+        data['is_decree'] = str(data['is_decree']).lower() == 'true'
+    if 'classification_id' in data:
+        data['classification_id'] = int(data['classification_id'])
+    if 'storage_location_id' in data:
+        data['storage_location_id'] = int(data['storage_location_id']) if data['storage_location_id'] else None
 
 @outgoing_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -55,16 +82,9 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
     except ValueError:
             return jsonify({"error": "ID Klasifikasi/Lokasi harus berupa angka"}), 400
 
-    field_labels = {
-        'number': 'Nomor Surat',
-        'letter_date': 'Tanggal Surat',
-        'sent_date': 'Tanggal Kirim',
-        'destination': 'Tujuan'
-    }
-    
-    for field, label in field_labels.items():
-        if not data.get(field):
-            return jsonify({"error": f"{label} wajib diisi"}), 400
+    missing_label = _find_missing_label(data)
+    if missing_label:
+        return jsonify({"error": f"{missing_label} wajib diisi"}), 400
     
     file = request.files.get('file')
     attachment_path = None
@@ -107,18 +127,8 @@ def update_outgoing_letter_route() -> ResponseReturnValue:
     
     if not letter_id: return jsonify({"error": "ID surat wajib ada"}), 400
 
-    if 'is_decree' in data:
-        data['is_decree'] = str(data['is_decree']).lower() == 'true'
-    
     try:
-        if 'classification_id' in data:
-            data['classification_id'] = int(data['classification_id'])
-        
-        if 'storage_location_id' in data:
-            if data['storage_location_id']:
-                data['storage_location_id'] = int(data['storage_location_id'])
-            else:
-                data['storage_location_id'] = None
+        _normalize_update_fields(data)
     except ValueError:
         return jsonify({"error": "ID harus berupa angka"}), 400
 

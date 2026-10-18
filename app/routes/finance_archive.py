@@ -1,8 +1,6 @@
-import os
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import Session
+from flask_jwt_extended import jwt_required
 
 from app.models.finance_archive import FinanceArchive
 from app.services.finance_archive import (

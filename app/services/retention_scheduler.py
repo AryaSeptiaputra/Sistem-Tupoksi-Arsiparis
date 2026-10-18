@@ -5,13 +5,10 @@ from app.models.incoming_letter import IncomingLetter
 from app.models.outgoing_letter import OutgoingLetter
 from app.models.finance_archive import FinanceArchive
 from app.models.classification import Classification
-from app.core.database import engine
+from app.core.database import SessionLocal
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
-
-from sqlalchemy.orm import sessionmaker
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def check_and_deactivate_archives() -> None:
     """Mengubah arsip aktif yang melewati masa aktif menjadi inaktif.

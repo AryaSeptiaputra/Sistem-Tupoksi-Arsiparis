@@ -6,7 +6,6 @@ jadi diberi tipe `Any`.
 
 from typing import Any
 from flask import Response, jsonify
-from http import HTTPStatus
 
 from app.utils.logger import setup_logger
 
@@ -63,70 +62,12 @@ def error_response(message: str, status_code: int = 400,
     return jsonify(response), status_code
 
 
-def validation_error_response(errors: dict[str, list[str]]) -> tuple[Response, int]:
-    """Membentuk respons 422 untuk validasi yang gagal.
-
-    Args:
-        errors: Daftar pesan error per field.
-
-    Returns:
-        Pasangan (respons JSON, status HTTP).
-    """
-    return error_response(
-        message="Validation failed",
-        status_code=422,
-        errors=errors
-    )
 
 
-def not_found_response(resource: str = "Resource") -> tuple[Response, int]:
-    """Membentuk respons 404.
-
-    Args:
-        resource: Nama data yang tidak ditemukan.
-
-    Returns:
-        Pasangan (respons JSON, status HTTP).
-    """
-    return error_response(
-        message=f"{resource} not found",
-        status_code=404
-    )
 
 
-def unauthorized_response(message: str = "Unauthorized") -> tuple[Response, int]:
-    """Membentuk respons 401.
-
-    Args:
-        message: Pesan error.
-
-    Returns:
-        Pasangan (respons JSON, status HTTP).
-    """
-    return error_response(
-        message=message,
-        status_code=401
-    )
 
 
-def server_error_response(message: str = "Internal server error",
-                         exception: Exception | None = None) -> tuple[Response, int]:
-    """Membentuk respons 500.
-
-    Args:
-        message: Pesan error.
-        exception: Exception yang pesannya ditambahkan ke `message`.
-
-    Returns:
-        Pasangan (respons JSON, status HTTP).
-    """
-    if exception:
-        message = f"{message}: {str(exception)}"
-
-    return error_response(
-        message=message,
-        status_code=500
-    )
 
 
 def handle_database_error(exception: Exception, operation: str = "menyimpan") -> tuple[Response, int]:

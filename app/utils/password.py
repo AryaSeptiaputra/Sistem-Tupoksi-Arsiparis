@@ -46,23 +46,3 @@ def validate_password_change(old_password_hash: str, new_password_plain: str) ->
         raise ValueError("Password baru harus berbeda dari password lama")
 
     return check_password(new_password_plain)
-
-def mask_password(password: str) -> str:
-    """Menyamarkan kata sandi untuk ditampilkan.
-
-    Huruf pertama dan terakhir tetap terlihat; kata sandi 2 karakter atau
-    kurang disamarkan seluruhnya.
-
-    Args:
-        password: Kata sandi polos.
-
-    Returns:
-        Kata sandi dengan bagian tengah diganti `*`.
-    """
-    if not password:
-        return ""
-
-    if len(password) <= 2:
-        return '*' * len(password)
-
-    return password[0] + '*' * (len(password) - 2) + password[-1]

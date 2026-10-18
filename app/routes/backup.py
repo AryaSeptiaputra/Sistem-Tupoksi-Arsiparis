@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
