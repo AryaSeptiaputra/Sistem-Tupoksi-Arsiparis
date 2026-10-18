@@ -19,7 +19,7 @@ iframe { width: 100%; height: 100%; border: none; }
 .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #374151; }
 .form-group label span { color: #ef4444; }
 .input-control { width: 100%; }
-.input-control input, .input-control select, .input-control textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; font-family: "Poppins", sans-serif; font-size: 13px; background-color: white; color: #1f2937; outline: none; box-sizing: border-box; transition: all 0.2s; }
+.input-control input, .input-control select, .input-control textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; font-family: var(--font-family); font-size: 13px; background-color: white; color: #1f2937; outline: none; box-sizing: border-box; transition: all 0.2s; }
 .input-control input:focus, .input-control select:focus, .input-control textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 ::placeholder { color: #9ca3af; opacity: 1; }
 

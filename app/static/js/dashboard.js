@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue("--font-family").trim();
+
     // 2. Load Data & UI
     loadUserInfo();
     setupTabs();         // Inisialisasi Logic Pindah Tab
@@ -279,8 +281,13 @@ async function loadExtendedStats() {
 }
 
 /* ========================================= */
-/* 5. HELPER CHARTS (APEXCHARTS)             */
+/* 5. HELPER CHARTS (CHART.JS)               */
 /* ========================================= */
+
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+// Warna bar "distributed" yang tidak memberi warna sendiri.
+const DEFAULT_COLORS = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'];
+const GRID_COLOR = '#f3f4f6';
 
 // --- Helper Update Text Aman ---
 function updateText(id, value) {
@@ -288,10 +295,127 @@ function updateText(id, value) {
     if(el) el.textContent = value;
 }
 
+// Ganti isi container dengan canvas baru setinggi `height`; chart lama dihancurkan dulu.
+function mountChartCanvas(container, height) {
+    const oldCanvas = container.querySelector("canvas");
+    if (oldCanvas) {
+        const oldChart = Chart.getChart(oldCanvas);
+        if (oldChart) oldChart.destroy();
+    }
+    container.innerHTML = "";
+    container.style.position = "relative";
+    container.style.height = height + "px";
+    const canvas = document.createElement("canvas");
+    container.appendChild(canvas);
+    return canvas;
+}
+
+// Tulis nilai di tengah tiap batang.
+const barValueLabels = {
+    id: "barValueLabels",
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const horizontal = chart.options.indexAxis === "y";
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "600 12px " + Chart.defaults.font.family;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        chart.data.datasets.forEach((dataset, i) => {
+            chart.getDatasetMeta(i).data.forEach((bar, j) => {
+                const x = horizontal ? (bar.x + bar.base) / 2 : bar.x;
+                const y = horizontal ? bar.y : (bar.y + bar.base) / 2;
+                ctx.fillText(dataset.data[j], x, y);
+            });
+        });
+        ctx.restore();
+    }
+};
+
+function createAreaChart(selector, { height, labels, series, colors, yFormatter }) {
+    const container = document.querySelector(selector);
+    if (!container) return;
+
+    const datasets = series.map((s, i) => ({
+        label: s.name,
+        data: s.data,
+        borderColor: colors[i],
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true,
+        backgroundColor: (context) => {
+            const area = context.chart.chartArea;
+            if (!area) return 'transparent';
+            const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            gradient.addColorStop(0, colors[i] + 'B3');
+            gradient.addColorStop(1, colors[i] + '1A');
+            return gradient;
+        }
+    }));
+
+    new Chart(mountChartCanvas(container, height), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: series.length > 1 } },
+            scales: {
+                x: { grid: { color: GRID_COLOR } },
+                y: { grid: { color: GRID_COLOR }, ticks: yFormatter ? { callback: yFormatter } : {} }
+            }
+        }
+    });
+}
+
+function createBarChart(selector, { height, labels, series, colors = DEFAULT_COLORS, horizontal = false, distributed = false, dataLabels = false }) {
+    const container = document.querySelector(selector);
+    if (!container) return;
+
+    const datasets = series.map((s, i) => ({
+        label: s.name,
+        data: s.data,
+        backgroundColor: distributed ? colors : colors[i],
+        borderRadius: 4
+    }));
+
+    new Chart(mountChartCanvas(container, height), {
+        type: 'bar',
+        data: { labels, datasets },
+        plugins: dataLabels ? [barValueLabels] : [],
+        options: {
+            maintainAspectRatio: false,
+            indexAxis: horizontal ? 'y' : 'x',
+            plugins: { legend: { display: series.length > 1 } },
+            scales: {
+                x: { grid: { color: GRID_COLOR } },
+                y: { grid: { color: GRID_COLOR } }
+            }
+        }
+    });
+}
+
+function createDonutChart(selector, { height, labels, data, colors, cutout }) {
+    const container = document.querySelector(selector);
+    if (!container) return;
+
+    new Chart(mountChartCanvas(container, height), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors }] },
+        options: {
+            maintainAspectRatio: false,
+            cutout,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
 // 1. Chart Area: Tren Bulanan (Generic)
 function renderTrendChart(selector, data, name, color) {
     if(!document.querySelector(selector)) return;
-    
+
     const monthly = Array(12).fill(0);
     const currentYear = new Date().getFullYear();
 
@@ -302,16 +426,12 @@ function renderTrendChart(selector, data, name, color) {
         }
     });
 
-    const options = {
+    createAreaChart(selector, {
+        height: 280,
+        labels: MONTH_LABELS,
         series: [{ name: name, data: monthly }],
-        chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        stroke: { curve: 'smooth', width: 2 },
-        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1 } },
-        colors: [color],
-        xaxis: { categories: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'] },
-        grid: { borderColor: '#f3f4f6' }
-    };
-    new ApexCharts(document.querySelector(selector), options).render();
+        colors: [color]
+    });
 }
 
 // 2. Chart Bar: Top 5 Pengirim (Surat Masuk)
@@ -326,16 +446,15 @@ function renderTopSenderChart(data) {
 
     const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 5);
 
-    const options = {
+    createBarChart("#chart-incoming-source", {
+        height: 280,
+        labels: sorted.map(i => i[0]),
         series: [{ name: 'Jumlah', data: sorted.map(i => i[1]) }],
-        chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
         colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
-        dataLabels: { enabled: true },
-        xaxis: { categories: sorted.map(i => i[0]) },
-        legend: { show: false }
-    };
-    new ApexCharts(document.querySelector("#chart-incoming-source"), options).render();
+        horizontal: true,
+        distributed: true,
+        dataLabels: true
+    });
 }
 
 // 3. Chart Donut: Status (Surat Keluar)
@@ -346,21 +465,19 @@ function renderStatusChart(data) {
     const pending = data.filter(d => d.approval_status === 'pending').length;
     const rejected = data.filter(d => d.approval_status === 'rejected').length;
 
-    const options = {
-        series: [approved, pending, rejected],
+    createDonutChart("#chart-outgoing-status", {
+        height: 280,
         labels: ['Disetujui', 'Menunggu', 'Ditolak'],
-        chart: { type: 'donut', height: 280, fontFamily: 'Poppins' },
+        data: [approved, pending, rejected],
         colors: ['#10b981', '#f59e0b', '#ef4444'],
-        legend: { position: 'bottom' },
-        plotOptions: { pie: { donut: { size: '65%' } } }
-    };
-    new ApexCharts(document.querySelector("#chart-outgoing-status"), options).render();
+        cutout: '65%'
+    });
 }
 
 // 4. Chart Overview: Comparison (Masuk vs Keluar)
 function renderOverviewChart(inData, outData) {
     if(!document.querySelector("#chart-overview-comparison")) return;
-    
+
     const inMonthly = Array(12).fill(0);
     const outMonthly = Array(12).fill(0);
     const year = new Date().getFullYear();
@@ -368,18 +485,15 @@ function renderOverviewChart(inData, outData) {
     inData.forEach(d => { if(new Date(d.date||d.created_at).getFullYear() === year) inMonthly[new Date(d.date||d.created_at).getMonth()]++ });
     outData.forEach(d => { if(new Date(d.date||d.created_at).getFullYear() === year) outMonthly[new Date(d.date||d.created_at).getMonth()]++ });
 
-    const options = {
+    createBarChart("#chart-overview-comparison", {
+        height: 320,
+        labels: MONTH_LABELS,
         series: [
             { name: 'Surat Masuk', data: inMonthly },
             { name: 'Surat Keluar', data: outMonthly }
         ],
-        chart: { type: 'bar', height: 320, toolbar: { show: false }, fontFamily: 'Poppins' },
-        colors: ['#3b82f6', '#10b981'],
-        xaxis: { categories: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'] },
-        grid: { borderColor: '#f3f4f6' },
-        plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } }
-    };
-    new ApexCharts(document.querySelector("#chart-overview-comparison"), options).render();
+        colors: ['#3b82f6', '#10b981']
+    });
 }
 
 // 5. Charts Keuangan
@@ -396,15 +510,14 @@ function renderFinanceTrendChart(data) {
         if(d.getFullYear() === year) monthly[d.getMonth()] += nominal;
     });
 
-    const options = {
+    const compact = new Intl.NumberFormat('id-ID', { notation: "compact" });
+    createAreaChart("#chart-finance-trend", {
+        height: 280,
+        labels: MONTH_LABELS,
         series: [{ name: 'Nominal', data: monthly }],
-        chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        stroke: { curve: 'smooth', width: 2 },
         colors: ['#10b981'],
-        xaxis: { categories: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'] },
-        yaxis: { labels: { formatter: (val) => new Intl.NumberFormat('id-ID', { notation: "compact" }).format(val) } }
-    };
-    new ApexCharts(document.querySelector("#chart-finance-trend"), options).render();
+        yFormatter: (val) => compact.format(val)
+    });
 }
 
 function renderStorageChart(data) {
@@ -416,34 +529,30 @@ function renderStorageChart(data) {
     });
     const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 5);
 
-    const options = {
+    createBarChart("#chart-storage-dist", {
+        height: 280,
+        labels: sorted.map(i => i[0]),
         series: [{ name: 'Dokumen', data: sorted.map(i => i[1]) }],
-        chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
-        xaxis: { categories: sorted.map(i => i[0]) },
-        legend: { show: false }
-    };
-    new ApexCharts(document.querySelector("#chart-storage-dist"), options).render();
+        horizontal: true,
+        distributed: true
+    });
 }
 
 // 6. [BARU] Chart Donut Simple (Untuk Guru)
 function renderDonutChart(selector, seriesData, labelsData) {
-    if(!document.querySelector(selector)) return;
-    const options = {
-        series: seriesData,
+    createDonutChart(selector, {
+        height: 250,
         labels: labelsData,
-        chart: { type: 'donut', height: 250, fontFamily: 'Poppins' },
+        data: seriesData,
         colors: ['#3b82f6', '#f59e0b', '#10b981'],
-        legend: { position: 'bottom' },
-        plotOptions: { pie: { donut: { size: '60%' } } }
-    };
-    new ApexCharts(document.querySelector(selector), options).render();
+        cutout: '60%'
+    });
 }
 
 // 7. [BARU] Chart Ijazah per Tahun
 function renderBarChartIjazah(data) {
     if(!document.querySelector("#chart-ijazah-trend")) return;
-    
+
     const counts = {};
     data.forEach(d => {
         const year = d.academic_year || "Lainnya";
@@ -451,22 +560,19 @@ function renderBarChartIjazah(data) {
     });
 
     const sortedKeys = Object.keys(counts).sort();
-    const seriesData = sortedKeys.map(k => counts[k]);
 
-    const options = {
-        series: [{ name: 'Jumlah Ijazah', data: seriesData }],
-        chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        colors: ['#8b5cf6'], // Ungu
-        xaxis: { categories: sortedKeys },
-        plotOptions: { bar: { borderRadius: 4 } }
-    };
-    new ApexCharts(document.querySelector("#chart-ijazah-trend"), options).render();
+    createBarChart("#chart-ijazah-trend", {
+        height: 280,
+        labels: sortedKeys,
+        series: [{ name: 'Jumlah Ijazah', data: sortedKeys.map(k => counts[k]) }],
+        colors: ['#8b5cf6'] // Ungu
+    });
 }
 
 // 8. [BARU] Chart Arsip Pegawai (Tipe Dokumen)
 function renderBarChartArsip(data) {
     if(!document.querySelector("#chart-emp-type")) return;
-    
+
     const counts = {};
     data.forEach(d => {
         let type = d.document_type || "Lainnya";
@@ -476,15 +582,14 @@ function renderBarChartArsip(data) {
     });
 
     const sortedEntry = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8);
-    
-    const options = {
+
+    createBarChart("#chart-emp-type", {
+        height: 280,
+        labels: sortedEntry.map(x => x[0]),
         series: [{ name: 'Jumlah', data: sortedEntry.map(x => x[1]) }],
-        chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'Poppins' },
-        plotOptions: { bar: { borderRadius: 4, horizontal: true } },
         colors: ['#ef4444'], // Merah
-        xaxis: { categories: sortedEntry.map(x => x[0]) }
-    };
-    new ApexCharts(document.querySelector("#chart-emp-type"), options).render();
+        horizontal: true
+    });
 }
 
 /* ========================================= */

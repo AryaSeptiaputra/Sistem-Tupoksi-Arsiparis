@@ -5,7 +5,7 @@
 Branch `refactor/major-overhaul` dipakai untuk merombak Sistem Tupoksi Arsiparis di tiga area:
 
 1. **Desain tabel database** — merancang ulang skema tabel, relasi, constraint, dan migrasinya.
-2. **Framework front-end** — mengganti front-end yang sekarang dengan framework baru.
+2. **Front-end ringan vanilla JS, tanpa build step, kompatibel Chrome 109**.
 3. **Optimisasi algoritma back-end** — memperbaiki performa dan struktur logika di `app/services` dan `app/routes`.
 
 Pembagian kerja:
