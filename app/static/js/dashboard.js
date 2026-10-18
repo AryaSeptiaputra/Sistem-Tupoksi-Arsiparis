@@ -144,20 +144,10 @@ async function loadStatsData() {
 
 async function loadDocuments() {
     try {
-        const unwrap = (resp) => {
-            if (Array.isArray(resp)) return resp;
-            if (Array.isArray(resp?.data)) return resp.data;
-            if (Array.isArray(resp?.items)) return resp.items;
-            return [];
-        };
-
-        const [incomingResp, outgoingResp] = await Promise.all([
+        const [incoming, outgoing] = await Promise.all([
             api.incomingLetter.getAll().catch(() => []),
             api.outgoingLetter.getAll().catch(() => [])
         ]);
-
-        const incoming = unwrap(incomingResp);
-        const outgoing = unwrap(outgoingResp);
 
         // --- A. RINGKASAN & SIDEBAR ---
         renderOverviewChart(incoming, outgoing); // Chart Batang Perbandingan
@@ -230,31 +220,13 @@ async function loadDocuments() {
 /* (Guru, Ijazah, Arsip Pegawai)             */
 /* ========================================= */
 
-// Server membatasi per_page maksimal 100.
-const MAX_PER_PAGE = 100;
-
-// Ambil seluruh baris endpoint get_all berpagination ({data, pagination}) halaman demi halaman.
-async function fetchAllPages(endpoint) {
-    const rows = [];
-    let page = 1;
-    let hasNext = true;
-    while (hasNext) {
-        const resp = await fetchAPI(`${endpoint}?page=${page}&per_page=${MAX_PER_PAGE}`, 'GET');
-        if (!Array.isArray(resp?.data)) break;
-        rows.push(...resp.data);
-        hasNext = Boolean(resp.pagination?.has_next);
-        page += 1;
-    }
-    return rows;
-}
-
 async function loadExtendedStats() {
     try {
-        // Statistik butuh semua baris, bukan hanya halaman pertama.
+        // getAll mengambil semua halaman, jadi statistik dihitung dari seluruh baris
         const [teachers, diplomas, empArchives] = await Promise.all([
-            fetchAllPages('/teacher/get_all').catch(() => []),
-            fetchAllPages('/diploma/get_all').catch(() => []),
-            fetchAllPages('/employee_archive/get_all').catch(() => [])
+            api.teacher.getAll().catch(() => []),
+            api.diploma.getAll().catch(() => []),
+            api.employeeArchive.getAll().catch(() => [])
         ]);
 
         // --- A. DATA GURU ---

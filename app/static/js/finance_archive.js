@@ -226,14 +226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadClassifications() {
         try {
             console.log("[DEBUG] loadClassifications() called");
-            const response = await api.classification.getAll();
-            let data = response;
-            if (response && response.data && Array.isArray(response.data)) {
-                data = response.data;
-            } else if (!Array.isArray(response)) {
-                console.warn("[WARN] Classification response format:", response);
-                data = [];
-            }
+            const data = await api.classification.getAll();
             console.log("[DEBUG] Loaded", data.length, "classifications");
             if (!inputClassId) {
                 console.error("[ERROR] inputClassId element not found");
@@ -252,14 +245,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadStorageLocations() {
         try {
             console.log("[DEBUG] loadStorageLocations() called");
-            const response = await api.storageLocation.getAll();
-            let data = response;
-            if (response && response.data && Array.isArray(response.data)) {
-                data = response.data;
-            } else if (!Array.isArray(response)) {
-                console.warn("[WARN] StorageLocation response format:", response);
-                data = [];
-            }
+            const data = await api.storageLocation.getAll();
             console.log("[DEBUG] Loaded", data.length, "storage locations");
             if (!inputStorageId) {
                 console.error("[ERROR] inputStorageId element not found");
@@ -279,14 +265,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             console.log("[DEBUG] loadArchives() called");
             allArchives = await api.financeArchive.getAll();
-            console.log("[DEBUG] API returned:", allArchives);
-            console.log("[DEBUG] Data type:", typeof allArchives, "Is array:", Array.isArray(allArchives));
-            
-            if (!Array.isArray(allArchives)) {
-                console.error("[ERROR] allArchives is not an array:", allArchives);
-                allArchives = [];
-            }
-            
+
             // Sorting: Tahun Descending, lalu Bulan Descending
             allArchives.sort((a, b) => {
                 if (b.fiscal_year !== a.fiscal_year) return b.fiscal_year - a.fiscal_year;

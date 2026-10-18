@@ -70,6 +70,25 @@ async function fetchAPI(endpoint, method = 'GET', body = null) {
     }
 }
 
+// Server membatasi per_page maksimal 100.
+const MAX_PER_PAGE = 100;
+
+// Endpoint get_all mengembalikan satu halaman ({ success, message, data, pagination }).
+// Halaman di front-end memfilter di browser, jadi semua halaman digabung menjadi satu array.
+async function fetchAllPages(endpoint) {
+    const rows = [];
+    let page = 1;
+    let hasNext = true;
+    while (hasNext) {
+        const resp = await fetchAPI(`${endpoint}?page=${page}&per_page=${MAX_PER_PAGE}`, 'GET');
+        if (!Array.isArray(resp?.data)) break;
+        rows.push(...resp.data);
+        hasNext = Boolean(resp.pagination?.has_next);
+        page += 1;
+    }
+    return rows;
+}
+
 // --- DAFTAR SERVICE ---
 
 const api = {
@@ -119,7 +138,7 @@ const api = {
         create: (data) => fetchAPI('/teacher/create', 'POST', data),
         update: (data) => fetchAPI('/teacher/update', 'POST', data),
         delete: (id) => fetchAPI('/teacher/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/teacher/get_all', 'GET'),
+        getAll: () => fetchAllPages('/teacher/get_all'),
         getByKeys: (filters) => fetchAPI('/teacher/get_by_keys', 'POST', { filters })
     },
 
@@ -128,7 +147,7 @@ const api = {
         create: (data) => fetchAPI('/classification/create', 'POST', data),
         update: (data) => fetchAPI('/classification/update', 'POST', data),
         delete: (id) => fetchAPI('/classification/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/classification/get_all', 'GET'),
+        getAll: () => fetchAllPages('/classification/get_all'),
         getByKeys: (filters) => fetchAPI('/classification/get_by_keys', 'POST', { filters })
     },
 
@@ -137,7 +156,7 @@ const api = {
         create: (formData) => fetchAPI('/incoming_letter/create', 'POST', formData),
         update: (data) => fetchAPI('/incoming_letter/update', 'POST', data),
         delete: (id) => fetchAPI('/incoming_letter/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/incoming_letter/get_all', 'GET'),
+        getAll: () => fetchAllPages('/incoming_letter/get_all'),
         getByKeys: (filters) => fetchAPI('/incoming_letter/get_by_keys', 'POST', { filters })
     },
 
@@ -146,7 +165,7 @@ const api = {
         create: (formData) => fetchAPI('/outgoing_letter/create', 'POST', formData),
         update: (data) => fetchAPI('/outgoing_letter/update', 'POST', data),
         delete: (id) => fetchAPI('/outgoing_letter/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/outgoing_letter/get_all', 'GET'),
+        getAll: () => fetchAllPages('/outgoing_letter/get_all'),
         getByKeys: (filters) => fetchAPI('/outgoing_letter/get_by_keys', 'POST', { filters })
     },
 
@@ -155,13 +174,13 @@ const api = {
         create: (formData) => fetchAPI('/diploma/create', 'POST', formData),
         update: (data) => fetchAPI('/diploma/update', 'POST', data),
         delete: (id) => fetchAPI('/diploma/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/diploma/get_all', 'GET'),
+        getAll: () => fetchAllPages('/diploma/get_all'),
         getByKeys: (filters) => fetchAPI('/diploma/get_by_keys', 'POST', { filters })
     },
 
     // 7. LOG ACTIVITY
     log: {
-        getAll: () => fetchAPI('/log/get_all', 'GET'),
+        getAll: () => fetchAllPages('/log/get_all'),
         getByKeys: (filters) => fetchAPI('/log/get_by_keys', 'POST', { filters })
     },
 
@@ -170,21 +189,21 @@ const api = {
         create: (data) => fetchAPI('/storage_location/create', 'POST', data),
         update: (data) => fetchAPI('/storage_location/update', 'POST', data),
         delete: (id) => fetchAPI('/storage_location/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/storage_location/get_all', 'GET')
+        getAll: () => fetchAllPages('/storage_location/get_all')
     },
 
     financeArchive: {
         create: (formData) => fetchAPI('/finance_archive/create', 'POST', formData),
         update: (data) => fetchAPI('/finance_archive/update', 'POST', data),
         delete: (id) => fetchAPI('/finance_archive/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/finance_archive/get_all', 'GET')
+        getAll: () => fetchAllPages('/finance_archive/get_all')
     },
 
     employeeArchive: {
         create: (formData) => fetchAPI('/employee_archive/create', 'POST', formData),
         update: (data) => fetchAPI('/employee_archive/update', 'POST', data),
         delete: (id) => fetchAPI('/employee_archive/delete', 'POST', { id }),
-        getAll: () => fetchAPI('/employee_archive/get_all', 'GET')
+        getAll: () => fetchAllPages('/employee_archive/get_all')
     },
 
     disposal: {
