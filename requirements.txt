@@ -1,5 +1,3 @@
-alembic==1.14.1
-    # via flask-migrate
 annotated-types==0.7.0
     # via pydantic
 apscheduler==3.11.1
@@ -12,127 +10,65 @@ backports-zoneinfo==0.2.1
     # via
     #   apscheduler
     #   tzlocal
-bcrypt==4.1.2
-    # via -r requirements.in
 blinker==1.8.2
     # via flask
 brotli==1.2.0
     # via flask-compress
-certifi==2025.11.12
-    # via requests
 cffi==1.17.1
     # via argon2-cffi-bindings
-charset-normalizer==3.4.4
-    # via requests
 click==8.1.8
     # via flask
 colorama==0.4.6
-    # via
-    #   click
-    #   pytest
-coverage==7.6.1
-    # via
-    #   -r requirements.in
-    #   pytest-cov
-exceptiongroup==1.3.1
-    # via pytest
+    # via click
 flask==3.0.3
     # via
     #   -r requirements.in
     #   flask-compress
     #   flask-cors
     #   flask-jwt-extended
-    #   flask-migrate
-    #   flask-sqlalchemy
 flask-compress==1.15
     # via -r requirements.in
 flask-cors==5.0.0
     # via -r requirements.in
 flask-jwt-extended==4.6.0
     # via -r requirements.in
-flask-migrate==4.1.0
-    # via -r requirements.in
-flask-sqlalchemy==3.1.1
-    # via
-    #   -r requirements.in
-    #   flask-migrate
 greenlet==3.1.1
     # via sqlalchemy
-idna==3.11
-    # via requests
 importlib-metadata==8.5.0
-    # via
-    #   alembic
-    #   flask
-importlib-resources==6.4.5
-    # via alembic
-iniconfig==2.1.0
-    # via pytest
+    # via flask
 itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
     # via flask
-mako==1.3.10
-    # via alembic
 markupsafe==2.1.5
     # via
     #   jinja2
-    #   mako
     #   werkzeug
-packaging==25.0
-    # via pytest
 passlib==1.7.4
-    # via -r requirements.in
-pluggy==1.5.0
-    # via pytest
-psutil==6.1.0
     # via -r requirements.in
 pycparser==2.23
     # via cffi
 pydantic==2.10.6
-    # via
-    #   -r requirements.in
-    #   pydantic-settings
+    # via pydantic-settings
 pydantic-core==2.27.2
     # via pydantic
 pydantic-settings==2.8.1
     # via -r requirements.in
 pyjwt==2.9.0
     # via flask-jwt-extended
-pymysql==1.1.2
-    # via -r requirements.in
-pytest==8.3.3
-    # via
-    #   -r requirements.in
-    #   pytest-cov
-pytest-cov==5.0.0
-    # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via -r requirements.in
 python-dotenv==1.0.1
-    # via
-    #   -r requirements.in
-    #   pydantic-settings
+    # via pydantic-settings
 python-json-logger==3.2.1
-    # via -r requirements.in
-requests==2.32.4
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
 sqlalchemy==2.0.44
-    # via
-    #   -r requirements.in
-    #   alembic
-    #   flask-sqlalchemy
-tomli==2.3.0
-    # via
-    #   coverage
-    #   pytest
+    # via -r requirements.in
 typing-extensions==4.13.2
     # via
-    #   alembic
     #   annotated-types
-    #   exceptiongroup
     #   pydantic
     #   pydantic-core
     #   python-json-logger
@@ -141,8 +77,6 @@ tzdata==2025.2
     # via tzlocal
 tzlocal==5.2
     # via apscheduler
-urllib3==2.2.3
-    # via requests
 waitress==3.0.0
     # via -r requirements.in
 werkzeug==3.0.6
@@ -150,8 +84,6 @@ werkzeug==3.0.6
     #   flask
     #   flask-jwt-extended
 zipp==3.20.2
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 zstandard==0.23.0
     # via flask-compress

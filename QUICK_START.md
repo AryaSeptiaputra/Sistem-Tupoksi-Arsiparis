@@ -17,7 +17,7 @@ scripts\setup.bat
 ### 2️⃣ Konfigurasi Environment
 Buat file `.env` dari `.env.example`:
 ```
-DATABASE_URL=mysql+pymysql://user:password@localhost/db
+DATABASE_URL=sqlite:///database/arsip.db
 SECRET_KEY=your-secret-key-here
 DEBUG=False
 FLASK_PORT=8000

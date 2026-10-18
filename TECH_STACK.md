@@ -8,7 +8,7 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 
 | Komponen | Teknologi | Versi |
 |----------|-----------|-------|
-| Bahasa Backend | Python | 3.11 |
+| Bahasa Backend | Python | 3.8 (target Windows 7) |
 | Bahasa Frontend | HTML, CSS, JavaScript (vanilla) | — |
 
 ---
@@ -17,20 +17,15 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 
 | Kategori | Teknologi | Versi | Keterangan |
 |----------|-----------|-------|------------|
-| Web Framework | **Flask** | 3.1.2 | Framework utama (struktur Blueprint) |
+| Web Framework | **Flask** | 3.0.3 | Framework utama (struktur Blueprint) |
 | Templating | **Jinja2** | 3.1.6 | Render halaman HTML |
 | ORM | **SQLAlchemy** | 2.0.44 | Object Relational Mapping |
-| Migrasi DB | **Flask-Migrate** / Alembic | 4.1.0 / 1.17.1 | Version control skema database |
-| Integrasi DB | **Flask-SQLAlchemy** | 3.1.1 | Integrasi SQLAlchemy ke Flask |
-| Validasi & Config | **Pydantic** / **pydantic-settings** | 2.12.4 / 2.12.0 | Validasi data & manajemen konfigurasi `.env` |
-| Authentication | **Flask-JWT-Extended** / **PyJWT** | 4.7.1 / 2.10.1 | Autentikasi berbasis JWT (token expire 12 jam) |
-| Password Hashing | **bcrypt**, **argon2-cffi**, **passlib** | 4.1.2 / 25.1.0 / 1.7.4 | Hashing & enkripsi password |
-| Kriptografi | **cryptography** | 46.0.3 | Operasi enkripsi |
-| CORS | **flask-cors** | 6.0.1 | Cross-Origin Resource Sharing |
-| Kompresi | **Flask-Compress** (gzip/brotli) | 1.23 | Kompresi response (level 6, min 1KB) |
+| Validasi & Config | **Pydantic** / **pydantic-settings** | 2.10.6 / 2.8.1 | Validasi data & manajemen konfigurasi `.env` |
+| Authentication | **Flask-JWT-Extended** / **PyJWT** | 4.6.0 / 2.9.0 | Autentikasi berbasis JWT (token expire 12 jam) |
+| Password Hashing | **argon2-cffi**, **passlib** | 25.1.0 / 1.7.4 | Hashing password (argon2) |
+| CORS | **flask-cors** | 5.0.0 | Cross-Origin Resource Sharing |
+| Kompresi | **Flask-Compress** (gzip/brotli) | 1.15 | Kompresi response (level 6, min 1KB) |
 | Scheduler | **APScheduler** | 3.11.1 | Job terjadwal (retensi arsip otomatis harian 00:01 WIB) |
-| HTTP Client | **requests** | 2.32.5 | Permintaan HTTP |
-| System Monitoring | **psutil** | 6.1.0 | Informasi sumber daya sistem |
 
 ---
 
@@ -38,10 +33,8 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 
 | Komponen | Teknologi | Versi | Keterangan |
 |----------|-----------|-------|------------|
-| RDBMS | **MySQL** | — | Database utama (production) |
-| Driver | **PyMySQL** | 1.1.2 | Driver MySQL berbasis Python murni |
-| Driver | **mysqlclient** | 2.2.7 | Driver MySQL native (C) |
-| Connection String | `mysql+pymysql://...` | — | Charset `utf8mb4`, QueuePool (pool_size 20, max_overflow 10, pool_recycle 3600) |
+| RDBMS | **SQLite** | bawaan Python | Database utama, satu file tanpa server database |
+| Connection String | `sqlite:///database/arsip.db` | — | NullPool; PRAGMA foreign_keys, WAL, busy_timeout 5000 ms |
 | Fallback | **SQLite** | — | Didukung via NullPool untuk development |
 
 ---
@@ -63,7 +56,7 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 |----------|-----------|-------|------------|
 | WSGI Server | **Waitress** | 3.0.2 | Production server (`serve.py`, port default 6001/8080, 12 threads) |
 | Dev Server | **Werkzeug** | 3.1.3 | Development server bawaan Flask |
-| Kontainerisasi | **Docker** | — | `python:3.11-slim`, expose port 8080 |
+| Kontainerisasi | **Docker** | — | `python:3.8-slim`, expose port 8080 |
 | Reverse Proxy | IIS / Nginx | — | Untuk akses domain (lihat `docs/REVERSE_PROXY_SETUP.md`) |
 
 ---
@@ -72,8 +65,8 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 
 | Kategori | Teknologi | Versi |
 |----------|-----------|-------|
-| Unit Testing | **pytest** | 8.3.3 |
-| Coverage | **pytest-cov** / **coverage** | 5.0.0 / 7.13.0 |
+| Unit Testing | **pytest** (`requirements-dev.txt`) | 8.3.5 |
+| Coverage | **pytest-cov** / **coverage** | 5.0.0 / 7.6.1 |
 | Environment Config | **python-dotenv** | 1.2.1 |
 | Version Control | **Git** | — |
 
@@ -84,6 +77,6 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 - **Pola:** Application Factory (`create_app()`) dengan registrasi **Blueprint** per modul.
 - **Struktur layer:** `routes/` (controller) → `services/` (business logic) → `models/` (ORM) → `core/` (config & database).
 - **Modul fungsional:** auth, user, classification, incoming/outgoing letter, diploma, log, backup, storage location, finance archive, employee archive, disposal, teacher, master reference.
-- **Keamanan:** JWT, session cookie (HttpOnly, SameSite=Lax), password hashing (bcrypt/argon2).
+- **Keamanan:** JWT, session cookie (HttpOnly, SameSite=Lax), password hashing (argon2).
 - **Logging:** File-based logging (`logs/app.log`) + console.
 - **Error handling:** Custom handler untuk HTTP 404 & 500.

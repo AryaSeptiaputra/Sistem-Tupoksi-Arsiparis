@@ -1,0 +1,5 @@
+# Dependency pengembangan dan CI, di atas dependency aplikasi:
+#   uv pip compile requirements-dev.in --python-version 3.8 -o requirements-dev.txt
+-r requirements.in
+pytest
+pytest-cov

@@ -56,7 +56,8 @@ python -m venv .venv
 .venv\Scriptsctivate
 
 # 3. Install dependency (versi dikunci untuk Python 3.8)
-pip install -r requirements.txt
+#    requirements.txt untuk production; requirements-dev.txt menambah pytest
+pip install -r requirements-dev.txt
 ```
 
 Salin `.env.example` menjadi `.env`, lalu isi `JWT_SECRET_KEY` dan `SECRET_KEY` dengan nilai acak milik sendiri. `DATABASE_URL` default-nya `sqlite:///database/arsip.db`.
@@ -72,11 +73,14 @@ python scripts/akun.py buat --username <nip> --nama "<nama operator>"
 python scripts/migrate_mysql_to_sqlite.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
 ```
 
-Dependency diubah lewat `requirements.in`, lalu kunci ulang untuk Python 3.8:
+Dependency diubah lewat `requirements.in` (aplikasi) atau `requirements-dev.in` (test), lalu kunci ulang untuk Python 3.8:
 
 ```bash
 uv pip compile requirements.in --python-version 3.8 -o requirements.txt
+uv pip compile requirements-dev.in --python-version 3.8 -o requirements-dev.txt
 ```
+
+Bila memindahkan data dari MySQL lama, pasang driver-nya sementara: `pip install PyMySQL==1.1.2`.
 
 ### 2\. Menjalankan Server API
 

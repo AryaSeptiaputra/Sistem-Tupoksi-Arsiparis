@@ -1,25 +1,15 @@
 # Dependency langsung aplikasi. requirements.txt dihasilkan dari file ini untuk Python 3.8 (Windows 7):
 #   uv pip compile requirements.in --python-version 3.8 -o requirements.txt
 APScheduler
+# Backend argon2 untuk passlib (hash password)
 argon2-cffi
-bcrypt
-coverage
 Flask
 Flask-Compress
 flask-cors
 Flask-JWT-Extended
-Flask-Migrate
-Flask-SQLAlchemy
 passlib
-psutil
-pydantic
 pydantic-settings
-PyMySQL
-pytest
-pytest-cov
 python-dateutil
-python-dotenv
 python-json-logger
-requests
 SQLAlchemy
 waitress

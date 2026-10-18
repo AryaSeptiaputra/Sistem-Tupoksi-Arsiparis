@@ -4,7 +4,7 @@ SQLite yang ditunjuk `DATABASE_URL` di `.env`. Database MySQL tidak diubah.
 
 Pemakaian (dari folder project, setelah `DATABASE_URL` di `.env` diganti ke
 SQLite, misalnya `sqlite:///database/arsip.db`):
-    pip install PyMySQL
+    pip install PyMySQL==1.1.2
     python scripts/migrate_mysql_to_sqlite.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
 
 URL sumber juga bisa diberikan lewat env `MYSQL_SOURCE_URL` agar kata sandi
