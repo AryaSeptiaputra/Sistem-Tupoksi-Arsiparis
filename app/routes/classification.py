@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.services.classification import (
     create_classification, update_classification, delete_classification, 
     get_all_classifications, get_classifications_by_keys
@@ -11,6 +11,9 @@ from app.utils.current_user import get_current_user_id
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 classification_bp = Blueprint('classification', __name__)
 
@@ -28,7 +31,8 @@ def create_classification_route():
         # Logging
         try:
             create_log(db_session, get_current_user_id(), f"Menambah Klasifikasi: {new_cls.code} - {new_cls.name}")
-        except Exception: pass
+        except SQLAlchemyError as e:
+            logger.warning(f"Gagal mencatat log tambah klasifikasi: {e}", exc_info=True)
 
         return jsonify(new_cls.to_dict()), 201
 
@@ -37,6 +41,7 @@ def create_classification_route():
         return jsonify({"error": "Kode atau Nama Klasifikasi sudah ada."}), 409
     except Exception as e:
         db_session.rollback()
+        logger.error(f"Gagal menambah klasifikasi: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -78,6 +83,7 @@ def delete_classification_route():
         return jsonify({"message": "Deleted successfully"}), 200
     except Exception as e:
         # Menangani error jika klasifikasi sedang dipakai oleh surat (Constraint Error)
+        logger.error(f"Gagal menghapus klasifikasi: {e}", exc_info=True)
         return jsonify({"error": "Gagal hapus: Klasifikasi ini sedang digunakan oleh arsip surat."}), 400
     finally:
         db_session.close()
@@ -91,6 +97,7 @@ def get_all_route():
         result.items = [r.to_dict() for r in result.items]
         return success_response(result, "Classifications retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar klasifikasi: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()

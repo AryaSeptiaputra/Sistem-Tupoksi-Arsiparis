@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, session
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from flask_jwt_extended import create_access_token
 from app.services.auth import login_user
@@ -49,7 +50,7 @@ def login():
 
         try:
             create_log(db_session, existing_user.id, f"Pengguna '{existing_user.display_name}' melakukan login.")
-        except Exception:
+        except SQLAlchemyError:
             logger.error("Gagal mencatat log login", exc_info=True)
 
         return jsonify({

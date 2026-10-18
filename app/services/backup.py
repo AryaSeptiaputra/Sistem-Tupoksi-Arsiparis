@@ -3,6 +3,7 @@ import subprocess
 import json
 from datetime import datetime
 from app.core.config import settings
+from app.errors import BackupError, RestoreError
 from app.utils.db_helper import parse_db_url
 from app.utils.file_helper import cleanup_old_files
 from app.utils.logger import setup_logger
@@ -63,11 +64,13 @@ def perform_database_backup(triggered_by="SYSTEM"):
         status = "FAILED"
         err_msg = e.stderr if e.stderr else str(e)
         message = f"Dump process failed: {err_msg}"
+        logger.error(message, exc_info=True)
         if os.path.exists(filepath):
             os.remove(filepath)
-    except Exception as e:
+    except OSError as e:
         status = "FAILED"
         message = f"Unexpected error: {str(e)}"
+        logger.error(message, exc_info=True)
 
     # 4. [UBAH] Simpan log ke JSON Local
     _log_to_json(
@@ -78,7 +81,7 @@ def perform_database_backup(triggered_by="SYSTEM"):
     )
 
     if status == "FAILED":
-        raise Exception(message)
+        raise BackupError(message)
 
     return result_data
 
@@ -123,9 +126,11 @@ def perform_database_restore(filename):
 
     except subprocess.CalledProcessError as e:
         err_msg = e.stderr if e.stderr else str(e)
-        raise Exception(f"Proses Restore Gagal: {err_msg}")
-    except Exception as e:
-        raise Exception(f"Error Tidak Terduga: {str(e)}")
+        logger.error(f"Restore dari {safe_filename} gagal: {err_msg}", exc_info=True)
+        raise RestoreError(f"Proses Restore Gagal: {err_msg}") from e
+    except OSError as e:
+        logger.error(f"Restore dari {safe_filename} gagal: {e}", exc_info=True)
+        raise RestoreError(f"Error Tidak Terduga: {str(e)}") from e
 
 # --- [BARU] FUNGSI JSON HELPER ---
 
@@ -148,7 +153,7 @@ def _log_to_json(filename, status, message, triggered_by):
     try:
         with open(LOG_FILE_PATH, 'w') as f:
             json.dump(logs, f, indent=4)
-    except Exception as e:
+    except OSError as e:
         logger.critical(f"Gagal menulis log JSON backup: {e}", exc_info=True)
 
 def get_all_logs():
@@ -162,5 +167,6 @@ def get_all_logs():
         with open(LOG_FILE_PATH, 'r') as f:
             data = json.load(f)
             return data
-    except Exception:
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning(f"Log backup {LOG_FILE_PATH} tidak terbaca, dianggap kosong: {e}", exc_info=True)
         return []

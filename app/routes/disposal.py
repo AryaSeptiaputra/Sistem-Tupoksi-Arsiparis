@@ -6,6 +6,9 @@ from app import db
 from app.services.disposal import get_expired_archives, execute_disposal
 from app.services.log import create_log
 from app.utils.current_user import get_current_user_id
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 disposal_bp = Blueprint('disposal', __name__)
 
@@ -20,6 +23,7 @@ def check_expiry_route():
         results = get_expired_archives(db_session)
         return jsonify(results), 200
     except Exception as e:
+        logger.error(f"Gagal mengecek arsip kedaluwarsa: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -57,6 +61,7 @@ def execute_route():
         
     except Exception as e:
         db_session.rollback()
+        logger.error(f"Gagal memusnahkan arsip: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()

@@ -11,6 +11,9 @@ from app.services.storage_location import (
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 storage_location_bp = Blueprint('storage_location', __name__)
 
@@ -30,6 +33,7 @@ def create_route():
         return jsonify({"error": "Storage name already exists"}), 409
     except Exception as e:
         db_session.rollback()
+        logger.error(f"Gagal menambah lokasi simpan: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -80,6 +84,7 @@ def get_all_route():
         result.items = [loc.to_dict() for loc in result.items]
         return success_response(result, "Storage locations retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar lokasi simpan: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()

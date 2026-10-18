@@ -9,11 +9,15 @@ from app.services.outgoing_letter import (
 )
 from app.services.log import create_log
 from app import db
+from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.logger import setup_logger
 from app.utils.response import handle_database_error
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+
+logger = setup_logger(__name__)
 
 outgoing_letter_bp = Blueprint('outgoing_letter', __name__)
 
@@ -61,7 +65,7 @@ def create_outgoing_letter_route():
         try:
             attachment_path, _ = handle_file_upload(file, 'outgoing_letters')
             data['attachment_path'] = attachment_path
-        except Exception as e:
+        except (ValueError, FileStorageError) as e:
             return jsonify({"error": f"Failed to save file: {str(e)}"}), 500
 
     db_session: Session = db.SessionLocal()
@@ -119,7 +123,7 @@ def update_outgoing_letter_route():
             try:
                 attachment_path, _ = handle_file_upload(file, 'outgoing_letters')
                 data['attachment_path'] = attachment_path
-            except Exception as e:
+            except (ValueError, FileStorageError) as e:
                 return jsonify({"error": f"Gagal upload file: {str(e)}"}), 500
         elif remove_attachment:
             # User ingin hapus file tanpa ganti file baru
@@ -164,6 +168,7 @@ def delete_outgoing_letter_route():
 
         return jsonify(deleted_letter.to_dict()), 200
     except Exception as e:
+        logger.error(f"Gagal menghapus surat keluar: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -177,6 +182,7 @@ def get_all_outgoing_letters_route():
         result.items = [l.to_dict() for l in result.items]
         return success_response(result, "Outgoing letters retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar surat keluar: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally: db_session.close()
 
@@ -187,5 +193,7 @@ def get_outgoing_by_keys_route():
     if not filters: return jsonify({"error": "filters required"}), 400
     db_session = db.SessionLocal()
     try: return jsonify([l.to_dict() for l in get_outgoing_letters_by_keys(db_session, filters)]), 200
-    except Exception as e: return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Gagal mencari surat keluar: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 400
     finally: db_session.close()

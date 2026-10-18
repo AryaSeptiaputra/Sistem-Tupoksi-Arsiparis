@@ -6,6 +6,10 @@ from typing import Any, Dict, Optional, List
 from flask import jsonify
 from http import HTTPStatus
 
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 
 def success_response(data: Any = None, message: str = "Success", 
                     status_code: int = 200) -> tuple:
@@ -106,8 +110,9 @@ def handle_database_error(exception: Exception, operation: str = "menyimpan") ->
     Returns:
         Tuple of (jsonified response, status_code)
     """
+    logger.error(f"Gagal {operation} data: {exception}", exc_info=exception)
     error_msg = str(exception)
-    
+
     # Handle duplicate entry
     if "Duplicate entry" in error_msg or "1062" in error_msg:
         if "number" in error_msg or "nomor" in error_msg.lower():

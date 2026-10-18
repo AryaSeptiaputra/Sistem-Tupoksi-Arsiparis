@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
 from app.services.master_reference import MasterReferenceService
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 # Inisialisasi Blueprint
 reference_bp = Blueprint('reference', __name__)
@@ -18,13 +21,14 @@ def get_options(category):
     try:
         # Ambil query param ?all=true jika ingin menampilkan yang tidak aktif (untuk menu admin)
         show_all = request.args.get('all') == 'true'
-        
+
         results = service.get_by_category(category, only_active=not show_all)
         return jsonify({
             "status": "success",
             "data": results
         }), 200
     except Exception as e:
+        logger.error(f"Gagal mengambil referensi {category}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/categories', methods=['GET'])
@@ -57,6 +61,7 @@ def create_option():
     except ValueError as ve:
          return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception as e:
+        logger.error(f"Gagal menambah referensi: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['PUT'])
@@ -70,9 +75,10 @@ def update_option(id):
         result = service.update(id, data)
         if not result:
             return jsonify({"status": "error", "message": "Data tidak ditemukan"}), 404
-            
+
         return jsonify({"status": "success", "data": result}), 200
     except Exception as e:
+        logger.error(f"Gagal mengubah referensi {id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['DELETE'])
@@ -84,7 +90,8 @@ def delete_option(id):
         success = service.delete(id)
         if not success:
             return jsonify({"status": "error", "message": "Data tidak ditemukan"}), 404
-            
+
         return jsonify({"status": "success", "message": "Opsi berhasil dinonaktifkan"}), 200
     except Exception as e:
+        logger.error(f"Gagal menonaktifkan referensi {id}: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500

@@ -10,10 +10,14 @@ from app.services.incoming_letter import (
 )
 from app.services.log import create_log
 from app import db
+from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.logger import setup_logger
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response, handle_database_error
+
+logger = setup_logger(__name__)
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
 
@@ -42,7 +46,7 @@ def create_incoming_letter_route():
         try:
             attachment_path, full_path = handle_file_upload(file, 'incoming_letters')
             data['attachment_path'] = attachment_path
-        except Exception as e:
+        except (ValueError, FileStorageError) as e:
             return error_response(f"Failed to save file: {str(e)}", 500)
     
     # Handle optional storage_location_id
@@ -76,11 +80,11 @@ def update_incoming_letter_route():
     # Type Conversion
     if data.get('classification_id'):
         try: data['classification_id'] = int(data['classification_id'])
-        except: return error_response("Invalid classification_id", 400)
-        
+        except (ValueError, TypeError): return error_response("Invalid classification_id", 400)
+
     if data.get('storage_location_id'):
         try: data['storage_location_id'] = int(data['storage_location_id'])
-        except: data['storage_location_id'] = None # Handle "Select..." value
+        except (ValueError, TypeError): data['storage_location_id'] = None # Handle "Select..." value
 
     db_session: Session = db.SessionLocal()
     try:
@@ -96,7 +100,7 @@ def update_incoming_letter_route():
             try:
                 attachment_path, _ = handle_file_upload(file, 'incoming_letters')
                 data['attachment_path'] = attachment_path
-            except Exception as e:
+            except (ValueError, FileStorageError) as e:
                 return error_response(str(e), 500)
         elif remove_attachment:
             # User ingin hapus file tanpa ganti file baru
@@ -136,6 +140,7 @@ def delete_incoming_letter_route():
 
         return success_response(deleted_letter.to_dict(), "Incoming letter deleted successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal menghapus surat masuk: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()
@@ -159,6 +164,7 @@ def get_all_incoming_letters_route():
         result = get_all_incoming_letters(db_session, pagination)
         return success_response(result, "Incoming letters retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar surat masuk: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()
@@ -199,6 +205,7 @@ def get_incoming_by_keys_route():
         result = get_incoming_letters_by_keys(db_session, filters, pagination)
         return success_response(result, "Incoming letters retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mencari surat masuk: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()

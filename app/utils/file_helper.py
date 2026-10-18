@@ -3,6 +3,7 @@ import time
 import uuid  # [BARU] Untuk generate nama unik
 from werkzeug.utils import secure_filename
 
+from app.errors import FileStorageError
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -22,9 +23,9 @@ def cleanup_old_files(directory_path, file_extension, days_to_keep=7):
                 if os.path.getmtime(f_path) < cutoff:
                     try:
                         os.remove(f_path)
-                    except OSError:
-                        pass
-    except Exception as e:
+                    except OSError as e:
+                        logger.warning(f"File lama {f_path} gagal dihapus: {e}", exc_info=True)
+    except OSError as e:
         logger.error(f"cleanup_old_files gagal: {e}", exc_info=True)
 
 def delete_physical_file(relative_path):
@@ -65,6 +66,7 @@ def handle_file_upload(file_obj, subfolder):
         
     Raises:
         ValueError: Jika ukuran file melebihi 10 MB
+        FileStorageError: Jika folder atau file gagal ditulis ke disk
     """
     if not file_obj:
         return None, None
@@ -91,12 +93,15 @@ def handle_file_upload(file_obj, subfolder):
     # Struktur: /app/static/storage/documents/{subfolder}/
     base_upload_dir = os.path.join(os.getcwd(), 'storage', 'documents', subfolder)
     
-    if not os.path.exists(base_upload_dir):
-        os.makedirs(base_upload_dir)
-
-    # 5. Simpan File dengan Nama Baru
     full_path = os.path.join(base_upload_dir, unique_filename)
-    file_obj.save(full_path)
+    try:
+        if not os.path.exists(base_upload_dir):
+            os.makedirs(base_upload_dir)
+        # 5. Simpan File dengan Nama Baru
+        file_obj.save(full_path)
+    except OSError as e:
+        logger.error(f"Gagal menyimpan file ke {full_path}: {e}", exc_info=True)
+        raise FileStorageError(f"Gagal menyimpan file: {e}") from e
     
     # 6. Path untuk Database (Relative terhadap folder static)
     # Menggunakan forward slash (/) agar kompatibel dengan URL HTML

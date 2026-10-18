@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys
 from app.services.log import create_log
 from app.utils.current_user import get_current_user_id
@@ -38,7 +38,7 @@ def create_teacher_route():
         try:
             action = f"Menambahkan Guru/Pegawai baru: '{new_teacher.full_name}' ({new_teacher.identity_number})."
             create_log(db_session, get_current_user_id(), action)
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.warning(f"Gagal mencatat log tambah guru: {e}", exc_info=True)
         # ---------------------
 
@@ -74,8 +74,8 @@ def update_teacher_route():
         # --- Logging ---
         try:
             create_log(db_session, get_current_user_id(), f"Memperbarui data guru: {updated.full_name}")
-        except Exception:
-            pass
+        except SQLAlchemyError as e:
+            logger.warning(f"Gagal mencatat log ubah guru: {e}", exc_info=True)
         # ---------------
 
         return jsonify({"message": "Data berhasil diperbarui"}), 200
@@ -104,12 +104,13 @@ def delete_teacher_route():
         # --- Logging ---
         try:
             create_log(db_session, get_current_user_id(), f"Menghapus data guru: {deleted.full_name}")
-        except Exception:
-            pass
+        except SQLAlchemyError as e:
+            logger.warning(f"Gagal mencatat log hapus guru: {e}", exc_info=True)
         # ---------------
 
         return jsonify({"message": "Data berhasil dihapus"}), 200
     except Exception as e:
+        logger.error(f"Gagal menghapus guru: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -123,6 +124,7 @@ def get_all_teachers_route():
         result.items = [t.to_dict() for t in result.items]
         return success_response(result, "Teachers retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar guru: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()

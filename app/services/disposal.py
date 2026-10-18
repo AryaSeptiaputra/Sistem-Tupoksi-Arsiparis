@@ -124,7 +124,7 @@ def get_expired_archives(db: Session):
     
     for item in diplomas:
         try: doc_year = int(item.academic_year.split('/')[0])
-        except: doc_year = current_year
+        except (ValueError, AttributeError): doc_year = current_year
         
         # Hardcode: Ijazah salinan dimusnahkan setelah 5 tahun
         expiry_year = doc_year + 5

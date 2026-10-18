@@ -1,3 +1,4 @@
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.models.master_reference import MasterReference, ReferenceCategory
 from app.core.database import SessionLocal
@@ -44,9 +45,9 @@ class MasterReferenceService:
             db.commit()
             db.refresh(new_ref)
             return new_ref.to_dict()
-        except Exception as e:
+        except SQLAlchemyError:
             db.rollback()
-            raise e
+            raise
         finally:
             db.close()
 

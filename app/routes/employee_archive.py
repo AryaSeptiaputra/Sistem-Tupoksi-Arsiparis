@@ -12,11 +12,15 @@ from app.services.employee_archive import (
 )
 from app.services.log import create_log
 from app import db
+from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
 from app.utils.file_helper import handle_file_upload, delete_physical_file
+from app.utils.logger import setup_logger
 from app.utils.response import handle_database_error
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+
+logger = setup_logger(__name__)
 
 employee_archive_bp = Blueprint('employee_archive', __name__)
 
@@ -34,7 +38,7 @@ def create_route():
         try:
             path, _ = handle_file_upload(file, 'employee_archives')
             data['attachment_path'] = path
-        except Exception as e:
+        except (ValueError, FileStorageError) as e:
             return jsonify({"error": str(e)}), 500
     
     db_session = db.SessionLocal()
@@ -71,7 +75,7 @@ def update_route():
             try:
                 path, _ = handle_file_upload(file, 'employee_archives')
                 data['attachment_path'] = path
-            except Exception as e: return jsonify({"error": str(e)}), 500
+            except (ValueError, FileStorageError) as e: return jsonify({"error": str(e)}), 500
         elif remove_attachment:
             # User ingin hapus file tanpa ganti file baru
             data['attachment_path'] = None
@@ -107,6 +111,7 @@ def delete_route():
             return jsonify({"status": "deleted"}), 200
         return jsonify({"error": "Not found"}), 404
     except Exception as e:
+        logger.error(f"Gagal menghapus arsip pegawai: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
     finally:
         db_session.close()
@@ -120,5 +125,6 @@ def get_all_route():
         result.items = [x.to_dict() for x in result.items]
         return success_response(result, "Employee archives retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil daftar arsip pegawai: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally: db_session.close()

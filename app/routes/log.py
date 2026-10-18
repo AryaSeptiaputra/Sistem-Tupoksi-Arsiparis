@@ -5,6 +5,9 @@ from app.services.log import get_all_logs, get_logs_by_keys
 from app import db
 from app.utils.pagination import get_pagination_params
 from app.utils.response import success_response, error_response
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 log_bp = Blueprint('log', __name__)
 
@@ -28,6 +31,7 @@ def get_all_logs_route():
         result.items = [l.to_dict() for l in result.items]
         return success_response(result, "Logs retrieved successfully", 200)
     except Exception as e:
+        logger.error(f"Gagal mengambil log aktivitas: {e}", exc_info=True)
         return error_response(str(e), 500)
     finally:
         db_session.close()

@@ -1,9 +1,11 @@
 import os
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.errors import BackupError, RestoreError
 # Import service dan fungsi baru
 from app.services.backup import perform_database_backup, perform_database_restore, get_all_logs, BACKUP_DIR
 from app.services.user import get_user
@@ -20,12 +22,12 @@ def trigger_manual_backup():
     """Trigger backup manual."""
     db_session: Session = SessionLocal()
     triggered_by = "SYSTEM"
-    
+
     try:
         user = get_user(db_session, get_current_user_id())
         if user:
             triggered_by = user.display_name
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.warning(f"Nama akun untuk log backup tidak terbaca: {e}", exc_info=True)
     finally:
         db_session.close()
@@ -33,13 +35,16 @@ def trigger_manual_backup():
     try:
         # [UBAH] Kirim string nama user, bukan ID integer
         result = perform_database_backup(triggered_by=triggered_by)
-        
+
         return jsonify({
             "message": "Backup created successfully",
             "data": result
         }), 201
-    
+
+    except BackupError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
+        logger.error(f"Backup manual gagal: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @backup_bp.route('/logs', methods=['GET'])
@@ -51,6 +56,7 @@ def get_backup_logs():
         logs = get_all_logs()
         return jsonify(logs), 200
     except Exception as e:
+        logger.error(f"Gagal membaca riwayat backup: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 # --- ENDPOINT DOWNLOAD ---
@@ -64,11 +70,12 @@ def download_backup_file(filename):
             return jsonify({"error": "File tidak ditemukan"}), 404
 
         return send_from_directory(
-            directory=BACKUP_DIR, 
-            path=filename, 
+            directory=BACKUP_DIR,
+            path=filename,
             as_attachment=True
         )
     except Exception as e:
+        logger.error(f"Gagal mengunduh file backup {filename}: {e}", exc_info=True)
         return jsonify({"error": f"Gagal mengunduh file: {str(e)}"}), 500
 
 # --- ENDPOINT RESTORE ---
@@ -79,7 +86,7 @@ def restore_database():
     data = request.get_json()
     if not data or 'filename' not in data:
         return jsonify({"error": "Parameter filename wajib ada"}), 400
-    
+
     filename = data['filename']
 
     try:
@@ -88,5 +95,8 @@ def restore_database():
 
     except FileNotFoundError as e:
         return jsonify({"error": str(e)}), 404
+    except RestoreError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
+        logger.error(f"Restore gagal: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
