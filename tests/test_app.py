@@ -21,3 +21,12 @@ def client(app):
 def test_home_page(client):
     response = client.get('/')
     assert response.status_code == 302  # Redirect to login
+
+@pytest.mark.parametrize("path, target", [
+    ("/log", "/page/log"),
+    ("/classification", "/page/classification"),
+])
+def test_short_url_redirects_to_page(client, path, target):
+    response = client.get(path)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(target)
