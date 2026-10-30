@@ -4,6 +4,8 @@ Tanggal uji: 30 Oktober 2026
 Versi aplikasi: branch `refactor/major-overhaul`, commit `a343805` (sebelum perbaikan apa pun)
 Metode: pengujian black-box end-to-end dengan Selenium; operasi dijalankan lewat UI di Chrome, seperti yang dilakukan operator
 
+> **Pembaruan 30 Oktober 2026:** kesepuluh temuan sudah diperbaiki (issue #22–#31). Hasil uji ulang ada di bagian terakhir, "Pengujian ulang setelah perbaikan". Isi di bawah ini adalah kondisi sebelum perbaikan.
+
 ## Ringkasan
 
 Dari **180 skenario**, **146 lulus** dan **34 gagal** (81% lulus). Setiap kegagalan sudah diperiksa satu per satu. Semuanya bug aplikasi, bukan kesalahan test, dan penyebabnya dikelompokkan menjadi 10 temuan (T1–T10) di bawah. Satu run penuh memakan waktu sekitar 3,5 menit.
@@ -595,5 +597,49 @@ Yang juga dicari tetapi tidak ditemukan:
 - Chrome 109 di Windows 7 tidak diuji langsung. Penggantinya hanya cek statis di atas. Uji di device klien tetap diperlukan.
 - Hanya Chrome yang diuji. Edge dan Firefox tidak diuji.
 - Beban dan kinerja tidak diuji. Aplikasi dirancang untuk satu operator.
-- Uji input HTML (T3) tidak mencakup halaman surat, ijazah, arsip pegawai, dan penyusutan, karena tambah surat rusak (T1). Pola kodenya sama, jadi kemungkinan besar ikut terdampak.
+- Uji input HTML (T3) tidak mencakup halaman surat, ijazah, arsip pegawai, dan penyusutan, karena tambah surat rusak (T1). Pola kodenya sama, jadi kemungkinan besar ikut terdampak. Pada pengujian ulang, halaman-halaman itu ikut diuji.
 - Data uji adalah data contoh, bukan data asli sekolah.
+
+## Pengujian ulang setelah perbaikan
+
+Tanggal: 30 Oktober 2026, branch `refactor/major-overhaul`. Setiap temuan diperbaiki dalam satu commit:
+
+| Temuan | Issue | Commit | Perbaikan |
+|---|---|---|---|
+| T1 | [#22](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/22) | `24ca503` | Tanggal dari form diubah ke `datetime` di route surat masuk, surat keluar, dan ijazah sebelum disimpan |
+| T2 | [#23](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/23) | `dc7431c` | `@jwt_required()` di semua endpoint data; token rusak dibalas 401 sehingga "Sesi Berakhir" muncul |
+| T3 | [#24](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/24) | `28ccd9f` | `escapeHtml` untuk setiap data di tabel dan pesan error |
+| T4 | [#25](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/25) | `70d0a34` | Guru yang masih punya arsip pegawai ditolak dihapus |
+| T5 | [#26](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/26) | `67f3bd6` | Lokasi yang masih dipakai arsip ditolak dihapus |
+| T6 | [#27](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/27) | `d93ac7c` | Form Guru menyimpan kode referensi, dashboard mencocokkan kode dan membaca `amount`, dan ada script migrasi data guru lama |
+| T7 | [#28](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/28) | `90138bf` | Form hanya berisi referensi aktif, nilai lama tetap tampil "(nonaktif)" saat edit, dan `is_active` dihormati |
+| T8 | [#29](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/29) | `b724ad2` | CSV dibuat dengan Blob, setiap sel bertanda kutip, dan diawali BOM |
+| T9 | [#30](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/30) | `d815536` | Reset Arsip Pegawai, filter Status dan Inisiator Backup, serta tahun ajaran Ijazah dari data |
+| T10 | [#31](https://github.com/AryaSeptiaputra/Sistem-Tupoksi-Arsiparis/issues/31) | `4e701fa` | Tahun ajaran divalidasi di form; pesan route berbahasa Indonesia |
+
+**Hasil:**
+- `pytest e2e`: **188 skenario, 188 lulus**, dijalankan dua kali penuh dengan hasil sama. Ada 8 skenario baru dibanding 180 skenario awal:
+  - 6 kasus input HTML untuk halaman yang dulu belum bisa diuji (Surat Masuk, Surat Keluar, Ijazah, Arsip Pegawai, Master Referensi, Penyusutan)
+  - 1 skenario edit arsip yang kategorinya sudah nonaktif
+  - 1 skenario filter Inisiator backup
+- `pytest tests`: **121 lulus**. Sebanyak 71 test baru menguji:
+  - parsing tanggal
+  - hak akses (42 kasus)
+  - hapus guru dan lokasi
+  - migrasi kode guru
+  - status referensi
+  - validasi ijazah
+
+**Penyesuaian test e2e lama:**
+- Data guru memakai kode referensi, sesuai #27.
+- Test CSV membaca berkas dengan modul `csv`, karena setiap sel kini bertanda kutip dan berkas diawali BOM.
+- Test filter status backup memakai label baru "Berhasil".
+- `expect_text` menyamakan spasi U+00A0 dari `Intl.NumberFormat`. Selisih ini sebelumnya tidak terlihat karena nominal selalu "Rp 0".
+
+**Data lokal.** Script migrasi kode guru sudah dijalankan pada `database/arsip.db`. Database itu belum berisi data guru, jadi tidak ada yang berubah. Backup sebelum migrasi disimpan di `database/backups/sebelum_migrasi_guru_2026-10-30.db`.
+
+**Saran lanjutan (di luar issue #22–#31):**
+- Jurusan ijazah masih menyimpan nama referensi, bukan kodenya.
+- Foreign key `employee_archive.owner_id` di database masih `ON DELETE CASCADE`. Pengamannya sekarang ada di service.
+- `finance_archive.js` masih memuat 28 `console.log("[DEBUG] ...")`.
+- Uji di Chrome 109 dan Windows 7 sungguhan tetap diperlukan.
