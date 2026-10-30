@@ -1,5 +1,7 @@
 """Test end-to-end Log Aktivitas dan Backup Database."""
+import csv
 import datetime
+import io
 import secrets
 import time
 
@@ -23,7 +25,9 @@ def _export_csv(page):
         csv_path.unlink()
     page.click("btnExport")
     page.wait_toast("File CSV berhasil diunduh")
-    return page.wait_download(csv_path.name).read_text(encoding="utf-8")
+    # utf-8-sig membuang BOM yang ditambahkan untuk Excel
+    content = page.wait_download(csv_path.name).read_text(encoding="utf-8-sig")
+    return list(csv.reader(io.StringIO(content)))
 
 
 class TestLog:
@@ -87,9 +91,9 @@ class TestLog:
         """
         page.open_list("/page/log")
         total_logs = len(page.api_all("log"))
-        lines = _export_csv(page).strip().splitlines()
-        assert lines[0] == "Timestamp,Username,Aktivitas"
-        assert len(lines) - 1 == total_logs, f"CSV berisi {len(lines) - 1} log, seharusnya {total_logs}"
+        rows = _export_csv(page)
+        assert rows[0] == ["Timestamp", "Username", "Aktivitas"]
+        assert len(rows) - 1 == total_logs, f"CSV berisi {len(rows) - 1} log, seharusnya {total_logs}"
 
     def test_export_csv_tanda_pagar(self, page):
         """Menambah klasifikasi bernama "Rak #2 ...", lalu menekan Export CSV.
@@ -100,9 +104,9 @@ class TestLog:
         _create_classification(page, f"Rak #2 {token}")
         page.open_list("/page/log")
         total_logs = len(page.api_all("log"))
-        content = _export_csv(page)
-        assert token in content, "Isi CSV terpotong di tanda #"
-        assert len(content.strip().splitlines()) - 1 == total_logs
+        rows = _export_csv(page)
+        assert any(f"Rak #2 {token}" in row[2] for row in rows[1:]), "Isi CSV terpotong di tanda #"
+        assert len(rows) - 1 == total_logs
 
 
 class TestBackup:

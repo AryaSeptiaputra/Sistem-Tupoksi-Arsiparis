@@ -168,33 +168,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderTable(filtered);
     }
 
+    // Satu sel CSV dibungkus tanda kutip ganda; tanda kutip di dalamnya digandakan.
+    // Contoh: Rak "A", #2 -> "Rak ""A"", #2"
+    function toCsvCell(value) {
+        return `"${String(value ?? '').replace(/"/g, '""')}"`;
+    }
+
     function exportToCSV() {
         if (allLogs.length === 0) {
-            // [UPDATE] Gunakan ui.alert
             ui.alert("Export Gagal", "Tidak ada data untuk diexport.", "warning");
             return;
         }
 
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Timestamp,Username,Aktivitas\n"; // Header
-
+        const rows = [["Timestamp", "Username", "Aktivitas"]];
         allLogs.forEach(row => {
-            const date = row.created_at || row.timestamp;
-            const user = row.username || (row.user ? row.user.username : "-");
-            const act = (row.action || row.activity || "").replace(/,/g, " "); // Hapus koma agar tidak merusak CSV
-
-            csvContent += `${date},${user},${act}\n`;
+            rows.push([
+                row.created_at || row.timestamp,
+                row.username || (row.user ? row.user.username : "-"),
+                row.action || row.activity || ""
+            ]);
         });
+        const csv = rows.map(cells => cells.map(toCsvCell).join(",")).join("\r\n");
 
-        const encodedUri = encodeURI(csvContent);
+        // Blob, bukan data URI: karakter seperti # tidak lagi memotong isi berkas.
+        // BOM UTF-8 di awal agar Excel membaca huruf non-ASCII dengan benar.
+        const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "log_aktivitas_sistem.csv");
+        link.href = url;
+        link.download = "log_aktivitas_sistem.csv";
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        
-        // [UPDATE] Tambahkan Toast
+        link.remove();
+        URL.revokeObjectURL(url);
+
         ui.toast("File CSV berhasil diunduh", "success");
     }
 });
