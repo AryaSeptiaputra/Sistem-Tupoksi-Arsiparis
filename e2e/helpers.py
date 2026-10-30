@@ -273,7 +273,9 @@ class AppPage:
         Raises:
             AssertionError: Kalau sampai batas waktu teksnya tetap berbeda; pesan memuat teks aktual.
         """
-        expected_text = str(expected)
+        # Selenium mengubah spasi tak terputus (U+00A0) menjadi spasi biasa,
+        # padahal Intl.NumberFormat, misalnya "Rp 2,3 jt", memakai U+00A0
+        expected_text = str(expected).replace(" ", " ")
         try:
             self.wait.until(lambda d: d.find_element(By.ID, element_id).text.strip() == expected_text)
         except TimeoutException:

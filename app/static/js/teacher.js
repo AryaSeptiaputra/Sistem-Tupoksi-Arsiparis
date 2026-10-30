@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     let allData = [];
     let isEditMode = false;
     let currentEditId = null;
+    // Data guru menyimpan kode referensi (PNS, aktif, III/a); peta ini memberi nama untuk tabel
+    let refNames = { emp: {}, active: {}, rank: {} };
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -71,10 +73,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = `<tr><td colspan="6" class="loading-text" style="text-align:center; padding:20px;">Memuat data...</td></tr>`;
 
-        await Promise.all([
-            loadReferences(),
-            loadData()
-        ]);
+        // Referensi dimuat dulu agar tabel langsung bisa menampilkan nama dari kode
+        await loadReferences();
+        await loadData();
     }
 
     async function loadReferences() {
@@ -82,15 +83,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             const populate = (el, data, placeholder) => {
                 if(!el) return;
                 el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => {
-                    // Gunakan item.name sebagai value agar yang tersimpan di database guru adalah "III/a, Penata Muda"
-                    el.add(new Option(item.name, item.name)); 
-                });
+                data.forEach(item => el.add(new Option(item.name, item.code)));
             };
+            const toNameMap = (data) => Object.fromEntries(data.map(item => [item.code, item.name]));
 
             // 1. Status Kepegawaian
             const respEmp = await api.reference.getByCategory('teacher_emp_status');
             if(respEmp && respEmp.data) {
+                refNames.emp = toNameMap(respEmp.data);
                 populate(filterEmpStatus, respEmp.data, "Semua Kepegawaian");
                 populate(inputEmpStatus, respEmp.data, "- Pilih Status -");
             }
@@ -98,14 +98,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             // 2. Status Keaktifan
             const respActive = await api.reference.getByCategory('teacher_active_status');
             if(respActive && respActive.data) {
+                refNames.active = toNameMap(respActive.data);
                 populate(filterStatus, respActive.data, "Semua Status");
                 populate(inputStatus, respActive.data, null);
             }
 
-            // 3. [BARU] Pangkat / Golongan
+            // 3. Pangkat / Golongan
             const respRank = await api.reference.getByCategory('teacher_rank');
             if(respRank && respRank.data) {
-                // Populate Dropdown Rank yang baru
+                refNames.rank = toNameMap(respRank.data);
                 populate(inputRank, respRank.data, "- Pilih Golongan -");
             }
 
@@ -136,18 +137,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            let statusBadge = `<span class="badge-other">${escapeHtml(item.status)}</span>`;
-            if(item.status === 'Aktif') statusBadge = `<span class="badge-active">Aktif</span>`;
-            else if(item.status === 'Pensiun' || item.status === 'Keluar') statusBadge = `<span class="badge-inactive">${escapeHtml(item.status)}</span>`;
+            // Kode yang tidak ada di referensi ditampilkan apa adanya
+            const statusName = refNames.active[item.status] || item.status;
+            const empName = refNames.emp[item.employment_status] || item.employment_status;
+            const rankName = item.rank && refNames.rank[item.rank] ? `${item.rank} - ${refNames.rank[item.rank]}` : (item.rank || '-');
+
+            let badgeClass = 'badge-other';
+            if(item.status === 'aktif') badgeClass = 'badge-active';
+            else if(item.status === 'pensiun') badgeClass = 'badge-inactive';
+            const statusBadge = `<span class="${badgeClass}">${escapeHtml(statusName)}</span>`;
 
             tr.innerHTML = `
                 <td style="font-family:monospace; font-weight:600;">${escapeHtml(item.identity_number)}</td>
                 <td>
                     <div style="font-weight:600;">${escapeHtml(item.full_name)}</div>
-                    <div style="font-size:11px; color:#64748b;">${escapeHtml(item.rank || '-')}</div>
+                    <div style="font-size:11px; color:#64748b;">${escapeHtml(rankName)}</div>
                 </td>
                 <td>${escapeHtml(item.gender)}</td>
-                <td>${escapeHtml(item.employment_status)}</td>
+                <td>${escapeHtml(empName)}</td>
                 <td>${statusBadge}</td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -191,7 +198,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             pageTitle.textContent = "Tambah Guru Baru";
             currentEditId = null;
             inputIdentity.readOnly = false;
-            inputStatus.value = "Aktif";
+            inputStatus.value = "aktif";
             // Default Rank kosong
             inputRank.value = "";
         }

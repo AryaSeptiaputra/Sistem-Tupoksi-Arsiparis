@@ -304,7 +304,7 @@ class TestGuru:
         """
         nip, new_name = _nip(), unique("Guru Baru")
         page.api_create("teacher", {"identity_number": nip, "full_name": unique("Guru Lama"), "gender": "P",
-                                    "employment_status": "Guru Tidak Tetap", "rank": "", "status": "Aktif",
+                                    "employment_status": "GTT", "rank": "", "status": "aktif",
                                     "address": ""})
         page.open_list("/page/teacher")
         page.click_row_button(nip, "Edit")
@@ -320,7 +320,7 @@ class TestGuru:
         Diharapkan: semua baris yang tampil berstatus Guru Tidak Tetap.
         """
         page.open_list("/page/teacher")
-        page.select("filterEmpStatus", value="Guru Tidak Tetap")
+        page.select("filterEmpStatus", value="GTT")
         page.wait.until(lambda _: all("Guru Tidak Tetap" in row for row in page.row_texts()),
                         "Filter status kepegawaian tidak menyaring tabel")
         assert any("Sari Wulandari" in row for row in page.row_texts())
@@ -332,7 +332,7 @@ class TestGuru:
         """
         nip = _nip()
         page.api_create("teacher", {"identity_number": nip, "full_name": unique("Guru Hapus"), "gender": "L",
-                                    "employment_status": "Guru Tidak Tetap", "rank": "", "status": "Aktif",
+                                    "employment_status": "GTT", "rank": "", "status": "aktif",
                                     "address": ""})
         page.open_list("/page/teacher")
         page.click_row_button(nip, "Hapus")
@@ -348,7 +348,7 @@ class TestGuru:
         """
         nip, document = _nip(), unique("SK Guru")
         page.api_create("teacher", {"identity_number": nip, "full_name": unique("Guru Berarsip"), "gender": "L",
-                                    "employment_status": "Guru Tidak Tetap", "rank": "", "status": "Aktif",
+                                    "employment_status": "GTT", "rank": "", "status": "aktif",
                                     "address": ""})
         owner_id = page.api_find("teacher", "identity_number", nip)["id"]
         class_id = page.api_find("classification", "code", "421")["id"]

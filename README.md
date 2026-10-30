@@ -71,6 +71,10 @@ python scripts/akun.py buat --username <nip> --nama "<nama operator>"
 
 # Atau, bila memindahkan data dari MySQL lama:
 python scripts/migrate_mysql_to_sqlite.py --source "mysql+pymysql://user:sandi@localhost/nama_db"
+
+# Database yang sudah berisi data guru dari versi sebelum #27 (status masih berupa nama):
+# backup dulu, cek dengan --dry-run, lalu jalankan tanpa --dry-run
+python scripts/migrate_teacher_codes.py --dry-run
 ```
 
 Dependency diubah lewat `requirements.in` (aplikasi) atau `requirements-dev.in` (test), lalu kunci ulang untuk Python 3.8:

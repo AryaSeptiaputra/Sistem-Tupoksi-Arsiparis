@@ -31,12 +31,12 @@ from app.models.teacher import Teacher
 from app.services.user import create_user
 from database.seeders.seed_master import seed_master_references
 
-# Halaman Guru menyimpan nama referensi (bukan kodenya), jadi data awal mengikuti isi dropdown itu
+# Data guru menyimpan kode referensi, sama seperti nilai dropdown halaman Guru
 TEACHERS = [
     {"identity_number": "198001012005011001", "full_name": "Budi Santoso", "gender": "L",
-     "employment_status": "Pegawai Negeri Sipil", "rank": "Penata Muda", "status": "Aktif"},
+     "employment_status": "PNS", "rank": "III/a", "status": "aktif"},
     {"identity_number": "199002022019022002", "full_name": "Sari Wulandari", "gender": "P",
-     "employment_status": "Guru Tidak Tetap", "rank": "", "status": "Aktif"},
+     "employment_status": "GTT", "rank": "", "status": "aktif"},
 ]
 
 # Lampiran surat lama; path relatif terhadap cwd server, sama dengan hasil handle_file_upload

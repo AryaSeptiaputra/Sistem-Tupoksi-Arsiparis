@@ -25,7 +25,7 @@ def _create_location(page, text):
 def _create_teacher(page, text):
     nip = "19" + "".join(secrets.choice("0123456789") for _ in range(16))
     page.api_create("teacher", {"identity_number": nip, "full_name": text, "gender": "L",
-                                "employment_status": "Guru Tidak Tetap", "rank": "", "status": "Aktif",
+                                "employment_status": "GTT", "rank": "", "status": "aktif",
                                 "address": ""})
 
 

@@ -99,7 +99,7 @@ async function loadStatsData() {
         // A. Data Guru (Untuk Widget Ringkasan Atas)
         const teachers = await api.teacher.getAll(); 
         if (teachers && Array.isArray(teachers)) {
-            const activeTeachers = teachers.filter(t => t.status === 'Aktif');
+            const activeTeachers = teachers.filter(t => t.status === 'aktif');
             
             updateText("stat-teacher-count", activeTeachers.length);
 
@@ -119,7 +119,7 @@ async function loadStatsData() {
             // Hitung Total Nominal
             let totalNominal = 0;
             finances.forEach(item => {
-                let raw = item.nominal;
+                let raw = item.amount;
                 if (typeof raw === 'string') raw = raw.replace(/[^0-9]/g, '');
                 totalNominal += (parseInt(raw) || 0);
             });
@@ -231,7 +231,7 @@ async function loadExtendedStats() {
 
         // --- A. DATA GURU ---
         if (teachers && Array.isArray(teachers)) {
-            const active = teachers.filter(t => t.status === 'Aktif');
+            const active = teachers.filter(t => t.status === 'aktif');
             const pns = active.filter(t => t.employment_status === 'PNS').length;
             const nonAsn = active.length - pns;
             
@@ -493,7 +493,7 @@ function renderFinanceTrendChart(data) {
     const year = new Date().getFullYear();
 
     data.forEach(item => {
-        let raw = item.nominal;
+        let raw = item.amount;
         if (typeof raw === 'string') raw = raw.replace(/[^0-9]/g, '');
         const nominal = parseInt(raw) || 0;
         const d = new Date(item.date || item.created_at);

@@ -12,8 +12,6 @@ TAB_CHARTS = [
     ("Data Ijazah", "tab-ijazah", ["chart-ijazah-trend"]),
     ("Arsip Pegawai", "tab-arsip-pegawai", ["chart-emp-type"]),
 ]
-# Nilai status kepegawaian PNS: kode referensi dan nama yang disimpan form Guru
-PNS_VALUES = ("PNS", "Pegawai Negeri Sipil")
 
 
 @pytest.fixture
@@ -40,7 +38,7 @@ class TestDashboard:
         teachers = dashboard.api_all("teacher")
         finances = dashboard.api_all("financeArchive")
         dashboard.expect_text("user-welcome", "Halo, Operator Uji!")
-        dashboard.expect_text("stat-teacher-count", sum(t["status"] == "Aktif" for t in teachers))
+        dashboard.expect_text("stat-teacher-count", sum(t["status"] == "aktif" for t in teachers))
         dashboard.expect_text("stat-finance-count", len(finances))
 
     @pytest.mark.parametrize("pane_id, chart_ids", [(p, c) for _, p, c in TAB_CHARTS],
@@ -85,10 +83,10 @@ class TestDashboard:
     def test_angka_guru(self, dashboard):
         """Membandingkan angka tab Data Guru dengan data guru aktif.
 
-        Diharapkan: total guru aktif, jumlah PNS, dan jumlah Non-ASN sesuai data (guru PNS disimpan form Guru sebagai "Pegawai Negeri Sipil").
+        Diharapkan: total guru aktif, jumlah PNS, dan jumlah Non-ASN sesuai data guru berstatus aktif.
         """
-        active = [t for t in dashboard.api_all("teacher") if t["status"] == "Aktif"]
-        pns = sum(t["employment_status"] in PNS_VALUES for t in active)
+        active = [t for t in dashboard.api_all("teacher") if t["status"] == "aktif"]
+        pns = sum(t["employment_status"] == "PNS" for t in active)
         _open_tab(dashboard, "tab-guru")
         dashboard.expect_text("tab-guru-total", len(active))
         dashboard.expect_text("tab-guru-pns", pns)

@@ -19,14 +19,14 @@ class Teacher(Base):
     # Nilai L/P divalidasi di front-end
     gender = Column(String(20), nullable=False) 
     
-    # Contoh: 'PNS', 'PPPK', 'Honorer', 'GTY'
+    # Kode referensi teacher_emp_status, contoh: 'PNS', 'PPPK', 'GTT', 'GTY'
     employment_status = Column(String(50), nullable=False)
-    
-    # Golongan, contoh: III/a
+
+    # Kode referensi teacher_rank (golongan), contoh: 'III/a'
     rank = Column(String(100), nullable=True)
-    
-    # Status keaktifan, contoh: 'Aktif', 'Pensiun', 'Keluar', 'Cuti', 'Meninggal Dunia'
-    status = Column(String(50), default="Aktif", nullable=False)
+
+    # Kode referensi teacher_active_status, contoh: 'aktif', 'cuti', 'pensiun'
+    status = Column(String(50), default="aktif", nullable=False)
 
     address = Column(Text, nullable=True)
 
