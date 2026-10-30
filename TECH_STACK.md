@@ -67,6 +67,7 @@ Dokumentasi teknologi yang digunakan pada project **Sistem Tupoksi Arsiparis** (
 |----------|-----------|-------|
 | Unit Testing | **pytest** (`requirements-dev.txt`) | 8.3.5 |
 | Coverage | **pytest-cov** / **coverage** | 5.0.0 / 7.6.1 |
+| End-to-end Testing | **Selenium** + Chrome (`requirements-dev.txt`, folder `e2e/`) | 4.27.1 |
 | Environment Config | **python-dotenv** | 1.2.1 |
 | Version Control | **Git** | — |
 

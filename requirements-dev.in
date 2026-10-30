@@ -3,3 +3,5 @@
 -r requirements.in
 pytest
 pytest-cov
+# Test end-to-end lewat browser (folder e2e/)
+selenium

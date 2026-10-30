@@ -94,6 +94,14 @@ python main.py
 pytest tests
 ```
 
+Test end-to-end lewat Chrome (Selenium). Server uji dan database sementara dibuat otomatis, jadi `.env` dan data project tidak tersentuh:
+
+```bash
+pytest e2e -v
+```
+
+Hasil per skenario ditulis ke `e2e/hasil/hasil.md`. Kalau ChromeDriver gagal diunduh otomatis, isi env `E2E_CHROMEDRIVER` dengan path `chromedriver.exe` yang versinya sama dengan Chrome.
+
 ### 4\. Instalasi di Windows 7 (laptop klien / PC sekolah)
 
 1. Windows 7 **SP1** dengan update **KB2533623** sudah terpasang.
@@ -204,6 +212,7 @@ Aturan main untuk semua developer (Backend & Frontend):
 
 ### Testing
 - Run tests: `pytest tests`
+- End-to-end (Chrome + Selenium): `pytest e2e -v`, hasil di `e2e/hasil/hasil.md`
 
 ### Logging
 - Logs are configured to console and optionally to file specified in `.env`.

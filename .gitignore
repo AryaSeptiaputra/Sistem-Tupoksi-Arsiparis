@@ -21,6 +21,9 @@ create_admin.py
 database/seeders/seed_admin.py
 test_*.py
 test_*.html
+!e2e/test_*.py
+# Hasil test end-to-end: tabel hasil, screenshot, dan log server uji
+e2e/hasil/
 DEBUGGING_INSTRUCTIONS.md
 DEBUG_INSTRUCTIONS.md
 FINANCE_ARCHIVE_DEBUG.md
