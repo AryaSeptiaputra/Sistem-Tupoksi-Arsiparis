@@ -3,6 +3,7 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.errors import DataInUseError
 from app.services.teacher import create_teacher, update_teacher, delete_teacher, get_all_teachers, get_teachers_by_keys
 from app.services.log import create_log
 from app.utils.current_user import get_current_user_id
@@ -98,13 +99,13 @@ def update_teacher_route() -> ResponseReturnValue:
 @teacher_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_teacher_route() -> ResponseReturnValue:
-    """Menghapus data guru beserta arsip pegawainya.
+    """Menghapus data guru yang tidak lagi memiliki arsip pegawai.
 
     Body JSON: `id`.
 
     Returns:
-        200 bila terhapus, 400 bila `id` kosong, 404 bila tidak ditemukan,
-        atau 500 bila terjadi error.
+        200 bila terhapus, 400 bila `id` kosong atau guru masih memiliki
+        arsip pegawai, 404 bila tidak ditemukan, atau 500 bila terjadi error.
     """
     data = request.json
     teacher_id = data.get('id')
@@ -124,6 +125,8 @@ def delete_teacher_route() -> ResponseReturnValue:
             logger.warning(f"Gagal mencatat log hapus guru: {e}", exc_info=True)
 
         return jsonify({"message": "Data berhasil dihapus"}), 200
+    except DataInUseError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Gagal menghapus guru: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500

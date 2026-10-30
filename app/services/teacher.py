@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 from sqlalchemy.orm import Session
+from app.errors import DataInUseError
+from app.models.employee_archive import EmployeeArchive
 from app.models.teacher import Teacher
 from app.utils.pagination import PaginationParams, paginate_query, PaginatedResult
 import datetime
@@ -70,7 +72,7 @@ def update_teacher(db: Session, teacher_id: int, update_data: dict[str, Any]) ->
     return existing_teacher
 
 def delete_teacher(db: Session, teacher_id: int) -> Teacher | None:
-    """Menghapus data guru beserta arsip pegawai miliknya (cascade).
+    """Menghapus data guru yang tidak lagi memiliki arsip pegawai.
 
     Args:
         db: Session database.
@@ -78,11 +80,19 @@ def delete_teacher(db: Session, teacher_id: int) -> Teacher | None:
 
     Returns:
         Data guru yang dihapus, atau None bila tidak ditemukan.
+
+    Raises:
+        DataInUseError: Kalau guru masih memiliki arsip pegawai.
     """
     existing_teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
 
     if not existing_teacher:
         return None
+
+    archive_count = db.query(EmployeeArchive).filter(EmployeeArchive.owner_id == teacher_id).count()
+    if archive_count:
+        raise DataInUseError(f"Guru masih memiliki {archive_count} arsip pegawai. "
+                             "Ubah statusnya menjadi Pensiun/Keluar alih-alih menghapus.")
 
     db.delete(existing_teacher)
     db.commit()

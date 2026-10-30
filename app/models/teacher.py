@@ -33,8 +33,8 @@ class Teacher(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
-    # Arsip pribadi ikut terhapus saat data guru dihapus
-    my_archives = relationship("EmployeeArchive", back_populates="owner", cascade="all, delete-orphan")
+    # Tanpa cascade delete: guru yang masih punya arsip ditolak dihapus oleh delete_teacher
+    my_archives = relationship("EmployeeArchive", back_populates="owner")
 
     def to_dict(self) -> dict[str, Any]:
         """Mengubah baris menjadi dict untuk respons API.

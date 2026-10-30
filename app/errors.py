@@ -8,3 +8,7 @@ class RestoreError(Exception):
 
 class FileStorageError(Exception):
     """Penyimpanan file lampiran ke disk gagal."""
+
+
+class DataInUseError(Exception):
+    """Data tidak boleh dihapus karena masih dipakai data lain."""
