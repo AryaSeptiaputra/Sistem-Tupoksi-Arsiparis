@@ -50,6 +50,13 @@ def test_update_saves_form_date(client, auth_header):
     assert response.status_code == 200
     assert _find_diploma("DN-FORM").collected_at == dt.datetime(2026, 8, 2)
 
+def test_create_without_academic_year_names_field_in_indonesian(client, auth_header):
+    response = client.post("/diploma/create", headers=auth_header(client.application),
+                           data=_form(academic_year=""))
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "Tahun Ajaran wajib diisi"
+
 def test_create_rejects_invalid_date(client, auth_header):
     response = client.post("/diploma/create", headers=auth_header(client.application),
                            data=_form(collected_at="1 Juli 2026"))

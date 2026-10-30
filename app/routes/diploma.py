@@ -26,6 +26,14 @@ diploma_bp = Blueprint('diploma', __name__)
 # Kolom tanggal dari form dan labelnya untuk pesan error
 DATE_FIELDS = {'collected_at': 'Tanggal Pengambilan'}
 
+# Isian wajib dan labelnya untuk pesan error
+REQUIRED_FIELDS = {
+    'number': 'Nomor Seri',
+    'student_name': 'Nama Siswa',
+    'major': 'Jurusan',
+    'academic_year': 'Tahun Ajaran'
+}
+
 @diploma_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_diploma_route() -> ResponseReturnValue:
@@ -48,9 +56,8 @@ def create_diploma_route() -> ResponseReturnValue:
     else:
         data['storage_location_id'] = None
 
-    required = ['number', 'student_name', 'major', 'academic_year']
-    for f in required:
-        if not data.get(f): return jsonify({"error": f"{f} required"}), 400
+    for field, label in REQUIRED_FIELDS.items():
+        if not data.get(field): return jsonify({"error": f"{label} wajib diisi"}), 400
 
     try:
         data.update(parse_dates(data, DATE_FIELDS))

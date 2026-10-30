@@ -301,8 +301,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function handleSaveData(e) {
         e.preventDefault();
         
-        if (!inputName.value || !inputSerial.value || !inputMajor.value) {
-            ui.alert("Data Belum Lengkap", "Harap lengkapi Nama, No. Seri, dan Jurusan!", "warning");
+        if (!inputName.value || !inputSerial.value || !inputMajor.value || !inputYear.value.trim()) {
+            ui.alert("Data Belum Lengkap", "Harap lengkapi Nama, No. Seri, Jurusan, dan Tahun Ajaran!", "warning");
             return;
         }
 
