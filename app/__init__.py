@@ -43,6 +43,15 @@ SHORT_URL_REDIRECTS = {
     '/reference': ('reference', 'view.reference'),
 }
 
+def _register_jwt_handlers(jwt: JWTManager) -> None:
+    # Token rusak atau ditandatangani kunci lain (misalnya setelah JWT_SECRET_KEY diganti)
+    # dibalas 401 seperti token kedaluwarsa, bukan 422 bawaan, agar front-end
+    # menampilkan "Sesi Berakhir" lalu mengarahkan ke login.
+    @jwt.invalid_token_loader
+    def invalid_token(reason: str) -> tuple[dict[str, str], int]:
+        """Membalas token yang tidak valid dengan 401."""
+        return {"msg": f"Token tidak valid: {reason}"}, 401
+
 def _configure_app(app: Flask) -> None:
     # Kompresi gzip untuk respons di atas 1 KB; level dari .env, 0 berarti mati.
     # Hanya gzip: zstd tidak dikenal Chrome 109 dan brotli lebih berat di CPU lama.
@@ -65,7 +74,7 @@ def _configure_app(app: Flask) -> None:
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
     # 43200 detik = 12 jam
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 43200
-    JWTManager(app)
+    _register_jwt_handlers(JWTManager(app))
 
 def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(500)

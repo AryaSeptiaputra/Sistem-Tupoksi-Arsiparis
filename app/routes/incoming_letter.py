@@ -182,6 +182,7 @@ def delete_incoming_letter_route() -> ResponseReturnValue:
         db_session.close()
 
 @incoming_letter_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_incoming_letters_route() -> ResponseReturnValue:
     """Mengambil surat masuk per halaman.
 
@@ -202,6 +203,7 @@ def get_all_incoming_letters_route() -> ResponseReturnValue:
         db_session.close()
 
 @incoming_letter_bp.route('/get_by_keys', methods=['POST'])
+@jwt_required()
 def get_incoming_by_keys_route() -> ResponseReturnValue:
     """Mencari surat masuk per halaman.
 

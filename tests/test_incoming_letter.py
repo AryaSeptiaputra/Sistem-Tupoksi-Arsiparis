@@ -27,8 +27,8 @@ def client():
     db.commit()
     db.close()
 
-def test_get_by_keys_paginates_from_json_body(client):
-    response = client.post("/incoming_letter/get_by_keys",
+def test_get_by_keys_paginates_from_json_body(client, auth_header):
+    response = client.post("/incoming_letter/get_by_keys", headers=auth_header(client.application),
                            json={"filters": {"sender": "Dinas"}, "page": 2, "per_page": 2})
 
     assert response.status_code == 200

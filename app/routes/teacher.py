@@ -131,6 +131,7 @@ def delete_teacher_route() -> ResponseReturnValue:
         db_session.close()
 
 @teacher_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_teachers_route() -> ResponseReturnValue:
     """Mengambil data guru per halaman.
 
@@ -152,6 +153,7 @@ def get_all_teachers_route() -> ResponseReturnValue:
         db_session.close()
 
 @teacher_bp.route('/get_by_keys', methods=['POST'])
+@jwt_required()
 def get_teachers_by_keys_route() -> ResponseReturnValue:
     """Mencari data guru.
 

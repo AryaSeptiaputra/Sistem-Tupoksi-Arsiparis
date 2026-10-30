@@ -113,6 +113,7 @@ def delete_classification_route() -> ResponseReturnValue:
         db_session.close()
 
 @classification_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_route() -> ResponseReturnValue:
     """Mengambil klasifikasi per halaman.
 
@@ -134,6 +135,7 @@ def get_all_route() -> ResponseReturnValue:
         db_session.close()
 
 @classification_bp.route('/get_by_keys', methods=['POST'])
+@jwt_required()
 def get_by_keys_route() -> ResponseReturnValue:
     """Mencari klasifikasi.
 

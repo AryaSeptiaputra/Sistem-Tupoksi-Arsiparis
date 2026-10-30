@@ -176,6 +176,7 @@ def delete_diploma_route() -> ResponseReturnValue:
         db_session.close()
 
 @diploma_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_diplomas_route() -> ResponseReturnValue:
     """Mengambil data ijazah per halaman.
 
@@ -196,6 +197,7 @@ def get_all_diplomas_route() -> ResponseReturnValue:
     finally: db_session.close()
 
 @diploma_bp.route('/get_by_keys', methods=['POST'])
+@jwt_required()
 def get_diplomas_by_keys_route() -> ResponseReturnValue:
     """Mencari data ijazah.
 

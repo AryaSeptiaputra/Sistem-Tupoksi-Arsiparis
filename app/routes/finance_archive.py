@@ -144,6 +144,7 @@ def delete_route() -> ResponseReturnValue:
         db_session.close()
 
 @finance_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_route() -> ResponseReturnValue:
     """Mengambil arsip keuangan per halaman.
 

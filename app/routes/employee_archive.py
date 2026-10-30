@@ -136,6 +136,7 @@ def delete_route() -> ResponseReturnValue:
         db_session.close()
 
 @employee_archive_bp.route('/get_all', methods=['GET'])
+@jwt_required()
 def get_all_route() -> ResponseReturnValue:
     """Mengambil arsip pegawai per halaman.
 

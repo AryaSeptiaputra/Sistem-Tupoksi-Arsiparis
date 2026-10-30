@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask.typing import ResponseReturnValue
+from flask_jwt_extended import jwt_required
 from app.services.master_reference import MasterReferenceService
 from app.utils.logger import setup_logger
 
@@ -10,6 +11,7 @@ service = MasterReferenceService()
 
 
 @reference_bp.route('/api/references/<category>', methods=['GET'])
+@jwt_required()
 def get_options(category: str) -> ResponseReturnValue:
     """Mengambil opsi satu kategori untuk dropdown.
 
@@ -33,6 +35,7 @@ def get_options(category: str) -> ResponseReturnValue:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references', methods=['POST'])
+@jwt_required()
 def create_option() -> ResponseReturnValue:
     """Menambah opsi referensi.
 
@@ -56,6 +59,7 @@ def create_option() -> ResponseReturnValue:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['PUT'])
+@jwt_required()
 def update_option(id: int) -> ResponseReturnValue:
     """Mengubah opsi referensi.
 
@@ -78,6 +82,7 @@ def update_option(id: int) -> ResponseReturnValue:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @reference_bp.route('/api/references/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_option(id: int) -> ResponseReturnValue:
     """Menonaktifkan opsi referensi tanpa menghapus barisnya.
 

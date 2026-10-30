@@ -261,39 +261,42 @@ def test_get_pagination_params_defaults(app):
 # Integration Tests with API Endpoints
 # =============================================================================
 
-def test_get_all_endpoint_with_pagination(client, sample_data):
+def test_get_all_endpoint_with_pagination(app, client, sample_data, auth_header):
     """Test /incoming_letter/get_all with pagination"""
-    # Need to authenticate first - this is simplified
-    # In real tests, mock JWT token
-    
-    response = client.get('/incoming_letter/get_all?page=1&per_page=50')
-    # If auth is required, status will be 401
-    # Assume auth is mocked or disabled for testing
+    response = client.get('/incoming_letter/get_all?page=1&per_page=50', headers=auth_header(app))
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert len(body["data"]) == 50
+    assert body["pagination"]["total"] == 150
 
 
-def test_get_all_endpoint_default_page(client, sample_data):
+def test_get_all_endpoint_default_page(app, client, sample_data, auth_header):
     """Test /incoming_letter/get_all defaults to page 1"""
-    # Default should return page 1 with 20 items per page
-    pass
+    response = client.get('/incoming_letter/get_all', headers=auth_header(app))
+
+    body = response.get_json()
+    assert body["pagination"]["page"] == 1
+    assert len(body["data"]) == 20
 
 
-def test_get_by_keys_with_filter(client):
+def test_get_by_keys_with_filter(app, client, sample_data, auth_header):
     """Test /incoming_letter/get_by_keys with filters"""
     payload = {
         "filters": {
-            "sender": "John",
+            "sender": "Sender 1",
             "archive_status": "active"
         },
         "page": 1,
         "per_page": 20
     }
-    
-    response = client.post(
-        '/incoming_letter/get_by_keys',
-        json=payload,
-        headers={'Content-Type': 'application/json'}
-    )
-    # Check response format and status
+
+    response = client.post('/incoming_letter/get_by_keys', json=payload, headers=auth_header(app))
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["pagination"]["total"] == 30
+    assert all(row["sender"] == "Sender 1" for row in body["data"])
 
 
 # =============================================================================
