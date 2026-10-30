@@ -46,7 +46,7 @@ async function handleLogin() {
         // Menggantikan alert() biasa
         await ui.alert(
             "Gagal Masuk", 
-            error.message || "Periksa kembali username dan kata sandi Anda.", 
+            escapeHtml(error.message || "Periksa kembali username dan kata sandi Anda."), 
             "error"
         );
 

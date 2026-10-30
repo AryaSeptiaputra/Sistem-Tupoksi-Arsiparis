@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(disposalList);
         } catch (e) {
             console.error(e);
-            tableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal memuat data: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -125,15 +125,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td><span class="badge-source ${badgeClass}">${badgeLabel}</span></td>
                 <td>
                     <div style="font-weight:600; color:var(--text-main); font-size:14px;">
-                        ${mainText}
+                        ${escapeHtml(mainText)}
                     </div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                        ${subText}
+                        ${escapeHtml(subText)}
                     </div>
                 </td>
                 <td style="font-family:monospace; font-size:13px;">${item.doc_year}</td>
                 <td style="font-family:monospace; font-size:13px; color:#ef4444; font-weight:600;">${item.expiry_year}</td>
-                <td><span class="code-badge">${item.classification || '-'}</span></td>
+                <td><span class="code-badge">${escapeHtml(item.classification || '-')}</span></td>
             `;
             tableBody.appendChild(tr);
         });
@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.alert("Pemusnahan Berhasil", `Sukses! ${response.count} arsip telah dimusnahkan.`, "success");
                 loadDisposalData(); 
             } catch (e) {
-                ui.alert("Gagal Eksekusi", e.message, "error");
+                ui.alert("Gagal Eksekusi", escapeHtml(e.message), "error");
                 btnExecute.innerHTML = originalBtnText;
                 btnExecute.disabled = false;
             }

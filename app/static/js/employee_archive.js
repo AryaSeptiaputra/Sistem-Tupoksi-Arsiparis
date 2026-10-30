@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             
             // Klasifikasi untuk kolom terpisah
             const classificationText = item.classification_code 
-                ? `<span style="background:#eef2ff; color:#4338ca; padding:4px 8px; border-radius:6px; font-size:11px; border:1px solid #c7d2fe; font-weight:600;">${item.classification_code}</span>` 
+                ? `<span style="background:#eef2ff; color:#4338ca; padding:4px 8px; border-radius:6px; font-size:11px; border:1px solid #c7d2fe; font-weight:600;">${escapeHtml(item.classification_code)}</span>` 
                 : '<span style="color:#9ca3af; font-style:italic; font-size:12px;">-</span>';
 
             // --- PERBAIKAN LOGIKA TOMBOL VIEW DI SINI ---
@@ -159,20 +159,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight:600; color:var(--primary);">${item.document_name}</div>
+                    <div style="font-weight:600; color:var(--primary);">${escapeHtml(item.document_name)}</div>
                     <div style="margin-top:4px; font-size:11px; color:#666;">
                         <span style="color:#9ca3af;">Tahun:</span> ${item.document_year || '-'}
                     </div>
                 </td>
-                <td><span class="badge-doc doc-lain">${typeLabel}</span></td>
+                <td><span class="badge-doc doc-lain">${escapeHtml(typeLabel)}</span></td>
                 <td>
-                    <div style="font-weight:500;">${item.owner_name}</div>
-                    <div style="font-size:11px; color:#999;">${item.owner_identity || '-'}</div>
+                    <div style="font-weight:500;">${escapeHtml(item.owner_name)}</div>
+                    <div style="font-size:11px; color:#999;">${escapeHtml(item.owner_identity || '-')}</div>
                 </td>
                 <td>${classificationText}</td>
                 <td>
-                    <div style="font-size:12px; margin-bottom:4px;">📍 ${item.storage_location_name || '-'}</div>
-                    <span class="status-pill ${statusClass}">${item.archive_status}</span>
+                    <div style="font-size:12px; margin-bottom:4px;">📍 ${escapeHtml(item.storage_location_name || '-')}</div>
+                    <span class="status-pill ${statusClass}">${escapeHtml(item.archive_status)}</span>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -254,7 +254,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             ui.toast("Data disimpan", "success");
             showTableMode();
             loadDocuments();
-        } catch (err) { ui.alert("Gagal", err.message, "error"); }
+        } catch (err) { ui.alert("Gagal", escapeHtml(err.message), "error"); }
         finally { removeAttachmentFlag = false; }  // Reset flag setelah submit
     }
 
@@ -339,7 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const isConfirmed = await ui.confirm("Hapus Data?", "Yakin ingin menghapus arsip ini?", true);
         if (isConfirmed) {
             try { await api.employeeArchive.delete(id); ui.toast("Berhasil dihapus", "success"); loadDocuments(); } 
-            catch (e) { ui.alert("Error", e.message, "error"); }
+            catch (e) { ui.alert("Error", escapeHtml(e.message), "error"); }
         }
     };
     

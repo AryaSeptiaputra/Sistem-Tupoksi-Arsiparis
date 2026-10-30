@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allLogs);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="3" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="color:red; text-align:center;">Gagal memuat data: ${escapeHtml(e.message)}</td></tr>`;
             ui.toast("Gagal memuat data log", "error");
         }
     }
@@ -104,14 +104,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             const username = item.username || "Sistem";
             
             // 3. Highlight Kata Kunci Aksi
-            let actionText = item.action || item.activity || "-";
-            actionText = highlightKeywords(actionText);
+            const actionText = highlightKeywords(escapeHtml(item.action || item.activity || "-"));
 
             tr.innerHTML = `
                 <td style="font-family:monospace; font-size:13px; color:var(--text-muted);">${dateStr}</td>
                 <td>
                     <span style="font-weight:600; color:var(--primary); background:#fff4ed; padding:4px 10px; border-radius:6px; font-size:12px;">
-                        👤 ${username}
+                        👤 ${escapeHtml(username)}
                     </span>
                 </td>
                 <td style="font-size:14px; line-height:1.5;">${actionText}</td>

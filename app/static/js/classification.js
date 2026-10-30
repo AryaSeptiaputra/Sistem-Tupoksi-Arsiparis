@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allClassifications);
         } catch (e) {
             console.error(e);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -142,9 +142,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             tr.innerHTML = `
-                <td><span class="code-badge">${item.code}</span></td>
+                <td><span class="code-badge">${escapeHtml(item.code)}</span></td>
                 <td>
-                    <div style="font-weight:500; font-size:15px; margin-bottom:4px;">${item.name}</div>
+                    <div style="font-weight:500; font-size:15px; margin-bottom:4px;">${escapeHtml(item.name)}</div>
                     <div style="font-size:12px; color:#555; background:#f3f4f6; display:inline-block; padding:2px 8px; border-radius:4px;">
                         🕒 Aktif: <b>${item.retention_active_period} Thn</b> | Inaktif: <b>${item.retention_inactive_period} Thn</b>
                     </div>
@@ -152,10 +152,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td>
                     <div style="margin-bottom:6px;">
                         <span style="font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600; ${actionBadgeClass}">
-                            ${actionLabel}
+                            ${escapeHtml(actionLabel)}
                         </span>
                     </div>
-                    <div style="color:var(--text-muted); font-size:13px; line-height:1.4;">${item.description || '-'}</div>
+                    <div style="color:var(--text-muted); font-size:13px; line-height:1.4;">${escapeHtml(item.description || '-')}</div>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -262,7 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Error Server"), "error");
         } finally {
             btnSave.textContent = originalText;
             btnSave.disabled = false;
@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.toast("Data dihapus", "success");
                 loadData();
             } catch (err) {
-                ui.alert("Gagal Hapus", err.message, "error");
+                ui.alert("Gagal Hapus", escapeHtml(err.message), "error");
             }
         }
     };

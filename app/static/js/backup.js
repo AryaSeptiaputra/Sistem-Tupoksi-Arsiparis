@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(backupLogs);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal memuat data: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal memuat data: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (e) {
             console.error(e);
             // [MODIFIKASI] Gunakan Modal Error untuk gagal
-            await ui.alert("Backup Gagal", e.message || "Terjadi kesalahan server", "error");
+            await ui.alert("Backup Gagal", escapeHtml(e.message || "Terjadi kesalahan server"), "error");
         } finally {
             btnBackup.innerHTML = originalText;
             btnBackup.disabled = false;
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         .catch(err => {
             console.error(err);
             // [MODIFIKASI] Error download pakai Modal
-            ui.alert("Gagal Download", err.message, "error");
+            ui.alert("Gagal Download", escapeHtml(err.message), "error");
         })
         .finally(() => {
             document.body.style.cursor = originalCursor;
@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Konfirmasi Tahap 1
         const step1 = await ui.confirm(
             "⚠️ Peringatan Restore", 
-            `Anda akan merestore database ke versi: ${filename}.\n\nSemua data baru setelah tanggal backup ini akan HILANG. Lanjutkan?`, 
+            `Anda akan merestore database ke versi: ${escapeHtml(filename)}.\n\nSemua data baru setelah tanggal backup ini akan HILANG. Lanjutkan?`, 
             true // True = Tombol Merah (Danger)
         );
         
@@ -202,7 +202,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (e) {
             console.error(e);
             // [MODIFIKASI] Error pakai Modal
-            await ui.alert("Gagal Restore", e.message, "error");
+            await ui.alert("Gagal Restore", escapeHtml(e.message), "error");
         } finally {
             document.body.style.cursor = "default";
         }
@@ -224,19 +224,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tr.innerHTML = `
                 <td style="font-weight:500;">
-                    <span style="font-family:monospace;">${filename}</span>
+                    <span style="font-family:monospace;">${escapeHtml(filename)}</span>
                 </td>
                 <td style="font-size:13px; color:#6b7280;">${dateStr}</td>
                 <td><span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;">✅ Success</span></td>
-                <td style="font-size:13px;">${item.created_by || 'System'}</td>
+                <td style="font-size:13px;">${escapeHtml(item.created_by || 'System')}</td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
-                        <button class="btn-action-view btn-edit" style="background:#3b82f6;" title="Download" 
-                            onclick="window.downloadBackup('${filename}')">
+                        <button class="btn-action-view btn-edit btn-download" style="background:#3b82f6;" title="Download"
+                            data-filename="${escapeHtml(filename)}">
                             ⬇️
                         </button>
-                        <button class="btn-action-view btn-delete" style="background:#f59e0b;" title="Restore Database" 
-                            onclick="window.restoreBackup('${filename}')">
+                        <button class="btn-action-view btn-delete btn-restore" style="background:#f59e0b;" title="Restore Database"
+                            data-filename="${escapeHtml(filename)}">
                             🔄
                         </button>
                     </div>
@@ -244,6 +244,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             `;
             tbody.appendChild(tr);
         });
+
+        tbody.querySelectorAll(".btn-download").forEach(btn =>
+            btn.addEventListener("click", () => window.downloadBackup(btn.dataset.filename)));
+        tbody.querySelectorAll(".btn-restore").forEach(btn =>
+            btn.addEventListener("click", () => window.restoreBackup(btn.dataset.filename)));
     }
 
     function applyFilters() {

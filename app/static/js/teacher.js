@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allData);
         } catch (e) {
             console.error(e);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -136,18 +136,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(item => {
             const tr = document.createElement("tr");
             
-            let statusBadge = `<span class="badge-other">${item.status}</span>`;
+            let statusBadge = `<span class="badge-other">${escapeHtml(item.status)}</span>`;
             if(item.status === 'Aktif') statusBadge = `<span class="badge-active">Aktif</span>`;
-            else if(item.status === 'Pensiun' || item.status === 'Keluar') statusBadge = `<span class="badge-inactive">${item.status}</span>`;
+            else if(item.status === 'Pensiun' || item.status === 'Keluar') statusBadge = `<span class="badge-inactive">${escapeHtml(item.status)}</span>`;
 
             tr.innerHTML = `
-                <td style="font-family:monospace; font-weight:600;">${item.identity_number}</td>
+                <td style="font-family:monospace; font-weight:600;">${escapeHtml(item.identity_number)}</td>
                 <td>
-                    <div style="font-weight:600;">${item.full_name}</div>
-                    <div style="font-size:11px; color:#64748b;">${item.rank || '-'}</div>
+                    <div style="font-weight:600;">${escapeHtml(item.full_name)}</div>
+                    <div style="font-size:11px; color:#64748b;">${escapeHtml(item.rank || '-')}</div>
                 </td>
-                <td>${item.gender}</td>
-                <td>${item.employment_status}</td>
+                <td>${escapeHtml(item.gender)}</td>
+                <td>${escapeHtml(item.employment_status)}</td>
                 <td>${statusBadge}</td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Server Error", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Server Error"), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.toast("Data guru dihapus", "success");
                 loadData();
             } catch (err) {
-                ui.alert("Gagal Hapus", err.message, "error");
+                ui.alert("Gagal Hapus", escapeHtml(err.message), "error");
             }
         }
     };

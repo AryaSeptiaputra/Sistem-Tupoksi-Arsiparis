@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             allLetters.sort((a, b) => new Date(b.sent_date) - new Date(a.sent_date));
             renderTable(allLetters);
         } catch (e) {
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -236,7 +236,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Gunakan item.archive_status (code) sebagai text jika backend belum mengirim 'archive_status_name'
             // Idealnya backend mengirim 'archive_status_name' hasil join master_reference.
             const statusText = item.archive_status || "-"; 
-            const statusPill = `<span class="status-pill ${statusPillClass}">${statusText}</span>`;
+            const statusPill = `<span class="status-pill ${statusPillClass}">${escapeHtml(statusText)}</span>`;
 
             // --- Approval Badge Logic (CSS) ---
             let approvalClass = "ap-pending";
@@ -245,9 +245,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (item.approval_status === 'draft') approvalClass = 'ap-draft';
             
             const approvalText = item.approval_status || "-";
-            const approvalBadge = `<span class="approval-badge ${approvalClass}">${approvalText}</span>`;
+            const approvalBadge = `<span class="approval-badge ${approvalClass}">${escapeHtml(approvalText)}</span>`;
 
-            const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
+            const locName = item.storage_location_name ? escapeHtml(item.storage_location_name) : '<span style="color:#aaa; font-style:italic;">-</span>';
 
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" 
@@ -262,16 +262,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tr.innerHTML = `
                 <td>
-                    <div class="text-main" style="font-family:monospace; color:var(--primary);">${item.number}</div>
+                    <div class="text-main" style="font-family:monospace; color:var(--primary);">${escapeHtml(item.number)}</div>
                     <div class="text-sub"><span class="date-badge">TGL:</span> ${dateLet}</div>
                     <div style="margin-top:4px;">${approvalBadge}</div>
                 </td>
                 <td><div class="text-main" style="font-size:14px;">${dateSent}</div></td>
                 <td>
-                    <div class="text-main">${item.destination} ${typeBadge}</div>
-                    <div class="text-desc" title="${item.subject}">${item.subject}</div>
+                    <div class="text-main">${escapeHtml(item.destination)} ${typeBadge}</div>
+                    <div class="text-desc" title="${escapeHtml(item.subject)}">${escapeHtml(item.subject)}</div>
                 </td>
-                <td><span class="code-badge" style="font-size:13px;">${item.classification_code || '-'}</span></td>
+                <td><span class="code-badge" style="font-size:13px;">${escapeHtml(item.classification_code || '-')}</span></td>
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
                     ${statusPill}
@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadLetters();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Kesalahan server"), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -422,7 +422,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 loadLetters(); 
             }
             catch(e) { 
-                ui.alert("Gagal Hapus", e.message, "error"); 
+                ui.alert("Gagal Hapus", escapeHtml(e.message), "error"); 
             }
         }
     };

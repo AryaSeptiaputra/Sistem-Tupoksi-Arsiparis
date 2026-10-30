@@ -187,7 +187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             renderTable(allLetters);
         } catch (e) {
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Jika backend mengirim raw code, kita tampilkan text. 
             // Jika master reference sudah diload, text bisa diambil dari sana, tapi untuk performa tabel, mapping simple ok.
 
-            const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
+            const locName = item.storage_location_name ? escapeHtml(item.storage_location_name) : '<span style="color:#aaa; font-style:italic;">-</span>';
             const hasFile = !!item.file_path;
 
             let actionButtons = `
@@ -236,22 +236,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tr.innerHTML = `
                 <td>
-                    <div class="text-main" style="font-family:monospace; color:var(--primary);">${item.number}</div>
+                    <div class="text-main" style="font-family:monospace; color:var(--primary);">${escapeHtml(item.number)}</div>
                     <div class="text-sub"><span class="date-badge">Srt:</span> ${dateLet}</div>
                 </td>
                 <td>
                     <div class="text-main" style="font-size:14px;">${dateRec}</div>
                 </td>
                 <td>
-                    <div class="text-main">${item.sender}</div>
-                    <div class="text-desc" title="${item.subject}">${item.subject}</div>
+                    <div class="text-main">${escapeHtml(item.sender)}</div>
+                    <div class="text-desc" title="${escapeHtml(item.subject)}">${escapeHtml(item.subject)}</div>
                 </td>
                 <td>
-                    <span class="code-badge" style="font-size:13px;">${item.classification_code || '-'}</span>
+                    <span class="code-badge" style="font-size:13px;">${escapeHtml(item.classification_code || '-')}</span>
                 </td>
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
-                    <span class="status-pill ${statusBadgeClass}">${statusText}</span>
+                    <span class="status-pill ${statusBadgeClass}">${escapeHtml(statusText)}</span>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -439,7 +439,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             showTableMode();
             loadLetters();
         } catch (err) {
-            ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Kesalahan server"), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -462,7 +462,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.toast("Data telah dihapus", "success");
                 loadLetters();
             } catch (err) {
-                ui.alert("Gagal Hapus", err.message, "error");
+                ui.alert("Gagal Hapus", escapeHtml(err.message), "error");
             }
         }
     };

@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } catch (e) {
             console.error("[ERROR] initPage failed:", e);
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:red;">Error: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:red;">Error: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -277,7 +277,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allArchives);
         } catch (e) {
             console.error("[ERROR] loadArchives exception:", e);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -329,7 +329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const monthName = item.period_month ? monthNames[item.period_month] : "";
             const periodText = monthName ? `${monthName} ${item.fiscal_year}` : item.fiscal_year;
             const desc = item.description || "-";
-            const locationName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
+            const locationName = item.storage_location_name ? escapeHtml(item.storage_location_name) : '<span style="color:#aaa; font-style:italic;">-</span>';
 
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat PDF" onclick="window.openFile(${item.id})" 
@@ -344,15 +344,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             tr.innerHTML = `
                 <td style="font-weight:600;">${periodText}</td>
                 <td>
-                    <div style="font-weight:600; font-size:13px;">${item.title}</div>
-                    <div class="desc-text" title="${desc}">${desc}</div>
+                    <div style="font-weight:600; font-size:13px;">${escapeHtml(item.title)}</div>
+                    <div class="desc-text" title="${escapeHtml(desc)}">${escapeHtml(desc)}</div>
                 </td>
-                <td><span class="badge-cat ${catClass}">${catLabel}</span></td>
+                <td><span class="badge-cat ${catClass}">${escapeHtml(catLabel)}</span></td>
                 <td class="money-text">${fmt.format(item.amount || 0)}</td>
-                <td><span class="code-badge">${item.classification_code || '-'}</span></td>
+                <td><span class="code-badge">${escapeHtml(item.classification_code || '-')}</span></td>
                 <td>
                     <div style="font-size:12px; margin-bottom:4px;">📍 ${locationName}</div>
-                    <span class="status-pill ${statusBadgeClass}">${statusText}</span>
+                    <span class="status-pill ${statusBadgeClass}">${escapeHtml(statusText)}</span>
                 </td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
@@ -481,7 +481,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadArchives();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Error Server"), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -505,7 +505,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 loadArchives(); 
             } 
             catch(e) { 
-                ui.alert("Gagal Hapus", e.message, "error"); 
+                ui.alert("Gagal Hapus", escapeHtml(e.message), "error"); 
             }
         }
     };

@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allLocations);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -100,10 +100,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td>${index + 1}</td>
                 <td>
                     <div style="font-weight:600; color:var(--text-main); font-size:14px;">
-                        🗄️ ${item.name}
+                        🗄️ ${escapeHtml(item.name)}
                     </div>
                 </td>
-                <td style="color:var(--text-muted); font-size:13px;">${item.description || '-'}</td>
+                <td style="color:var(--text-muted); font-size:13px;">${escapeHtml(item.description || '-')}</td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
                         <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Error Server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Error Server"), "error");
         } finally {
             btnSave.textContent = originalText;
             btnSave.disabled = false;
@@ -211,7 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.toast("Lokasi dihapus", "success");
                 loadData();
             } catch (err) {
-                ui.alert("Gagal Hapus", err.message, "error");
+                ui.alert("Gagal Hapus", escapeHtml(err.message), "error");
             }
         }
     };

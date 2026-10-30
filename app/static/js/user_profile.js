@@ -35,7 +35,7 @@ async function loadAccount() {
         const account = await api.user.getMe();
         if (account) renderAccount(account);
     } catch (error) {
-        ui.toast("Gagal memuat akun: " + error.message, "error");
+        ui.toast("Gagal memuat akun: " + escapeHtml(error.message), "error");
     }
 }
 
@@ -109,7 +109,7 @@ async function handleProfileUpdate(event) {
         ui.toast("Informasi akun tersimpan. Login ulang untuk memperbarui nama di semua halaman.", "success");
     } catch (error) {
         updateProfileButtons();
-        ui.alert("Gagal menyimpan", error.message || "Error Server", "error");
+        ui.alert("Gagal menyimpan", escapeHtml(error.message || "Error Server"), "error");
     }
 }
 
@@ -168,7 +168,7 @@ async function handlePasswordChange(event) {
         await ui.alert("Berhasil", "Kata sandi diganti. Silakan login ulang.", "success");
         api.auth.logout();
     } catch (error) {
-        ui.alert("Gagal mengganti", error.message || "Error Server", "error");
+        ui.alert("Gagal mengganti", escapeHtml(error.message || "Error Server"), "error");
     }
 }
 

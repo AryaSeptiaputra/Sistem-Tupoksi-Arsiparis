@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allDiplomas);
         } catch (e) {
             console.error(e);
-            document.getElementById("table-body").innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            document.getElementById("table-body").innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 : `<span class="status-pill st-warning">Belum Diambil</span>`;
 
             const hasFile = !!item.attachment_path;
-            const locName = item.storage_location_name || '<span style="color:#aaa; font-style:italic;">-</span>';
+            const locName = item.storage_location_name ? escapeHtml(item.storage_location_name) : '<span style="color:#aaa; font-style:italic;">-</span>';
 
             let actionButtons = `
                 <button class="btn-action-view" title="Lihat File" 
@@ -204,12 +204,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tr.innerHTML = `
                 <td>
-                    <div class="text-main">${item.student_name}</div>
-                    <div class="text-sub">No. Seri: ${item.number || '-'}</div>
+                    <div class="text-main">${escapeHtml(item.student_name)}</div>
+                    <div class="text-sub">No. Seri: ${escapeHtml(item.number || '-')}</div>
                 </td>
                 <td>
-                    <span class="major-badge">${item.major || '-'}</span>
-                    <div class="text-sub" style="margin-top:4px;">Tahun: ${item.academic_year || '-'}</div>
+                    <span class="major-badge">${escapeHtml(item.major || '-')}</span>
+                    <div class="text-sub" style="margin-top:4px;">Tahun: ${escapeHtml(item.academic_year || '-')}</div>
                 </td>
                 <td>
                     <div class="text-sub" style="font-size:12px; margin-bottom:4px;">📍 ${locName}</div>
@@ -340,7 +340,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message || "Kesalahan server", "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message || "Kesalahan server"), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -362,7 +362,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 loadData(); 
             } 
             catch (e) { 
-                ui.alert("Gagal Hapus", e.message, "error"); 
+                ui.alert("Gagal Hapus", escapeHtml(e.message), "error"); 
             }
         }
     };

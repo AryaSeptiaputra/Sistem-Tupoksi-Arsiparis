@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             renderTable(allData);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
     }
 
@@ -121,12 +121,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             tr.style = trStyle;
             tr.innerHTML = `
                 <td style="text-align:center; font-weight:600;">${item.sort_order}</td>
-                <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; color:#0f172a;">${item.code}</code></td>
+                <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; color:#0f172a;">${escapeHtml(item.code)}</code></td>
                 <td>
-                    <div style="font-weight:600;">${item.name}</div>
+                    <div style="font-weight:600;">${escapeHtml(item.name)}</div>
                     <div>${activeBadge}</div>
                 </td>
-                <td style="color:var(--text-muted); font-size:13px;">${item.description || '-'}</td>
+                <td style="color:var(--text-muted); font-size:13px;">${escapeHtml(item.description || '-')}</td>
                 <td style="text-align:center;">
                     <div class="btn-action-group">
                         <button class="btn-action-view btn-edit" title="Edit" onclick="triggerEdit(${item.id})">✏️</button>
@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadData();
         } catch (err) {
             console.error(err);
-            ui.alert("Gagal Menyimpan", err.message, "error");
+            ui.alert("Gagal Menyimpan", escapeHtml(err.message), "error");
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ui.toast("Data dinonaktifkan", "success");
                 loadData();
             } catch (err) {
-                ui.alert("Gagal", err.message, "error");
+                ui.alert("Gagal", escapeHtml(err.message), "error");
             }
         }
     };

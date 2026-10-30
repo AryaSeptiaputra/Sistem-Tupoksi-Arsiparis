@@ -1,3 +1,15 @@
+// Teks dari data (nama, perihal, pesan server) di-escape sebelum disisipkan ke innerHTML,
+// agar tag HTML di dalamnya tampil sebagai teks, bukan dijalankan browser.
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const ui = {
     // Inisialisasi HTML Modal ke dalam Body
     init: () => {
