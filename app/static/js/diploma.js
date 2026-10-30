@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- STATE VARIABLES ---
     let allDiplomas = []; 
+    let majorRefs = [];
     let isEditMode = false;
     let currentEditId = null;
     let removeAttachmentFlag = false;  // Track if user wants to remove attachment
@@ -126,18 +127,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadReferences() {
         try {
             const response = await api.reference.getByCategory('school_major');
-            const data = response.data || [];
-
-            const populate = (el, placeholder) => {
-                if(!el) return;
-                el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => {
-                    el.add(new Option(item.name, item.name));
-                });
-            };
-
-            populate(elFilterMajor, "Semua Jurusan");
-            populate(inputMajor, "Pilih Jurusan");
+            majorRefs = response.data || [];
+            // Ijazah menyimpan nama jurusan, bukan kodenya
+            ui.fillSelect(elFilterMajor, majorRefs, { placeholder: "Semua Jurusan", valueKey: 'name' });
+            ui.fillSelect(inputMajor, majorRefs, { placeholder: "Pilih Jurusan", activeOnly: true, valueKey: 'name' });
 
         } catch (e) {
             console.error("Gagal load jurusan:", e);
@@ -247,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputId.value = data.id;
             inputName.value = data.student_name;
             inputSerial.value = data.number;
-            inputMajor.value = data.major; 
+            ui.selectValue(inputMajor, data.major, majorRefs, 'name');
             inputYear.value = data.academic_year;
             
             if (data.storage_location_id) inputStorageId.value = data.storage_location_id;
@@ -269,6 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } else {
             currentEditId = null;
+            ui.selectValue(inputMajor, null);
         }
     }
 

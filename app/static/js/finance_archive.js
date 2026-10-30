@@ -16,6 +16,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- STATE VARIABLES ---
     let allArchives = [];
+    let categoryRefs = [];
+    let archiveStatusRefs = [];
     let isEditMode = false;
     let currentEditId = null;
     let removeAttachmentFlag = false;  // Track if user wants to remove attachment
@@ -182,26 +184,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadReferences() {
         try {
             console.log("[DEBUG] loadReferences() called");
-            // Helper pengisi dropdown
-            const populate = (element, data, placeholder) => {
-                if(!element) {
-                    console.warn("[WARN] Element not found for populate");
-                    return;
-                }
-                element.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => {
-                    element.add(new Option(item.name, item.code));
-                });
-            };
-
             // 1. Finance Category
             console.log("[DEBUG] Fetching finance_category references");
             const respCat = await api.reference.getByCategory('finance_category');
             console.log("[DEBUG] Finance category response:", respCat);
             if(respCat && respCat.data) {
                 console.log("[DEBUG] Populating category filter with", respCat.data.length, "items");
-                populate(elFilterCat, respCat.data, "Semua Kategori");
-                populate(inputCategory, respCat.data, null); // Required form input
+                categoryRefs = respCat.data;
+                ui.fillSelect(elFilterCat, categoryRefs, { placeholder: "Semua Kategori" });
+                ui.fillSelect(inputCategory, categoryRefs, { activeOnly: true });
             } else {
                 console.warn("[WARN] No finance_category data in response");
             }
@@ -212,8 +203,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log("[DEBUG] Archive status response:", respStat);
             if(respStat && respStat.data) {
                 console.log("[DEBUG] Populating status filter with", respStat.data.length, "items");
-                populate(elFilterStatus, respStat.data, "Semua Status");
-                populate(inputArchiveStatus, respStat.data, null);
+                archiveStatusRefs = respStat.data;
+                ui.fillSelect(elFilterStatus, archiveStatusRefs, { placeholder: "Semua Status" });
+                ui.fillSelect(inputArchiveStatus, archiveStatusRefs, { activeOnly: true });
             } else {
                 console.warn("[WARN] No archive_status data in response");
             }
@@ -393,7 +385,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputTitle.value = data.title;
             inputFiscalYear.value = data.fiscal_year;
             inputMonth.value = data.period_month || "";
-            inputCategory.value = data.category;
+            ui.selectValue(inputCategory, data.category, categoryRefs);
             inputAmount.value = data.amount;
             inputDesc.value = data.description || "";
             
@@ -401,7 +393,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (data.storage_location_id) inputStorageId.value = data.storage_location_id;
             
             if(groupStatus) groupStatus.classList.remove("hidden");
-            if(inputArchiveStatus && data.archive_status) inputArchiveStatus.value = data.archive_status;
+            ui.selectValue(inputArchiveStatus, data.archive_status, archiveStatusRefs);
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
@@ -410,6 +402,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             currentEditId = null;
             if(groupStatus) groupStatus.classList.add("hidden");
+            ui.selectValue(inputCategory, null);
         }
     }
 

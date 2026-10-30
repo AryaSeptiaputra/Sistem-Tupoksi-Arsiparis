@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     let currentEditId = null;
     // Data guru menyimpan kode referensi (PNS, aktif, III/a); peta ini memberi nama untuk tabel
     let refNames = { emp: {}, active: {}, rank: {} };
+    // Daftar referensi lengkap (termasuk nonaktif) untuk label nilai lama di form edit
+    let refLists = { emp: [], active: [], rank: [] };
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -80,34 +82,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadReferences() {
         try {
-            const populate = (el, data, placeholder) => {
-                if(!el) return;
-                el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => el.add(new Option(item.name, item.code)));
-            };
             const toNameMap = (data) => Object.fromEntries(data.map(item => [item.code, item.name]));
 
             // 1. Status Kepegawaian
             const respEmp = await api.reference.getByCategory('teacher_emp_status');
             if(respEmp && respEmp.data) {
+                refLists.emp = respEmp.data;
                 refNames.emp = toNameMap(respEmp.data);
-                populate(filterEmpStatus, respEmp.data, "Semua Kepegawaian");
-                populate(inputEmpStatus, respEmp.data, "- Pilih Status -");
+                ui.fillSelect(filterEmpStatus, respEmp.data, { placeholder: "Semua Kepegawaian" });
+                ui.fillSelect(inputEmpStatus, respEmp.data, { placeholder: "- Pilih Status -", activeOnly: true });
             }
 
             // 2. Status Keaktifan
             const respActive = await api.reference.getByCategory('teacher_active_status');
             if(respActive && respActive.data) {
+                refLists.active = respActive.data;
                 refNames.active = toNameMap(respActive.data);
-                populate(filterStatus, respActive.data, "Semua Status");
-                populate(inputStatus, respActive.data, null);
+                ui.fillSelect(filterStatus, respActive.data, { placeholder: "Semua Status" });
+                ui.fillSelect(inputStatus, respActive.data, { activeOnly: true });
             }
 
             // 3. Pangkat / Golongan
             const respRank = await api.reference.getByCategory('teacher_rank');
             if(respRank && respRank.data) {
+                refLists.rank = respRank.data;
                 refNames.rank = toNameMap(respRank.data);
-                populate(inputRank, respRank.data, "- Pilih Golongan -");
+                ui.fillSelect(inputRank, respRank.data, { placeholder: "- Pilih Golongan -", activeOnly: true });
             }
 
         } catch (e) {
@@ -186,21 +186,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             
             inputName.value = data.full_name;
             inputGender.value = data.gender;
-            
-            // [UPDATE] Set value untuk Dropdown Rank
-            inputRank.value = data.rank || "";
-            
-            inputEmpStatus.value = data.employment_status;
-            inputStatus.value = data.status;
+            ui.selectValue(inputRank, data.rank, refLists.rank);
+            ui.selectValue(inputEmpStatus, data.employment_status, refLists.emp);
+            ui.selectValue(inputStatus, data.status, refLists.active);
             inputAddress.value = data.address || "";
-            
+
         } else {
             pageTitle.textContent = "Tambah Guru Baru";
             currentEditId = null;
             inputIdentity.readOnly = false;
-            inputStatus.value = "aktif";
-            // Default Rank kosong
-            inputRank.value = "";
+            ui.selectValue(inputStatus, "aktif", refLists.active);
+            // Pangkat kosong dan status kepegawaian belum dipilih
+            ui.selectValue(inputRank, null);
+            ui.selectValue(inputEmpStatus, null);
         }
     }
 

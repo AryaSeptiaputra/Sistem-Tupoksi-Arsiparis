@@ -470,3 +470,29 @@ class TestMasterReferensi:
         page.click("btn-add-new")
         page.select("category", value="BOS_REG")
         assert name not in page.option_texts("category"), "Kategori nonaktif masih muncul di dropdown form"
+
+    def test_nilai_nonaktif_tetap_saat_edit(self, page):
+        """Membuka edit arsip keuangan yang kategorinya sudah dinonaktifkan, lalu menyimpannya tanpa perubahan.
+
+        Diharapkan: dropdown Kategori menampilkan kategori lama berlabel "(nonaktif)", dan setelah disimpan kategori arsip tidak berubah.
+        """
+        token = secrets.token_hex(3)
+        code, title = f"pakai_{token}", unique("Arsip Kategori Lama")
+        page.run_js("return await api.reference.create(args[0]);",
+                    {"category": "finance_category", "code": code, "name": f"Kategori Dipakai {token}",
+                     "sort_order": 9, "description": "", "is_active": True})
+        class_id = page.api_find("classification", "code", "421")["id"]
+        page.api_create("financeArchive", {"title": title, "fiscal_year": 2026, "category": code, "amount": 1000,
+                                           "description": "", "classification_id": class_id}, form=True)
+        ref_id = page.run_js("const r = await api.reference.getByCategory('finance_category');"
+                             "return r.data.find(x => x.code === args[0]).id;", code)
+        page.run_js("return await api.reference.delete(args[0]);", ref_id)
+
+        page.open_list("/page/finance_archive")
+        page.click_row_button(title, "Edit")
+        assert page.value("category") == code
+        selected = page.driver.execute_script(
+            "const s = document.getElementById('category'); return s.options[s.selectedIndex].text;")
+        assert "(nonaktif)" in selected
+        page.save_expect_toast("btn-save-data", "Berhasil diperbarui")
+        assert page.api_find("financeArchive", "title", title)["category"] == code

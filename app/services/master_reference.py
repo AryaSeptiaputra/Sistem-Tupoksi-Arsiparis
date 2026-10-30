@@ -38,10 +38,11 @@ class MasterReferenceService:
             db.close()
 
     def create(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Menambah opsi baru dalam keadaan aktif.
+        """Menambah opsi baru, aktif kecuali `is_active` bernilai False.
 
         Args:
-            data: Isian opsi; `category`, `code`, dan `name` wajib.
+            data: Isian opsi; `category`, `code`, dan `name` wajib,
+                `is_active` opsional.
 
         Returns:
             Opsi yang tersimpan dalam bentuk dict.
@@ -60,7 +61,7 @@ class MasterReferenceService:
                 name=data['name'],
                 sort_order=data.get('sort_order', 0),
                 description=data.get('description', ""),
-                is_active=True
+                is_active=bool(data.get('is_active', True))
             )
             db.add(new_ref)
             db.commit()

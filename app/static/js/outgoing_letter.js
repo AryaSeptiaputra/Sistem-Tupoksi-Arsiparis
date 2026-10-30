@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- STATE VARIABLES ---
     let allLetters = [];
+    let archiveStatusRefs = [];
+    let approvalRefs = [];
     let isEditMode = false;
     let currentEditId = null;
     let removeAttachmentFlag = false;  // Track if user wants to remove attachment
@@ -135,31 +137,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     // [FUNGSI UTAMA] Mengambil data dari MasterReference
     async function loadReferences() {
         try {
-            // Helper pengisi dropdown
-            const populate = (element, data, placeholder) => {
-                if(!element) return;
-                element.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => {
-                    // item.code (misal: 'active', 'pending') -> value
-                    // item.name (misal: 'Aktif', 'Menunggu') -> text
-                    element.add(new Option(item.name, item.code));
-                });
-            };
-
             // 1. Load Archive Status (Shared)
             // Kategori di Python: ARCHIVE_STATUS = "archive_status"
             const respArchive = await api.reference.getByCategory('archive_status');
             if(respArchive && respArchive.data) {
-                populate(elFilterStatus, respArchive.data, "Semua Status");
-                populate(inputArchiveStatus, respArchive.data, null);
+                archiveStatusRefs = respArchive.data;
+                ui.fillSelect(elFilterStatus, archiveStatusRefs, { placeholder: "Semua Status" });
+                ui.fillSelect(inputArchiveStatus, archiveStatusRefs, { activeOnly: true });
             }
 
             // 2. Load Letter Approval Status (Outgoing Specific)
             // Kategori di Python: LETTER_APPROVAL_STATUS = "letter_approval_status"
             const respApproval = await api.reference.getByCategory('letter_approval_status');
             if(respApproval && respApproval.data) {
-                populate(elFilterApproval, respApproval.data, "Semua Persetujuan");
-                populate(inputApprovalStatus, respApproval.data, null);
+                approvalRefs = respApproval.data;
+                ui.fillSelect(elFilterApproval, approvalRefs, { placeholder: "Semua Persetujuan" });
+                ui.fillSelect(inputApprovalStatus, approvalRefs, { activeOnly: true });
             }
 
         } catch (e) {
@@ -312,8 +305,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             if(data.storage_location_id) inputStorageId.value = data.storage_location_id;
             
             // Set Dynamic Status Values (pastikan option sudah ada dari loadReferences)
-            if(data.archive_status) inputArchiveStatus.value = data.archive_status;
-            if(data.approval_status) inputApprovalStatus.value = data.approval_status;
+            ui.selectValue(inputArchiveStatus, data.archive_status, archiveStatusRefs);
+            ui.selectValue(inputApprovalStatus, data.approval_status, approvalRefs);
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
@@ -322,9 +315,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         } else {
             currentEditId = null;
-            // Set Default Values (Opsional, pastikan 'active' dan 'pending' ada di database master reference Anda)
-            // inputArchiveStatus.value = "active"; 
-            // inputApprovalStatus.value = "pending";
+            // Membuang opsi "(nonaktif)" dari edit sebelumnya; pilihan kembali ke opsi pertama
+            ui.selectValue(inputArchiveStatus, null);
+            ui.selectValue(inputApprovalStatus, null);
         }
     }
 

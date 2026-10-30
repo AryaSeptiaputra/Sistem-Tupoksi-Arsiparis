@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let allClassifications = [];
     let isEditMode = false;
     let currentEditId = null;
+    let finalActionRefs = [];
 
     // --- DOM REFERENCES ---
     const viewTable = document.getElementById("view-table");
@@ -86,14 +87,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadReferences() {
         try {
             const response = await api.reference.getByCategory('final_action');
-            const data = response.data || [];
-
-            if(inputFinalAction) {
-                inputFinalAction.innerHTML = '';
-                data.forEach(item => {
-                    inputFinalAction.add(new Option(item.name, item.code));
-                });
-            }
+            finalActionRefs = response.data || [];
+            ui.fillSelect(inputFinalAction, finalActionRefs, { activeOnly: true });
         } catch (e) {
             console.error("Gagal load references:", e);
         }
@@ -197,13 +192,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputRetActive.value = data.retention_active_period || 1;
             inputRetInactive.value = data.retention_inactive_period || 2;
             
-            // Pastikan value dropdown sesuai code yang diload dari referensi
-            if(data.final_action) inputFinalAction.value = data.final_action;
+            ui.selectValue(inputFinalAction, data.final_action, finalActionRefs);
         } else {
             currentEditId = null;
             inputRetActive.value = 1;
             inputRetInactive.value = 2;
-            // Default select usually takes the first option
+            // Membuang opsi "(nonaktif)" dari edit sebelumnya; pilihan kembali ke opsi pertama
+            ui.selectValue(inputFinalAction, null);
         }
         
         updatePreview();

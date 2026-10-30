@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- STATE VARIABLES ---
     let allLetters = [];
+    let archiveStatusRefs = [];
     let isEditMode = false;
     let currentEditId = null;
     let removeAttachmentFlag = false;  // Track if user wants to remove attachment
@@ -131,23 +132,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             // Ambil opsi untuk status arsip (category: 'archive_status')
             const response = await api.reference.getByCategory('archive_status');
-            const data = response.data || [];
-
-            // Helper render
-            const populate = (el, withPlaceholder) => {
-                if (!el) return;
-                el.innerHTML = withPlaceholder ? `<option value="">${withPlaceholder}</option>` : '';
-                data.forEach(item => {
-                    // item.code = 'active', item.name = '🟢 Aktif'
-                    el.add(new Option(item.name, item.code));
-                });
-            };
-
-            // Isi Dropdown Filter
-            populate(elFilterStatus, "Semua Status");
-
-            // Isi Dropdown Form (Tidak perlu placeholder kosong jika required, tapi opsional)
-            populate(inputArchiveStatus, null);
+            archiveStatusRefs = response.data || [];
+            ui.fillSelect(elFilterStatus, archiveStatusRefs, { placeholder: "Semua Status" });
+            ui.fillSelect(inputArchiveStatus, archiveStatusRefs, { activeOnly: true });
 
         } catch (e) {
             console.error("Gagal load references:", e);
@@ -332,7 +319,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (data.storage_location_id) inputStorageId.value = String(data.storage_location_id);
 
             // Set nilai status saat edit
-            if (data.archive_status) inputArchiveStatus.value = data.archive_status;
+            ui.selectValue(inputArchiveStatus, data.archive_status, archiveStatusRefs);
 
             if (data.file_path) {
                 const fileName = data.file_path.split(/[\\/]/).pop();
@@ -342,7 +329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             currentEditId = null;
             // Default untuk data baru
-            inputArchiveStatus.value = "active";
+            ui.selectValue(inputArchiveStatus, "active", archiveStatusRefs);
         }
     }
 

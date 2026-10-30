@@ -184,5 +184,34 @@ const ui = {
             el.style.opacity = '0';
             setTimeout(() => el.remove(), 300);
         }, 3000);
+    },
+
+    // 5. DROPDOWN REFERENSI
+    // Mengisi <select> dari daftar referensi { code, name, is_active }.
+    // activeOnly dipakai dropdown form; dropdown filter tetap memuat semua agar data lama bisa dicari.
+    fillSelect: (select, items, { placeholder = null, activeOnly = false, valueKey = 'code' } = {}) => {
+        if (!select) return;
+        select.innerHTML = '';
+        if (placeholder !== null) select.add(new Option(placeholder, ''));
+        items.filter(item => !activeOnly || item.is_active)
+            .forEach(item => select.add(new Option(item.name, item[valueKey])));
+    },
+
+    // Memilih nilai di dropdown form. Nilai lama yang referensinya sudah nonaktif
+    // ditambahkan sebagai opsi "(nonaktif)", supaya tidak berubah diam-diam saat disimpan.
+    // Opsi "(nonaktif)" dari pemakaian sebelumnya selalu dibuang dulu.
+    selectValue: (select, value, items = [], valueKey = 'code') => {
+        if (!select) return;
+        select.querySelectorAll('option[data-inactive]').forEach(option => option.remove());
+        if (value === null || value === undefined || value === '') return;
+
+        const wanted = String(value);
+        if (!Array.from(select.options).some(option => option.value === wanted)) {
+            const ref = items.find(item => String(item[valueKey]) === wanted);
+            const option = new Option(`${ref ? ref.name : wanted} (nonaktif)`, wanted);
+            option.dataset.inactive = 'true';
+            select.add(option);
+        }
+        select.value = wanted;
     }
 };

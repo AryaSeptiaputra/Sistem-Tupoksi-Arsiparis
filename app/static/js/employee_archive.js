@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let isEditMode = false;
     let currentEditId = null;
     let refDocTypes = [];
+    let refStatus = [];
     let removeAttachmentFlag = false;  // Track if user wants to remove attachment
 
     // --- DOM ---
@@ -79,18 +80,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             const respType = await api.reference.getByCategory('emp_doc_type');
             refDocTypes = respType.data || [];
             const respStatus = await api.reference.getByCategory('archive_status');
-            const refStatus = respStatus.data || [];
+            refStatus = respStatus.data || [];
 
-            const populate = (el, data, placeholder) => {
-                if(!el) return;
-                el.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
-                data.forEach(item => el.add(new Option(item.name, item.code)));
-            };
-
-            populate(elFilterType, refDocTypes, "Semua Jenis");
-            populate(elFilterStatus, refStatus, "Semua Status");
-            populate(inputDocType, refDocTypes, null);
-            populate(inputArchiveStatus, refStatus, null);
+            ui.fillSelect(elFilterType, refDocTypes, { placeholder: "Semua Jenis" });
+            ui.fillSelect(elFilterStatus, refStatus, { placeholder: "Semua Status" });
+            ui.fillSelect(inputDocType, refDocTypes, { activeOnly: true });
+            ui.fillSelect(inputArchiveStatus, refStatus, { activeOnly: true });
         } catch (e) { console.error(e); }
     }
 
@@ -202,8 +197,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             currentEditId = data.id;
             document.getElementById("document_name").value = data.document_name;
             inputOwnerId.value = data.owner_id;
-            inputDocType.value = data.document_type;
-            inputArchiveStatus.value = data.archive_status;
+            ui.selectValue(inputDocType, data.document_type, refDocTypes);
+            ui.selectValue(inputArchiveStatus, data.archive_status, refStatus);
             document.getElementById("document_year").value = data.document_year;
             document.getElementById("storage_location_id").value = data.storage_location_id || "";
             document.getElementById("description").value = data.description || "";
@@ -216,7 +211,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 showPreview(`/storage/documents/employee_archives/${fileName}`);
             }
         } else {
-            inputArchiveStatus.value = "active";
+            ui.selectValue(inputDocType, null);
+            ui.selectValue(inputArchiveStatus, "active", refStatus);
         }
     };
 
