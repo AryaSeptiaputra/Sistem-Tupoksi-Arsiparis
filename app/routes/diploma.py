@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from flask import Blueprint, request, jsonify
 from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
@@ -10,6 +12,7 @@ from app.services.diploma import (
 from app.services.log import create_log
 from app import db
 from app.utils.current_user import get_current_user_id
+from app.utils.date_helper import parse_dates
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.logger import setup_logger
 from app.utils.response import handle_database_error
@@ -19,6 +22,9 @@ from app.utils.response import success_response, error_response
 logger = setup_logger(__name__)
 
 diploma_bp = Blueprint('diploma', __name__)
+
+# Kolom tanggal dari form dan labelnya untuk pesan error
+DATE_FIELDS = {'collected_at': 'Tanggal Pengambilan'}
 
 @diploma_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -45,6 +51,11 @@ def create_diploma_route() -> ResponseReturnValue:
     required = ['number', 'student_name', 'major', 'academic_year']
     for f in required:
         if not data.get(f): return jsonify({"error": f"{f} required"}), 400
+
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     file = request.files.get('file')
     if file:
@@ -86,8 +97,10 @@ def update_diploma_route() -> ResponseReturnValue:
     if 'is_collected' in data:
         data['is_collected'] = str(data['is_collected']).lower() == 'true'
 
-    if 'collected_at' in data and not data['collected_at']:
-        data['collected_at'] = None
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     if data.get('storage_location_id'):
         try: data['storage_location_id'] = int(data['storage_location_id'])

@@ -20,6 +20,7 @@ from app.services.log import create_log
 from app import db
 from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
+from app.utils.date_helper import parse_dates
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.logger import setup_logger
 from app.utils.response import handle_database_error
@@ -36,6 +37,9 @@ REQUIRED_FIELDS = {
     'sent_date': 'Tanggal Kirim',
     'destination': 'Tujuan'
 }
+
+# Kolom tanggal dari form dan labelnya untuk pesan error
+DATE_FIELDS = {'letter_date': 'Tanggal Surat', 'sent_date': 'Tanggal Kirim'}
 
 def _find_missing_label(data: dict[str, Any]) -> str | None:
     for field, label in REQUIRED_FIELDS.items():
@@ -87,7 +91,12 @@ def create_outgoing_letter_route() -> ResponseReturnValue:
     missing_label = _find_missing_label(data)
     if missing_label:
         return jsonify({"error": f"{missing_label} wajib diisi"}), 400
-    
+
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
     file = request.files.get('file')
     attachment_path = None
     if file:
@@ -133,6 +142,11 @@ def update_outgoing_letter_route() -> ResponseReturnValue:
         _normalize_update_fields(data)
     except ValueError:
         return jsonify({"error": "ID harus berupa angka"}), 400
+
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     db_session: Session = db.SessionLocal()
     try:

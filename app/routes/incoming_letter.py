@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from flask import Blueprint, request
 from flask.typing import ResponseReturnValue
@@ -13,6 +15,7 @@ from app.services.log import create_log
 from app import db
 from app.errors import FileStorageError
 from app.utils.current_user import get_current_user_id
+from app.utils.date_helper import parse_dates
 from app.utils.file_helper import handle_file_upload, delete_physical_file
 from app.utils.logger import setup_logger
 from app.utils.pagination import PaginationParams, get_pagination_params
@@ -21,6 +24,9 @@ from app.utils.response import success_response, error_response, handle_database
 logger = setup_logger(__name__)
 
 incoming_letter_bp = Blueprint('incoming_letter', __name__)
+
+# Kolom tanggal dari form dan labelnya untuk pesan error
+DATE_FIELDS = {'letter_date': 'Tanggal Surat', 'received_date': 'Tanggal Diterima'}
 
 @incoming_letter_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -47,7 +53,12 @@ def create_incoming_letter_route() -> ResponseReturnValue:
     for field, label in field_labels.items():
         if not data.get(field):
             return error_response(f"{label} wajib diisi", 400)
-            
+
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return error_response(str(e), 400)
+
     file = request.files.get('file')
     attachment_path, full_path = None, None
     if file:
@@ -98,6 +109,11 @@ def update_incoming_letter_route() -> ResponseReturnValue:
     if data.get('storage_location_id'):
         try: data['storage_location_id'] = int(data['storage_location_id'])
         except (ValueError, TypeError): data['storage_location_id'] = None # Handle "Select..." value
+
+    try:
+        data.update(parse_dates(data, DATE_FIELDS))
+    except ValueError as e:
+        return error_response(str(e), 400)
 
     db_session: Session = db.SessionLocal()
     try:
