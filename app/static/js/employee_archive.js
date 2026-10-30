@@ -262,6 +262,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
+    if (btnResetFilter) {
+        btnResetFilter.addEventListener("click", () => {
+            [elSearch, elFilterType, elFilterEmployee, elFilterStatus, elFilterClass].forEach(el => {
+                if (el) el.value = "";
+            });
+            applyFilters();
+            ui.toast("Filter direset", "info");
+        });
+    }
+
     function applyFilters() {
         const term = elSearch.value.toLowerCase();
         const res = allDocs.filter(i => {

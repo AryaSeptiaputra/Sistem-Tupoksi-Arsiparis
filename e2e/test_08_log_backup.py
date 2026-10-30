@@ -147,14 +147,25 @@ class TestBackup:
                         "Pencarian tanpa hasil tidak menampilkan pesan kosong")
 
     def test_filter_status_gagal(self, page):
-        """Memilih filter Status "Failed (Gagal)" saat semua backup berhasil.
+        """Memilih filter Status "Gagal" saat semua backup berhasil.
 
-        Diharapkan: backup yang berhasil tidak ditampilkan.
+        Diharapkan: backup yang berhasil tidak ditampilkan, sehingga muncul "Belum ada riwayat backup."
         """
         self._backup_now(page)
+        assert any("Berhasil" in row for row in page.row_texts())
         page.select("filterStatus", value="failed")
-        page.wait.until(lambda _: not any("Success" in row for row in page.row_texts()),
+        page.wait.until(lambda _: "Belum ada riwayat backup" in page.row_texts()[0],
                         "Filter status tidak menyaring riwayat backup")
+
+    def test_filter_inisiator(self, page):
+        """Memilih filter Inisiator dengan nama operator.
+
+        Diharapkan: pilihan inisiator berasal dari riwayat, dan hanya backup buatan operator itu yang tampil.
+        """
+        self._backup_now(page)
+        page.select("filterInitiator", value=OPERATOR_NAME)
+        rows = page.row_texts()
+        assert rows and all(OPERATOR_NAME in row for row in rows)
 
     def test_unduh(self, page):
         """Menekan tombol unduh pada riwayat backup.

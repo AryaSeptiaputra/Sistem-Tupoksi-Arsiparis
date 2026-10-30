@@ -150,11 +150,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadData() {
         try {
             allDiplomas = await api.diploma.getAll();
+            populateYearFilter();
             renderTable(allDiplomas);
         } catch (e) {
             console.error(e);
             document.getElementById("table-body").innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Gagal: ${escapeHtml(e.message)}</td></tr>`;
         }
+    }
+
+    // Pilihan tahun ajaran diambil dari data, terbaru di atas, contoh: "2025/2026"
+    function populateYearFilter() {
+        const selected = elFilterYear.value;
+        const years = [...new Set(allDiplomas.map(item => item.academic_year).filter(Boolean))].sort().reverse();
+        elFilterYear.innerHTML = '<option value="">Semua Tahun</option>';
+        years.forEach(year => elFilterYear.add(new Option(year, year)));
+        elFilterYear.value = years.includes(selected) ? selected : "";
     }
 
     function renderTable(data) {
