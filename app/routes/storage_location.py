@@ -3,6 +3,7 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from app.errors import DataInUseError
 from app.services.storage_location import (
     create_storage_location, 
     update_storage_location, 
@@ -79,22 +80,25 @@ def update_route() -> ResponseReturnValue:
 @storage_location_bp.route('/delete', methods=['POST'])
 @jwt_required()
 def delete_route() -> ResponseReturnValue:
-    """Menghapus lokasi simpan.
+    """Menghapus lokasi simpan yang sudah tidak dipakai arsip.
 
     Body JSON: `id`.
 
     Returns:
-        200 dengan data yang dihapus, atau 404 bila tidak ditemukan.
+        200 dengan data yang dihapus, 400 bila lokasi masih dipakai arsip,
+        atau 404 bila tidak ditemukan.
     """
     data = request.json
     loc_id = data.get('id')
-    
+
     db_session: Session = db.SessionLocal()
     try:
         deleted = delete_storage_location(db_session, loc_id)
         if not deleted:
             return jsonify({"error": "Location not found"}), 404
         return jsonify(deleted.to_dict()), 200
+    except DataInUseError as e:
+        return jsonify({"error": str(e)}), 400
     finally:
         db_session.close()
 
